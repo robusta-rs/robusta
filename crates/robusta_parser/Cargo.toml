@@ -1,0 +1,26 @@
+[package]
+name = "robusta_parser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "A hand-written recursive-descent Java parser for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+rustc-hash.workspace = true
+robusta_span.workspace = true
+robusta_syntax.workspace = true
+robusta_diagnostics.workspace = true
+robusta_allocator.workspace = true
+robusta_ast.workspace = true
+robusta_lexer.workspace = true
+
+[dev-dependencies]
+robusta_ast_visit.workspace = true

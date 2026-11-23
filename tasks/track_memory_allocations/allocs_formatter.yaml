@@ -1,0 +1,21 @@
+InventoryLedger.java:
+  file size: 17473 # 17.47 kB
+  sys allocs: 117
+  sys reallocs: 19
+  sys deallocs: 116
+  sys alloc bytes: 30704 # 30.70 kB
+  sys peak growth: 18549 # 18.55 kB
+  arena allocs: 468
+  arena reallocs: 2
+  arena size: 270096 # 270.10 kB
+
+RetryPolicy.java:
+  file size: 5348 # 5.35 kB
+  sys allocs: 32
+  sys reallocs: 13
+  sys deallocs: 31
+  sys alloc bytes: 7257 # 7.26 kB
+  sys peak growth: 5912 # 5.91 kB
+  arena allocs: 94
+  arena reallocs: 1
+  arena size: 144040 # 144.04 kB

@@ -1,0 +1,15 @@
+[package]
+name = "robusta_plugin_fake"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Stand-in for the robusta binary that the Gradle and Maven plugin functional tests bundle."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "robusta_plugin_fake"
+test = false
+doctest = false

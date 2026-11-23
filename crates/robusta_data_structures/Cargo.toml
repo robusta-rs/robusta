@@ -1,0 +1,21 @@
+[package]
+name = "robusta_data_structures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Data structures used across robusta crates."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+# Doctests must be enabled for this crate as they are used to run compilation failure tests
+doctest = true
+
+[features]
+default = []
+assert_unchecked = []
+code_buffer = ["assert_unchecked"]
+types = []

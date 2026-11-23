@@ -1,0 +1,23 @@
+[package]
+name = "website_formatter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Generates the website's formatter command and configuration references."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "website_formatter"
+doctest = false
+
+[dependencies]
+bpaf = { workspace = true, features = ["docgen"] }
+pico-args.workspace = true
+robusta_cli.workspace = true
+website_common.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

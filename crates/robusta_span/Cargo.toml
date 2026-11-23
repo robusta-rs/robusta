@@ -1,0 +1,18 @@
+[package]
+name = "robusta_span"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Source spans and related helpers for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+robusta_allocator.workspace = true
+robusta_ast_macros.workspace = true

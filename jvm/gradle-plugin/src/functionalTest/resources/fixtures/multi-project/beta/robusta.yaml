@@ -1,0 +1,3 @@
+lint:
+  rules:
+    modifier-order: warn

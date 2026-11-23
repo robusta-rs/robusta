@@ -1,0 +1,29 @@
+[package]
+name = "website_linter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Generates the robusta.yaml JSON Schema and the website's linter command, configuration, and rule references."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "website_linter"
+doctest = false
+
+[dependencies]
+bpaf = { workspace = true, features = ["docgen"] }
+cow-utils.workspace = true
+pico-args.workspace = true
+project-root.workspace = true
+robusta_cli.workspace = true
+robusta_linter = { workspace = true, features = ["ruledocs"] }
+schemars.workspace = true
+website_common.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+robusta_formatter.workspace = true
+serde_json.workspace = true

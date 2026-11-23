@@ -1,0 +1,248 @@
+# Adapted from https://github.com/oxc-project/oxc/blob/050d1328112e3546635fe7352b726995fa2524ef/Cargo.toml
+
+[workspace]
+resolver = "3"
+# `jvm/` is the Gradle build root rather than a Cargo package, so it sits
+# outside the workspace entirely and needs no exclude.
+members = ["apps/*", "crates/*", "tasks/*"]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Thomas Ropke"]
+categories = ["development-tools"]
+homepage = "https://robusta.rs"
+keywords = ["Java", "formatter", "linter"]
+license = "MIT"
+repository = "https://github.com/robusta-rs/robusta"
+description = "A fast, Rust-native Java formatter and linter."
+
+edition = "2024"
+# MSRV Policy N-2 (12 weeks).
+# Balance between the core contributors enjoying the latest version of rustc, while waiting for dependents to catch up.
+rust-version = "1.97.0"
+
+[workspace.dependencies]
+bpaf = { version = "0.9.26", features = ["derive"] }
+robusta_span = { path = "crates/robusta_span" }
+robusta_ast_visit = { path = "crates/robusta_ast_visit" }
+robusta_syntax = { path = "crates/robusta_syntax" }
+robusta_javadoc = { path = "crates/robusta_javadoc" }
+robusta_allocator = { path = "crates/robusta_allocator" }
+robusta_data_structures = { path = "crates/robusta_data_structures" }
+robusta_cli = { path = "apps/robusta" }
+robusta_diagnostics = { path = "crates/robusta_diagnostics" }
+robusta_config = { path = "crates/robusta_config" }
+robusta_lexer = { path = "crates/robusta_lexer" }
+robusta_ast = { path = "crates/robusta_ast" }
+robusta_ast_macros = { path = "crates/robusta_ast_macros" }
+robusta_parser = { path = "crates/robusta_parser" }
+robusta_semantic = { path = "crates/robusta_semantic" }
+robusta_str = { path = "crates/robusta_str" }
+robusta_formatter_core = { path = "crates/robusta_formatter_core" }
+robusta_formatter = { path = "crates/robusta_formatter" }
+robusta_formatter_tests = { path = "crates/robusta_formatter_tests" }
+robusta_linter = { path = "crates/robusta_linter" }
+robusta_macros = { path = "crates/robusta_macros" }
+robusta_tasks_common = { path = "tasks/common" }
+website_common = { path = "tasks/website_common" }
+allocator-api2 = { version = "=0.2.21", default-features = false, features = ["alloc"] }
+bitflags = "2.13.0"
+bytecount = "0.6.9"
+cow-utils = "0.1.3"
+criterion2 = { version = "3.0.4", default-features = false }
+editorconfig-parser = "0.0.4"
+fast-glob = "1.1.1"
+handlebars = "6.4.2"
+hashbrown = { version = "0.17.1", default-features = false, features = ["allocator-api2"] }
+humansize = "2.1.3"
+ignore = "0.4.30"
+indexmap = "2"
+insta = "1.48.0"
+itertools = "0.15.0"
+itoa = "1.0.18"
+lazy-regex = "3.6.0"
+markdown = "1.0.0"
+memchr = "2.8.2"
+mimalloc-safe = "0.1.64"
+oxc_index = { version = "5.0.0", features = ["nonmax"] }
+percent-encoding = "2.3.2"
+phf = "0.14.0"
+phf_codegen = "0.14.0"
+pico-args = "0.5.0"
+prettyplease = "0.3.0"
+proc-macro2 = "1"
+project-root = "0.2.2"
+quickcheck = "1.1.0"
+quote = "1"
+rand = "0.10.2"
+rayon = "1.12.0"
+rust-lapper = "2.0.0"
+rustc-hash = "2"
+schemars = { package = "oxc-schemars", version = "0.9.1" }
+self_cell = "1.2.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-saphyr = { version = "2.0.0", default-features = false, features = ["deserialize", "serialize"] }
+similar = "3.1.1"
+simdutf8 = { version = "0.1.5", features = ["aarch64_neon"] }
+smallvec = { version = "1.15.2", features = ["union"] }
+syn = { version = "3", default-features = false }
+tempfile = "3.27.0"
+textwrap = "0.16.2"
+unicode-general-category = "1.1.0"
+unicode-segmentation = "1.13.3"
+unicode-width = "0.2"
+walkdir = "2.5.0"
+
+[workspace.lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+non_ascii_idents = "warn"
+unit_bindings = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(coverage_nightly)'] }
+tail_expr_drop_order = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unused_unsafe = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# restriction
+allow_attributes = "warn"
+# Explicitness around `clone` increases readability and avoids mindless
+# heap allocation by accident.
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+empty_drop = "warn"
+empty_enum_variants_with_brackets = "warn"
+empty_structs_with_brackets = "warn"
+# Don't name a type `Error` when it implements `std::error::Error`.
+error_impl_error = "warn"
+exit = "warn"
+filetype_is_file = "warn"
+# Casting a function item/pointer to a number is almost always a mistake (a missing call).
+fn_to_numeric_cast_any = "warn"
+# Performance: avoid the intermediate `String` allocation of `s.push_str(&format!(..))`.
+format_push_string = "warn"
+get_unwrap = "warn"
+infinite_loop = "warn"
+map_with_unused_argument_over_ranges = "warn"
+non_zero_suggestions = "warn"
+pathbuf_init_then_push = "warn"
+precedence_bits = "warn"
+print_stdout = "warn" # Must be opt-in
+print_stderr = "warn" # Must be opt-in
+pub_underscore_fields = "warn"
+rc_buffer = "warn"
+rc_mutex = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+# Mutually exclusive with `mod_module_files`; `mod.rs` files give better
+# fuzzy searches on module entries.
+self_named_module_files = "warn"
+todo = "warn"
+# `return Err(x)?` obscures a plain `return Err(x.into())`.
+try_err = "warn"
+undocumented_unsafe_blocks = "warn"
+unimplemented = "warn"
+unnecessary_safety_comment = "warn"
+unnecessary_self_imports = "warn"
+unused_result_ok = "warn"
+# pedantic — enabled wholesale; rules are only disabled globally when they are
+# false positives, chaotic, or do not make sense for this codebase.
+pedantic = { level = "warn", priority = -1 }
+struct_excessive_bools = "allow"
+too_many_lines = "allow"
+# `#[must_use]` everywhere creates too much noise and hinders readability
+# without adding much value.
+must_use_candidate = "allow"
+# Too annoying, imports are by name anyway.
+wildcard_imports = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+fn_params_excessive_bools = "allow"
+complexity = { level = "warn", priority = -1 }
+too_many_arguments = "allow"
+non_std_lazy_statics = "allow"
+result_large_err = "allow"
+# nursery
+nursery = { level = "warn", priority = -1 }
+# `const` functions do not make sense here because this is not a `const`
+# library; the rule pushes `const` to be added blindly without reason.
+missing_const_for_fn = "allow"
+option_if_let_else = "allow"
+or_fun_call = "allow"
+cognitive_complexity = "allow"
+non_send_fields_in_send_ty = "allow"
+use_self = "allow"
+significant_drop_tightening = "allow"
+branches_sharing_code = "allow"
+fallible_impl_from = "allow"
+useless_let_if_seq = "allow"
+impl_trait_in_params = "allow"
+significant_drop_in_scrutinee = "warn"
+iter_on_single_items = "warn"
+unused_peekable = "warn"
+too_long_first_doc_paragraph = "warn"
+suspicious_operation_groupings = "warn"
+redundant_clone = "warn"
+# cargo
+cargo = { level = "warn", priority = -1 }
+multiple_crate_versions = "allow"
+
+[patch.crates-io]
+# This patch has the fix for a panic on a list item that ends in unclosed code, see wooorm/markdown-rs#267
+markdown = { git = "https://github.com/wooorm/markdown-rs", rev = "ccc6ed01ea1ca7b21a610cd6b6c92e3135ded15e" }
+
+[profile.dev]
+# Disabling debug info speeds up local and CI builds,
+# and we don't rely on it for debugging that much.
+debug = false
+
+[profile.test]
+# Disabling debug info speeds up local and CI builds,
+# and we don't rely on it for debugging that much.
+debug = false
+
+[profile.dev.package]
+# Compile macros with some optimizations to make consuming crates build faster
+robusta_macros.opt-level = 1
+robusta_ast_macros.opt-level = 1
+# Compile insta and its dependencies in release mode for faster snapshot tests
+# See: https://insta.rs/docs/quickstart/#optional-faster-runs
+insta.opt-level = 3
+similar.opt-level = 3
+
+[profile.release]
+# Configurations explicitly listed here for clarity.
+# Using the best options for performance.
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols" # Set to `false` for debug information
+debug = false # Set to `true` for debug information
+panic = "abort" # Let it crash and force ourselves to write safe Rust
+
+# Profile used for release mode, but with debugging information for profiling
+# and debugging. Use `cargo build --profile=release-with-debug` to build with this profile.
+[profile.release-with-debug]
+inherits = "release"
+strip = false # Keep debug information in binary
+debug = true # Include maximum amount of debug information
+
+# Profile for the corpus conformance task (`cargo coverage`). Release-derived
+# for throughput, but keeps the correctness checks a debug build would give.
+[profile.coverage]
+inherits = "release"
+# The conformance harnesses catch panics.
+# Inheriting the release profile's `panic = "abort"` would prevent `catch_unwind` working.
+panic = "unwind"
+opt-level = 2 # Compile faster
+codegen-units = 256 # Compile faster
+lto = false # Compile faster: cross-crate LTO re-optimizes the whole binary on every rebuild
+debug-assertions = true # Make sure `debug_assert!`s pass
+overflow-checks = true # Catch arithmetic overflow errors
+
+# Profile for linting with release mode-like settings.
+# Catches lint errors which only appear in release mode.
+# `cargo lint --profile dev-no-debug-assertions` is about 35% faster than `cargo lint --release`.
+[profile.dev-no-debug-assertions]
+inherits = "dev"
+debug-assertions = false

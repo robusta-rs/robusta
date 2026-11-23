@@ -1,0 +1,431 @@
+name: Release CLI
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_maven_central:
+        description: Upload a signed deployment for manual release in Maven Central
+        required: false
+        type: boolean
+        default: false
+      publish_gradle_plugin_portal:
+        description: Publish the Gradle plugin to the Gradle Plugin Portal
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*.*.*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.version.outputs.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve workspace version
+        id: version
+        env:
+          PUBLISH_MAVEN_CENTRAL: ${{ inputs.publish_maven_central || false }}
+          PUBLISH_GRADLE_PLUGIN_PORTAL: ${{ inputs.publish_gradle_plugin_portal || false }}
+        run: |
+          version=$(sed -nE 's/^version = "([^"]+)"/\1/p' Cargo.toml | head -n1)
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid workspace version::Cargo.toml has '$version'"
+            exit 1
+          fi
+
+          cargo metadata --locked --no-deps --format-version 1 >/dev/null
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            tag_version=${GITHUB_REF_NAME#v}
+            if [[ "$tag_version" == "$GITHUB_REF_NAME" || "$tag_version" != "$version" ]]; then
+              echo "::error title=Release version mismatch::Tag '$GITHUB_REF_NAME' does not match workspace version '$version'"
+              exit 1
+            fi
+          fi
+
+          if [[ "$PUBLISH_MAVEN_CENTRAL" == "true" || "$PUBLISH_GRADLE_PLUGIN_PORTAL" == "true" ]]; then
+            release_tag="v$version"
+            tag_commit=$(git rev-list -n1 "$release_tag" 2>/dev/null || true)
+            current_commit=$(git rev-parse HEAD)
+            if [[ -z "$tag_commit" || "$tag_commit" != "$current_commit" ]]; then
+              echo "::error title=Publishing requires a version tag::$release_tag must point at the selected commit"
+              exit 1
+            fi
+          fi
+
+          echo "number=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
+            binary_suffix: ""
+            file_pattern: 'ELF 64-bit LSB.*x86-64'
+            static_linked: true
+          - os: ubuntu-24.04-arm
+            host: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-musl
+            binary_suffix: ""
+            file_pattern: 'ELF 64-bit LSB.*(ARM aarch64|ARM64|AArch64)'
+            static_linked: true
+          - os: macos-15-intel
+            host: x86_64-apple-darwin
+            target: x86_64-apple-darwin
+            binary_suffix: ""
+            file_pattern: 'Mach-O 64-bit executable x86_64'
+            static_linked: false
+          - os: macos-15
+            host: aarch64-apple-darwin
+            target: aarch64-apple-darwin
+            binary_suffix: ""
+            file_pattern: 'Mach-O 64-bit executable arm64'
+            static_linked: false
+          - os: windows-latest
+            host: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-msvc
+            binary_suffix: ".exe"
+            file_pattern: 'PE32\+ executable.*x86-64'
+            static_linked: false
+    env:
+      TARGET: ${{ matrix.target }}
+      VERSION: ${{ needs.version.outputs.number }}
+      BINARY_SUFFIX: ${{ matrix.binary_suffix }}
+      FILE_PATTERN: ${{ matrix.file_pattern }}
+      STATIC_LINKED: ${{ matrix.static_linked }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Verify native host
+        env:
+          EXPECTED_HOST: ${{ matrix.host }}
+        run: |
+          rustc -vV
+          host=$(rustc -vV | sed -n 's/^host: //p')
+          test "$host" = "$EXPECTED_HOST"
+
+      - name: Install musl toolchain
+        if: ${{ endsWith(matrix.target, '-linux-musl') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
+
+      - name: Add Rust target
+        run: rustup target add "$TARGET"
+
+      # The target-specific compiler variables make both rustc's final link and
+      # libmimalloc-sys2's CMake build use musl rather than the host glibc toolchain.
+      - name: Build release binary
+        env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CXX_x86_64_unknown_linux_musl: musl-gcc
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
+          CXX_aarch64_unknown_linux_musl: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+        run: cargo build --release --locked --bin robusta --target "$TARGET"
+
+      - name: Smoke test product
+        run: |
+          binary="target/$TARGET/release/robusta$BINARY_SUFFIX"
+          test -f "$binary"
+
+          actual_version=$("$binary" --version)
+          expected_version="Version: $VERSION"
+          if [[ "$actual_version" != "$expected_version" ]]; then
+            echo "::error title=Binary version mismatch::Expected '$expected_version', got '$actual_version'"
+            exit 1
+          fi
+
+          "$binary" --help >/dev/null
+          printf 'class A{long n=10l;}\n' |
+            "$binary" format --fix --stdin-filepath Example.java > actual.java
+          printf 'class A {\n  long n = 10l;\n}\n' > expected.java
+          diff -u expected.java actual.java
+
+      - name: Verify artifact architecture
+        run: |
+          binary="target/$TARGET/release/robusta$BINARY_SUFFIX"
+          description=$(file "$binary")
+          echo "$description"
+          if ! grep -Eq "$FILE_PATTERN" <<< "$description"; then
+            echo "::error title=Unexpected binary architecture::$description"
+            exit 1
+          fi
+          if [[ "$STATIC_LINKED" == "true" ]] &&
+            ! grep -Eq '(statically linked|static-pie linked)' <<< "$description"; then
+            echo "::error title=Dynamic musl artifact::$description"
+            exit 1
+          fi
+
+      - name: Prepare checksummed artifact
+        run: |
+          source="target/$TARGET/release/robusta$BINARY_SUFFIX"
+          artifact_dir="dist/robusta-$VERSION-$TARGET"
+          artifact_name="robusta-$TARGET$BINARY_SUFFIX"
+          mkdir -p "$artifact_dir"
+          cp "$source" "$artifact_dir/$artifact_name"
+
+          # The binary carries Robusta's own code compiled into it, so the
+          # archive ships the licence that covers it.
+          cp LICENSE "$artifact_dir/LICENSE"
+
+          if command -v sha256sum >/dev/null 2>&1; then
+            (cd "$artifact_dir" && sha256sum "$artifact_name") > "$artifact_dir/$artifact_name.sha256"
+            (cd "$artifact_dir" && sha256sum --check "$artifact_name.sha256")
+          else
+            (cd "$artifact_dir" && shasum -a 256 "$artifact_name") > "$artifact_dir/$artifact_name.sha256"
+            (cd "$artifact_dir" && shasum -a 256 --check "$artifact_name.sha256")
+          fi
+
+      - name: Upload checksummed binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: error
+          name: robusta-${{ needs.version.outputs.number }}-${{ matrix.target }}
+          path: dist/robusta-${{ needs.version.outputs.number }}-${{ matrix.target }}
+          retention-days: 30
+
+  bundle-gradle-plugin:
+    name: Bundle Gradle plugin
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The released plugin claims Java 8, 11, and 17 consumer daemons, and `check` verifies
+      # each one. The last entry becomes JAVA_HOME and builds the plugin itself.
+      - name: Provision consumer JVMs
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: |
+            8
+            11
+            17
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: robusta-${{ needs.version.outputs.number }}-*
+          path: dist/native
+          merge-multiple: true
+
+      - name: Build plugin test fake
+        run: cargo build --locked --bin robusta_plugin_fake
+
+      - name: Assemble and test self-contained plugin
+        working-directory: jvm
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/dist/native/robusta-x86_64-unknown-linux-musl"
+          # `check` is qualified: this job covers the Gradle plugin, and an
+          # unqualified `check` from the `jvm/` build root would also pull in
+          # :maven-plugin:functionalTest, which drives a real mvnw build.
+          ./gradlew clean :gradle-plugin:check :check \
+            :gradle-plugin:publicationTest :gradle-plugin:validatePlugins \
+            :gradle-plugin:assembleBundledPlugin \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
+            "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
+            -Drobusta.real.bundled=true \
+            "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME_11_X64,JAVA_HOME_17_X64" \
+            -PrequireAllConsumerJvms=true
+
+      - name: Record bundle size
+        working-directory: jvm
+        run: |
+          # `publicationTest` publishes every publication, so `build/libs` also
+          # holds the sources and javadoc jars. Name the one being released.
+          plugin_jar="gradle-plugin/build/libs/robusta-gradle-plugin-$VERSION.jar"
+          test -f "$plugin_jar"
+          bytes=$(wc -c < "$plugin_jar" | tr -d ' ')
+          echo "Gradle plugin bundle: $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bundled Gradle plugin
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: error
+          name: robusta-gradle-plugin-${{ needs.version.outputs.number }}
+          path: jvm/gradle-plugin/build/libs/robusta-gradle-plugin-${{ needs.version.outputs.number }}.jar
+          retention-days: 30
+
+  # A separate job keeps the Maven functional suite's real `mvnw` build off the
+  # Gradle plugin's path. The Maven plugin has no Gradle Plugin Portal coordinate.
+  bundle-maven-plugin:
+    name: Bundle Maven plugin
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Provision JDK
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: robusta-${{ needs.version.outputs.number }}-*
+          path: dist/native
+          merge-multiple: true
+
+      - name: Build plugin test fake
+        run: cargo build --locked --bin robusta_plugin_fake
+
+      - name: Assemble and test self-contained plugin
+        working-directory: jvm
+        run: |
+          ./gradlew clean :maven-plugin:check :maven-plugin:assembleBundledPlugin \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
+            "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
+            -Drobusta.real.bundled=true
+
+      - name: Record bundle size
+        working-directory: jvm
+        run: |
+          plugin_jar="maven-plugin/build/libs/robusta-maven-plugin-$VERSION.jar"
+          test -f "$plugin_jar"
+          bytes=$(wc -c < "$plugin_jar" | tr -d ' ')
+          echo "Maven plugin bundle: $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bundled Maven plugin
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: error
+          name: robusta-maven-plugin-${{ needs.version.outputs.number }}
+          path: jvm/maven-plugin/build/libs/robusta-maven-plugin-${{ needs.version.outputs.number }}.jar
+          retention-days: 30
+
+  # Every plugin upload lives here, in one job that needs both bundle jobs, so a
+  # test failure in either plugin stops the release of both. The Gradle Plugin
+  # Portal refuses a second upload of a version it already has, so that
+  # irreversible step runs last, after the reversible Central deployments.
+  publish:
+    name: Publish plugins
+    needs: [version, build, bundle-gradle-plugin, bundle-maven-plugin]
+    if: ${{ inputs.publish_maven_central || inputs.publish_gradle_plugin_portal }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Provision JDK
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: robusta-${{ needs.version.outputs.number }}-*
+          path: dist/native
+          merge-multiple: true
+
+      # Rebuilt rather than downloaded, because a Central deployment needs the
+      # whole publication and not just the main jar. Both plugins normalize
+      # their archives, so a rebuild from the same staged binaries reproduces
+      # the jars the bundle jobs tested. Assembling both before either upload
+      # runs each plugin's bundle verification while nothing has been sent yet,
+      # and keeps the credentials below out of a step that builds.
+      - name: Assemble both plugin bundles
+        working-directory: jvm
+        run: |
+          ./gradlew :gradle-plugin:assembleBundledPlugin :maven-plugin:assembleBundledPlugin \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
+
+      - name: Upload Maven Central deployments
+        if: ${{ inputs.publish_maven_central }}
+        working-directory: jvm
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signAllPublications: "true"
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        run: |
+          if [[ -z "$ORG_GRADLE_PROJECT_mavenCentralUsername" ||
+            -z "$ORG_GRADLE_PROJECT_mavenCentralPassword" ||
+            -z "$ORG_GRADLE_PROJECT_signingInMemoryKey" ]]; then
+            echo "::error title=Missing Maven Central credentials::Configure MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD, and MAVEN_SIGNING_KEY repository secrets"
+            exit 1
+          fi
+          # One invocation per plugin, so each uploads its own deployment.
+          ./gradlew :gradle-plugin:publishToMavenCentral \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
+          ./gradlew :maven-plugin:publishToMavenCentral \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
+
+      - name: Validate and publish Gradle plugin
+        if: ${{ inputs.publish_gradle_plugin_portal }}
+        working-directory: jvm
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        run: |
+          if [[ -z "$GRADLE_PUBLISH_KEY" || -z "$GRADLE_PUBLISH_SECRET" ]]; then
+            echo "::error title=Missing Gradle Plugin Portal credentials::Configure GRADLE_PUBLISH_KEY and GRADLE_PUBLISH_SECRET repository secrets"
+            exit 1
+          fi
+          ./gradlew :gradle-plugin:publishPlugins --validate-only \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
+          ./gradlew :gradle-plugin:publishPlugins \
+            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
+
+  github-release:
+    name: Create GitHub release
+    needs: [version, build, bundle-gradle-plugin, bundle-maven-plugin]
+    # A publishing run dispatched later from the tag would find the release already made.
+    if: ${{ github.event_name == 'push' }}
+    permissions:
+      contents: write # for `gh release create`
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download native artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: robusta-${{ needs.version.outputs.number }}-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes

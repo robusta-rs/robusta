@@ -1,0 +1,154 @@
+use crate::ast_nodes::AstNode;
+use crate::formatter::prelude::*;
+use crate::formatter::trivia::format_documentation_comments_before;
+use crate::print::annotations::format_modifiers_stacked;
+use crate::print::array_dimension::format_array_type_dimensions;
+use crate::print::class::{FormatDeclarationClause, format_declaration_header};
+use crate::print::parameters::format_parameter_list;
+use crate::print::semicolon::FormatContentWithSemicolon;
+use crate::print::{FormatWrite, format_name_after_type, format_name_after_type_with_indent};
+use crate::utils::assignment_like::AssignmentLike;
+use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
+use crate::utils::statement_body::write_head_body_separator;
+use robusta_allocator::Vec;
+use robusta_ast::{
+    AnnotationInterfaceElementDeclaration, ArrayTypeDimension, CompactConstructorDeclaration,
+    ConstructorDeclaration, FormalParameters, MethodDeclaration, MethodResult, Modifier, Type,
+    TypeParameters,
+};
+use robusta_span::GetSpan;
+
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodDeclaration<'a>> {
+    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let method = self.inner();
+        let header_end = format_signature(
+            f,
+            &Signature {
+                modifiers: self.modifiers(),
+                type_params: self.type_params(),
+                return_type: Some(self.return_type()),
+                name: self.name(),
+                parameters: self.params(),
+                dimensions: Some(self.post_paren_dimensions()),
+                throws: self.throws(),
+            },
+        );
+        if let Some(body) = self.body() {
+            write_head_body_separator(body.span.start, f);
+            body.fmt(f);
+        } else {
+            // The header, already printed, is the content before the `;`.
+            FormatContentWithSemicolon::new(&(), header_end, method.span.end).fmt(f);
+        }
+    }
+}
+
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ConstructorDeclaration<'a>> {
+    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let constructor = self.inner();
+        format_signature(
+            f,
+            &Signature {
+                modifiers: self.modifiers(),
+                type_params: self.type_params(),
+                return_type: None,
+                name: self.name(),
+                parameters: self.params(),
+                dimensions: None,
+                throws: self.throws(),
+            },
+        );
+        write_head_body_separator(constructor.body.span.start, f);
+        self.body().fmt(f);
+    }
+}
+
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CompactConstructorDeclaration<'a>> {
+    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let node = self.inner();
+        format_modifiers_stacked(f, &self.modifiers());
+        format_content_without_comments_after(&self.name(), node.name.span.end, f);
+        write_head_body_separator(node.body.span.start, f);
+        self.body().fmt(f);
+    }
+}
+
+/// A method or constructor header through its `throws` clause.
+struct Signature<'parent, 'a, Name> {
+    modifiers: AstNode<'parent, 'a, Vec<'a, Modifier<'a>>>,
+    type_params: Option<AstNode<'parent, 'a, TypeParameters<'a>>>,
+    /// `None` for a constructor.
+    return_type: Option<AstNode<'parent, 'a, MethodResult<'a>>>,
+    name: AstNode<'parent, 'a, Name>,
+    parameters: AstNode<'parent, 'a, FormalParameters<'a>>,
+    /// A method's obsolete dimensions after the parameter list (`int f()[]`).
+    dimensions: Option<AstNode<'parent, 'a, Vec<'a, ArrayTypeDimension<'a>>>>,
+    throws: AstNode<'parent, 'a, Vec<'a, Type<'a>>>,
+}
+
+/// Returns the end of the header, where the body or `;` follows.
+fn format_signature<'parent, 'a, Name: GetSpan>(
+    f: &mut JavaFormatter<'_, 'a>,
+    signature: &Signature<'parent, 'a, Name>,
+) -> u32
+where
+    AstNode<'parent, 'a, Name>: Format<'a, JavaFormatContext<'a>>,
+{
+    format_modifiers_stacked(f, &signature.modifiers);
+    if let Some(type_params) = &signature.type_params {
+        type_params.fmt(f);
+        space().fmt(f);
+    }
+    let Some(return_type) = signature.return_type else {
+        return format_name_through_throws(f, signature);
+    };
+    format_content_without_comments_after(&return_type, return_type.span().end, f);
+    let mut header_end = 0;
+    let rest = format_once(|f| header_end = format_name_through_throws(f, signature));
+    format_name_after_type_with_indent(signature.name.span().start, &rest, true, f);
+    header_end
+}
+
+/// The name, parameters and `throws` clause. Returns the header's end.
+fn format_name_through_throws<'parent, 'a, Name: GetSpan>(
+    f: &mut JavaFormatter<'_, 'a>,
+    signature: &Signature<'parent, 'a, Name>,
+) -> u32
+where
+    AstNode<'parent, 'a, Name>: Format<'a, JavaFormatContext<'a>>,
+{
+    let name = &signature.name;
+    name.fmt(f);
+    format_documentation_comments_before(name.span().end, signature.parameters.span.start, f);
+    let params_end = signature.parameters.span.end;
+    let head_end = signature
+        .dimensions
+        .and_then(|dims| dims.last().map(|last| last.span.end))
+        .unwrap_or(params_end);
+    let clause = FormatDeclarationClause::types("throws", signature.throws);
+    format_declaration_header(f, head_end, clause, |f| {
+        let list = format_parameter_list(f, &signature.parameters);
+        if let Some(dimensions) = signature.dimensions {
+            format_array_type_dimensions(f, params_end, &dimensions);
+        }
+        list
+    })
+}
+
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, AnnotationInterfaceElementDeclaration<'a>> {
+    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let element = AssignmentLike::AnnotationInterfaceElementDeclaration(self);
+        let content_end = self
+            .default_value
+            .as_ref()
+            .map_or_else(|| element.left_end(f), |default_value| default_value.span().end);
+        // The type stays outside the assignment layout, so a broken `default`
+        // value stays one level below a moved name.
+        let content = format_once(|f| {
+            format_modifiers_stacked(f, &self.modifiers());
+            format_content_without_comments_after(&self.ty(), self.ty.span().end, f);
+            format_name_after_type(self.name.span.start, &element, f);
+        });
+        FormatContentWithSemicolon::new(&content, content_end, self.span.end).fmt(f);
+    }
+}

@@ -1,0 +1,28 @@
+[package]
+name = "robusta_semantic"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "File-local scopes, symbols, and references for robusta's Java AST."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+oxc_index.workspace = true
+robusta_allocator.workspace = true
+robusta_ast.workspace = true
+robusta_ast_visit.workspace = true
+robusta_javadoc.workspace = true
+robusta_span.workspace = true
+robusta_str.workspace = true
+robusta_syntax.workspace = true
+self_cell.workspace = true
+
+[dev-dependencies]
+robusta_parser.workspace = true

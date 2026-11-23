@@ -1,0 +1,26 @@
+[package]
+name = "robusta_diagnostics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Diagnostics for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+robusta_span.workspace = true
+robusta_syntax.workspace = true
+
+bytecount.workspace = true
+itoa.workspace = true
+memchr.workspace = true
+smallvec.workspace = true
+textwrap.workspace = true
+unicode-segmentation.workspace = true
+unicode-width.workspace = true

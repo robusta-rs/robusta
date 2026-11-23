@@ -1,0 +1,15 @@
+[package]
+name = "robusta_formatter_tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Fixture harness shared by robusta's formatter tests."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+test = false

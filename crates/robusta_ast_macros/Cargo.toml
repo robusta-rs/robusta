@@ -1,0 +1,22 @@
+[package]
+name = "robusta_ast_macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Procedural macros for robusta's Java AST."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+proc-macro = true
+test = false
+doctest = false
+
+[dependencies]
+phf.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+syn = { workspace = true, features = ["full", "parsing", "printing", "proc-macro", "clone-impls"] }

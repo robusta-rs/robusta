@@ -1,0 +1,1265 @@
+parser_misc Summary:
+AST Parsed     : 24/24 (100.00%)
+Positive Passed: 24/24 (100.00%)
+Negative Passed: 173/173 (100.00%)
+
+  x an array creation cannot use explicit constructor type arguments
+   ,-[misc/fail/annotated-array-creation-constructor-type-arguments.java:1:38]
+ 1 | class A { void f() { x = new <T> Box @Y [2]; } }
+   :                                      ^
+   `----
+
+  x an array creation cannot use the diamond `<>`
+   ,-[misc/fail/annotated-array-creation-diamond.java:1:36]
+ 1 | class A { void f() { x = new Box<> @Y [2]; } }
+   :                                    ^
+   `----
+
+  x a primitive array creation needs an array dimension
+   ,-[misc/fail/annotated-array-creation-parentheses.java:1:34]
+ 1 | class A { void f() { x = new int @Y (); } }
+   :                                  ^
+   `----
+
+  x a qualified `new` creates an inner class, not an array
+   ,-[misc/fail/annotated-array-creation-qualified-new.java:1:42]
+ 1 | class A { void f() { x = outer.new Inner @Y [2]; } }
+   :                                          ^
+   `----
+
+  x a sized array dimension cannot follow an empty one
+   ,-[misc/fail/annotated-array-creation-sized-after-empty.java:1:40]
+ 1 | class A { void f() { x = new int[] @Y [2]; } }
+   :                                        ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/annotated-class-literal.java:1:26]
+ 1 | class A { void f() { r = @A String.class; } }
+   :                          ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/annotated-name-expression.java:1:26]
+ 1 | class A { void f() { r = @A value; } }
+   :                          ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/annotated-primitive-method-reference.java:1:26]
+ 1 | class A { void f() { r = @A int::valueOf; } }
+   :                          ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/annotation-array-double-comma.java:1:7]
+ 1 | @A({1,,}) class C {}
+   :       ^
+   `----
+
+  x expected `}` to close the element value array
+   ,-[misc/fail/annotation-array-leading-and-trailing-comma.java:1:6]
+ 1 | @A({,1,}) class C {}
+   :      |
+   :      `-- `}` to close the element value array expected here
+   `----
+
+  x expected `}` to close the element value array
+   ,-[misc/fail/annotation-array-leading-comma.java:1:6]
+ 1 | @A({,1}) class C {}
+   :      |
+   :      `-- `}` to close the element value array expected here
+   `----
+
+  x expected `}` to close the element value array
+   ,-[misc/fail/annotation-array-two-commas.java:1:6]
+ 1 | @A({,,}) class C {}
+   :      |
+   :      `-- `}` to close the element value array expected here
+   `----
+
+  x expected `)` after the annotation arguments
+   ,-[misc/fail/annotation-element-value-assignment.java:1:18]
+ 1 | class A { @Foo(x += 1) int a; }
+   :                  ^|
+   :                   `-- `)` after the annotation arguments expected here
+   `----
+
+  x an array creation cannot use explicit constructor type arguments
+   ,-[misc/fail/array-creation-constructor-type-arguments.java:1:35]
+ 1 | class A { void f() { new <String> int[3]; } }
+   :                                   ^^^
+   `----
+
+  x an array creation cannot use the diamond `<>`
+   ,-[misc/fail/array-creation-diamond.java:1:36]
+ 1 | class A { void f() { x = new List<>[2]; } }
+   :                                    ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/array-creation-initializer-double-comma.java:1:34]
+ 1 | class A { int[] a = new int[] {1,,}; }
+   :                                  ^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-creation-initializer-double-comma.java:1:38]
+ 1 | class A { int[] a = new int[] {1,,}; }
+   :                                      ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-creation-initializer-leading-and-trailing-comma.java:1:33]
+ 1 | class A { int[] a = new int[] {,1,}; }
+   :                                 |
+   :                                 `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-creation-initializer-leading-and-trailing-comma.java:1:38]
+ 1 | class A { int[] a = new int[] {,1,}; }
+   :                                      ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-creation-initializer-leading-comma.java:1:33]
+ 1 | class A { int[] a = new int[] {,1}; }
+   :                                 |
+   :                                 `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-creation-initializer-leading-comma.java:1:37]
+ 1 | class A { int[] a = new int[] {,1}; }
+   :                                     ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-creation-initializer-two-commas.java:1:33]
+ 1 | class A { int[] a = new int[] {,,}; }
+   :                                 |
+   :                                 `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-creation-initializer-two-commas.java:1:37]
+ 1 | class A { int[] a = new int[] {,,}; }
+   :                                     ^
+   `----
+
+  x a sized array dimension cannot follow an empty one
+   ,-[misc/fail/array-creation-sized-after-empty.java:1:36]
+ 1 | class A { void f() { x = new int[][2]; } }
+   :                                    ^
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/array-creation-statement.java:1:22]
+ 1 | class A { void f() { new int[2]; } }
+   :                      ^^^^^^^^^^
+   `----
+
+  x expected `{` to open the array initializer
+   ,-[misc/fail/array-creation-without-size.java:1:35]
+ 1 | class A { void f() { x = new int[]; } }
+   :                                   |
+   :                                   `-- `{` to open the array initializer expected here
+   `----
+
+  x expected an expression
+   ,-[misc/fail/array-initializer-double-comma.java:1:24]
+ 1 | class A { int[] a = {1,,}; }
+   :                        ^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-initializer-double-comma.java:1:28]
+ 1 | class A { int[] a = {1,,}; }
+   :                            ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-initializer-leading-and-trailing-comma.java:1:23]
+ 1 | class A { int[] a = {,1,}; }
+   :                       |
+   :                       `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-initializer-leading-and-trailing-comma.java:1:28]
+ 1 | class A { int[] a = {,1,}; }
+   :                            ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-initializer-leading-comma.java:1:23]
+ 1 | class A { int[] a = {,1}; }
+   :                       |
+   :                       `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-initializer-leading-comma.java:1:27]
+ 1 | class A { int[] a = {,1}; }
+   :                           ^
+   `----
+
+  x expected `}` to close the array initializer
+   ,-[misc/fail/array-initializer-two-commas.java:1:23]
+ 1 | class A { int[] a = {,,}; }
+   :                       |
+   :                       `-- `}` to close the array initializer expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/array-initializer-two-commas.java:1:27]
+ 1 | class A { int[] a = {,,}; }
+   :                           ^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/assign-to-call.java:1:22]
+ 1 | class A { void f() { g() = 1; } }
+   :                      ^^^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/assign-to-class-instance-creation.java:1:22]
+ 1 | class A { void f() { new Foo() = 1; } }
+   :                      ^^^^^^^^^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/assign-to-increment.java:1:22]
+ 1 | class A { void f() { x++ = 1; } }
+   :                      ^^^
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/binary-expression-statement.java:1:22]
+ 1 | class A { void f() { x + 1; } }
+   :                      ^^^^^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/boolean-class-name.java:1:7]
+ 1 | class boolean {}
+   :       ^^^|^^^
+   :          `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/boolean-field-name.java:1:18]
+ 1 | class A { Object boolean; }
+   :                  ^^^|^^^
+   :                     `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/byte-class-name.java:1:7]
+ 1 | class byte {}
+   :       ^^|^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/byte-field-name.java:1:18]
+ 1 | class A { Object byte; }
+   :                  ^^|^
+   :                    `-- a member name expected here
+   `----
+
+  x `default` may only be combined with `null` in a switch label
+   ,-[misc/fail/case-constant-and-default.java:1:48]
+ 1 | class A { void f(int x) { switch (x) { case 1, default -> f(); } } }
+   :                                                ^^^^^^^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/case-constant-and-default.java:1:68]
+ 1 | class A { void f(int x) { switch (x) { case 1, default -> f(); } } }
+   :                                                                    ^
+   `----
+
+  x expected `:` or `->` after a switch label
+   ,-[misc/fail/case-constant-assignment.java:1:42]
+ 1 | class A { void f() { switch (x) { case y = 1: break; } } }
+   :                                          ^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/case-constant-assignment.java:1:58]
+ 1 | class A { void f() { switch (x) { case y = 1: break; } } }
+   :                                                          ^
+   `----
+
+  x expected a pattern after `,` in the switch label
+   ,-[misc/fail/case-pattern-and-constant.java:1:58]
+ 1 | class A { void f(Object x) { switch (x) { case String s, 1 -> f(); } } }
+   :                                                          ^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/case-pattern-and-constant.java:1:72]
+ 1 | class A { void f(Object x) { switch (x) { case String s, 1 -> f(); } } }
+   :                                                                        ^
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/cast-statement.java:1:22]
+ 1 | class A { void f() { (int) g(); } }
+   :                      ^^^^^^^^^
+   `----
+
+  x expected the catch parameter name
+   ,-[misc/fail/catch-array-type.java:1:56]
+ 1 | class A { void f() { try { read(); } catch (IOException[] ex) {} } }
+   :                                                        |
+   :                                                        `-- the catch parameter name expected here
+   `----
+
+  x expected `)` after the catch parameter
+   ,-[misc/fail/catch-parameter-dimensions.java:1:39]
+ 1 | class A { void f() { try {} catch (E e[]) {} } }
+   :                                       |
+   :                                       `-- `)` after the catch parameter expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/char-class-name.java:1:7]
+ 1 | class char {}
+   :       ^^|^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/char-field-name.java:1:18]
+ 1 | class A { Object char; }
+   :                  ^^|^
+   :                    `-- a member name expected here
+   `----
+
+  x type parameters are only allowed on methods and constructors
+   ,-[misc/fail/class-field-type-parameters.java:1:12]
+ 1 | class A { <T> T value; }
+   :            ^
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/class-literal-statement.java:1:22]
+ 1 | class A { void f() { String.class; } }
+   :                      ^^^^^^^^^^^^
+   `----
+
+  x expected a member name
+   ,-[misc/fail/compact-constructor-in-class.java:1:21]
+ 1 | class Point { Point { } }
+   :                     |
+   :                     `-- a member name expected here
+   `----
+
+  x constructors are not valid in compact source files
+   ,-[misc/fail/compact-source-file-constructor.java:1:16]
+ 1 | void main() {} Script() {}
+   :                ^^^^^^
+   `----
+
+  x type parameters are only allowed on methods
+   ,-[misc/fail/compact-source-file-field-type-parameters.java:1:17]
+ 1 | void main() {} <T> T value;
+   :                 ^
+   `----
+
+  x initializer blocks are not valid in compact source files
+   ,-[misc/fail/compact-source-file-initializer.java:1:16]
+ 1 | void main() {} static {}
+   :                ^^^^^^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/const-class-name.java:1:7]
+ 1 | class const {}
+   :       ^^|^^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/const-field-name.java:1:18]
+ 1 | class A { Object const; }
+   :                  ^^|^^
+   :                    `-- a member name expected here
+   `----
+
+  x expected `{` to open a constructor body
+   ,-[misc/fail/constructor-dimensions.java:1:14]
+ 1 | class A { A()[] {} }
+   :              |
+   :              `-- `{` to open a constructor body expected here
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/constructor-invocation-in-method.java:1:22]
+ 1 | class A { void f() { this(); } }
+   :                      ^^^^
+   `----
+
+  x expected a type argument
+   ,-[misc/fail/diamond-in-field-type.java:1:26]
+ 1 | class A { java.util.List<> xs; }
+   :                          ^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/double-class-name.java:1:7]
+ 1 | class double {}
+   :       ^^^|^^
+   :          `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/double-field-name.java:1:18]
+ 1 | class A { Object double; }
+   :                  ^^^|^^
+   :                     `-- a member name expected here
+   `----
+
+  x expected a name
+   ,-[misc/fail/enum-body-comma-after-semicolon.java:1:11]
+ 1 | enum E { ;, }
+   :           |
+   :           `-- a name expected here
+   `----
+
+  x expected `}` to close the enum body
+   ,-[misc/fail/enum-body-comma-before-member.java:1:12]
+ 1 | enum E { , int x; }
+   :            ^|^
+   :             `-- `}` to close the enum body expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/enum-body-comma-before-member.java:1:19]
+ 1 | enum E { , int x; }
+   :                   ^
+   `----
+
+  x expected an enum constant name
+   ,-[misc/fail/enum-body-double-comma-before-semicolon.java:1:12]
+ 1 | enum E { A,,; int x; }
+   :            |
+   :            `-- an enum constant name expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/enum-body-double-comma-before-semicolon.java:1:15]
+ 1 | enum E { A,,; int x; }
+   :               ^^^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/enum-body-double-comma-before-semicolon.java:1:22]
+ 1 | enum E { A,,; int x; }
+   :                      ^
+   `----
+
+  x expected an enum constant name
+   ,-[misc/fail/enum-body-double-comma.java:1:12]
+ 1 | enum E { A,, }
+   :            |
+   :            `-- an enum constant name expected here
+   `----
+
+  x expected `}` to close the enum body
+   ,-[misc/fail/enum-body-leading-comma.java:1:11]
+ 1 | enum E { ,A }
+   :           |
+   :           `-- `}` to close the enum body expected here
+   `----
+
+  x expected `}` to close the enum body
+   ,-[misc/fail/enum-body-two-commas-before-semicolon.java:1:11]
+ 1 | enum E { ,,; int x; }
+   :           |
+   :           `-- `}` to close the enum body expected here
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/enum-body-two-commas-before-semicolon.java:1:14]
+ 1 | enum E { ,,; int x; }
+   :              ^^^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/enum-body-two-commas-before-semicolon.java:1:21]
+ 1 | enum E { ,,; int x; }
+   :                     ^
+   `----
+
+  x expected `}` to close the enum body
+   ,-[misc/fail/enum-body-two-commas.java:1:11]
+ 1 | enum E { ,, }
+   :           |
+   :           `-- `}` to close the enum body expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-boolean-class-name.java:1:7]
+ 1 | class \u0062oolean {}
+   :       ^^^^^^|^^^^^
+   :             `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-boolean-field-name.java:1:18]
+ 1 | class A { Object \u0062oolean; }
+   :                  ^^^^^^|^^^^^
+   :                        `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-byte-class-name.java:1:7]
+ 1 | class \u0062yte {}
+   :       ^^^^|^^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-byte-field-name.java:1:18]
+ 1 | class A { Object \u0062yte; }
+   :                  ^^^^|^^^^
+   :                      `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-char-class-name.java:1:7]
+ 1 | class \u0063har {}
+   :       ^^^^|^^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-char-field-name.java:1:18]
+ 1 | class A { Object \u0063har; }
+   :                  ^^^^|^^^^
+   :                      `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-const-class-name.java:1:7]
+ 1 | class \u0063onst {}
+   :       ^^^^^|^^^^
+   :            `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-const-field-name.java:1:18]
+ 1 | class A { Object \u0063onst; }
+   :                  ^^^^^|^^^^
+   :                       `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-double-class-name.java:1:7]
+ 1 | class \u0064ouble {}
+   :       ^^^^^|^^^^^
+   :            `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-double-field-name.java:1:18]
+ 1 | class A { Object \u0064ouble; }
+   :                  ^^^^^|^^^^^
+   :                       `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-float-class-name.java:1:7]
+ 1 | class \u0066loat {}
+   :       ^^^^^|^^^^
+   :            `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-float-field-name.java:1:18]
+ 1 | class A { Object \u0066loat; }
+   :                  ^^^^^|^^^^
+   :                       `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-goto-class-name.java:1:7]
+ 1 | class \u0067oto {}
+   :       ^^^^|^^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-goto-field-name.java:1:18]
+ 1 | class A { Object \u0067oto; }
+   :                  ^^^^|^^^^
+   :                      `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-int-class-name.java:1:7]
+ 1 | class \u0069nt {}
+   :       ^^^^|^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-int-field-name.java:1:18]
+ 1 | class A { Object \u0069nt; }
+   :                  ^^^^|^^^
+   :                      `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-long-class-name.java:1:7]
+ 1 | class \u006cong {}
+   :       ^^^^|^^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-long-field-name.java:1:18]
+ 1 | class A { Object \u006cong; }
+   :                  ^^^^|^^^^
+   :                      `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-short-class-name.java:1:7]
+ 1 | class \u0073hort {}
+   :       ^^^^^|^^^^
+   :            `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-short-field-name.java:1:18]
+ 1 | class A { Object \u0073hort; }
+   :                  ^^^^^|^^^^
+   :                       `-- a member name expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/escaped-void-class-name.java:1:7]
+ 1 | class \u0076oid {}
+   :       ^^^^|^^^^
+   :           `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/escaped-void-field-name.java:1:18]
+ 1 | class A { Object \u0076oid; }
+   :                  ^^^^|^^^^
+   :                      `-- a member name expected here
+   `----
+
+  x `void` is only valid as a method return type
+   ,-[misc/fail/escaped-void-field-type.java:1:11]
+ 1 | class A { \u0076oid value; }
+   :           ^^^^^^^^^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/float-class-name.java:1:7]
+ 1 | class float {}
+   :       ^^|^^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/float-field-name.java:1:18]
+ 1 | class A { Object float; }
+   :                  ^^|^^
+   :                    `-- a member name expected here
+   `----
+
+  x expected `;` after the `for` initializer
+   ,-[misc/fail/for-init-declaration-missing-semicolon.java:1:36]
+ 1 | class A { void f() { for (int i = 0) {} } }
+   :                                    |
+   :                                    `-- `;` after the `for` initializer expected here
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/for-update-binary-expression.java:1:30]
+ 1 | class A { void f() { for (;; i + 1) {} } }
+   :                              ^^^^^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/generic-constructor-invocation-in-method.java:1:22]
+ 1 | class A { void f() { <String>this(); } }
+   :                      ^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/goto-class-name.java:1:7]
+ 1 | class goto {}
+   :       ^^|^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/goto-field-name.java:1:18]
+ 1 | class A { Object goto; }
+   :                  ^^|^
+   :                    `-- a member name expected here
+   `----
+
+  x the operand of `++` must be a variable
+   ,-[misc/fail/increment-of-increment.java:1:22]
+ 1 | class A { void f() { x++++; } }
+   :                      ^|^
+   :                       `-- `++` requires a variable
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/instanceof-statement.java:1:22]
+ 1 | class A { void f() { o instanceof String; } }
+   :                      ^^^^^^^^^^^^^^^^^^^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/int-class-name.java:1:7]
+ 1 | class int {}
+   :       ^|^
+   :        `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/int-field-name.java:1:18]
+ 1 | class A { Object int; }
+   :                  ^|^
+   :                   `-- a member name expected here
+   `----
+
+  x constructors are not valid interface members
+   ,-[misc/fail/interface-constructor.java:1:17]
+ 1 | interface Api { Api() {} }
+   :                 ^^^
+   `----
+
+  x type parameters are only allowed on interface methods
+   ,-[misc/fail/interface-field-type-parameters.java:1:16]
+ 1 | interface A { <T> T VALUE; }
+   :                ^
+   `----
+
+  x constructors are not valid interface members
+   ,-[misc/fail/interface-generic-constructor.java:1:21]
+ 1 | interface Api { <T> Api() {} }
+   :                     ^^^
+   `----
+
+  x expected an interface member declaration
+   ,-[misc/fail/interface-instance-initializer.java:1:17]
+ 1 | interface Api { { init(); } }
+   :                 ^
+   `----
+
+  x expected an interface member declaration
+   ,-[misc/fail/interface-static-initializer.java:1:17]
+ 1 | interface Api { static { init(); } }
+   :                 ^^^^^^
+   `----
+
+  x a cast to a primitive type cannot have additional bounds
+   ,-[misc/fail/intersection-cast-annotated-primitive-first.java:1:34]
+ 1 | class A { void f() { o = (@A int & Cloneable) x; } }
+   :                                  ^
+   `----
+
+  x expected `)` to close the cast
+   ,-[misc/fail/intersection-cast-array-bound.java:1:45]
+ 1 | class A { void f() { o = (Cloneable & Object[]) x; } }
+   :                                             |
+   :                                             `-- `)` to close the cast expected here
+   `----
+
+  x expected a name
+   ,-[misc/fail/intersection-cast-primitive-bound.java:1:39]
+ 1 | class A { void f() { o = (Cloneable & int) x; } }
+   :                                       ^|^
+   :                                        `-- a name expected here
+   `----
+
+  x a cast to a primitive type cannot have additional bounds
+   ,-[misc/fail/intersection-cast-primitive-first.java:1:31]
+ 1 | class A { void f() { o = (int & Cloneable) x; } }
+   :                               ^
+   `----
+
+  x `var` lambda parameters cannot be varargs
+   ,-[misc/fail/lambda-annotated-var-varargs.java:1:27]
+ 1 | class A { void f() { r = (var @Nullable ... names) -> names.length; } }
+   :                           ^^^
+   `----
+  help: Use an explicit element type for the varargs parameter.
+
+  x lambda parameters must either all declare types or all omit them
+   ,-[misc/fail/lambda-mixed-parameter-forms.java:1:30]
+ 1 | class A { void f() { r = (x, int y) -> x; } }
+   :                              ^^^^^
+   `----
+  help: Declare a type for every parameter or omit every parameter type.
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/lambda-statement.java:1:22]
+ 1 | class A { void f() { x -> g(x); } }
+   :                      ^^^^^^^^^
+   `----
+
+  x `var` lambda parameters cannot be varargs
+   ,-[misc/fail/lambda-var-varargs.java:1:27]
+ 1 | class A { void f() { r = (var... names) -> names.length; } }
+   :                           ^^^
+   `----
+  help: Use an explicit element type for the varargs parameter.
+
+  x a varargs parameter must be the final lambda parameter
+   ,-[misc/fail/lambda-varargs-not-last.java:1:44]
+ 1 | class A { void f() { r = (String... names, int count) -> count; } }
+   :                                            ^^^
+   `----
+  help: Move the varargs parameter to the end of the parameter list.
+
+  x expected `)` to close the lambda parameters
+   ,-[misc/fail/lambda-varargs-parameter-dimensions.java:1:33]
+ 1 | class A { void f() { g((int... a[]) -> 0); } }
+   :                                 |
+   :                                 `-- `)` to close the lambda parameters expected here
+   `----
+
+  x expected a local class, enum, record, or interface declaration
+   ,-[misc/fail/local-annotation-interface.java:1:22]
+ 1 | class A { void f() { @interface Local {} } }
+   :                      ^
+   `----
+
+  x expected an expression
+   ,-[misc/fail/local-class-as-if-body.java:1:33]
+ 1 | class A { void f() { if (ready) class Local {} } }
+   :                                 ^^^^^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/long-class-name.java:1:7]
+ 1 | class long {}
+   :       ^^|^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/long-field-name.java:1:18]
+ 1 | class A { Object long; }
+   :                  ^^|^
+   :                    `-- a member name expected here
+   `----
+
+  x expected a method body or `;`
+   ,-[misc/fail/method-dimensions-without-return-type.java:1:19]
+ 1 | class A { void f()[] {} }
+   :                   |
+   :                   `-- a method body or `;` expected here
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/method-reference-statement.java:1:22]
+ 1 | class A { void f() { Foo::bar; } }
+   :                      ^^^^^^^^
+   `----
+
+  x expected `(` after explicit method type arguments
+   ,-[misc/fail/method-type-arguments-without-call.java:1:52]
+ 1 | class A { void f() { value = receiver.<String>field; } }
+   :                                                    ^
+   `----
+
+  x expected a method body or `;`
+   ,-[misc/fail/method-without-body.java:1:20]
+ 1 | class A { void f() }
+   :                    |
+   :                    `-- a method body or `;` expected here
+   `----
+
+  x expected `;` after the import
+   ,-[misc/fail/module-import-on-demand.java:1:24]
+ 1 | import module java.base.*;
+   :                        |
+   :                        `-- `;` after the import expected here
+   `----
+
+  x expected a compact source member name
+   ,-[misc/fail/non-sealed-spaced.java:1:5]
+ 1 | non - sealed class A {}
+   :     |
+   :     `-- a compact source member name expected here
+   `----
+
+  x expected at least one method declaration in a compact source file
+   ,-[misc/fail/non-sealed-spaced.java:2:1]
+ 1 | non - sealed class A {}
+   `----
+
+  x the operand of `++` must be a variable
+   ,-[misc/fail/postfix-increment-of-call.java:1:22]
+ 1 | class A { void f() { g()++; } }
+   :                      ^|^
+   :                       `-- `++` requires a variable
+   `----
+
+  x the operand of `++` must be a variable
+   ,-[misc/fail/prefix-increment-of-literal.java:1:24]
+ 1 | class A { void f() { ++5; } }
+   :                        |
+   :                        `-- `++` requires a variable
+   `----
+
+  x expected a member access or method reference after qualified `super`
+   ,-[misc/fail/qualified-constructor-invocation-in-method.java:1:33]
+ 1 | class A { void f() { owner.super(); } }
+   :                                 ^
+   `----
+
+  x a qualified `new` creates an inner class, not an array
+   ,-[misc/fail/qualified-new-array-creation.java:1:32]
+ 1 | class A { void f() { outer.new int[3]; } }
+   :                                ^^^
+   `----
+
+  x expected `(` to open the argument list
+   ,-[misc/fail/qualified-new-dotted-class-name.java:2:27]
+ 1 | class A {
+ 2 |     Object o = outer.new B.C();
+   :                           |
+   :                           `-- `(` to open the argument list expected here
+ 3 | }
+   `----
+
+  x a qualified `new` creates an inner class, not an array
+   ,-[misc/fail/qualified-new-primitive-array.java:2:26]
+ 1 | class A {
+ 2 |     Object o = outer.new int[1];
+   :                          ^^^
+ 3 | }
+   `----
+
+  x expected a member access or method reference after qualified `super`
+   ,-[misc/fail/qualified-super-alone.java:1:33]
+ 1 | class A { void f() { Outer.super; } }
+   :                                 ^
+   `----
+
+  x this expression cannot be used as a statement
+   ,-[misc/fail/qualified-this-statement.java:1:22]
+ 1 | class A { void f() { Outer.this; } }
+   :                      ^^^^^^^^^^
+   `----
+
+  x expected `)` to close the parameter list
+   ,-[misc/fail/receiver-parameter-dimensions.java:1:24]
+ 1 | class A { void f(A this[]) {} }
+   :                        |
+   :                        `-- `)` to close the parameter list expected here
+   `----
+
+  x expected `)` to close the parenthesised expression
+   ,-[misc/fail/receiver-parameter-in-lambda.java:1:25]
+ 1 | class A { Object f = (A this) -> {}; }
+   :                         ^^|^
+   :                           `-- `)` to close the parenthesised expression expected here
+   `----
+
+  x a receiver parameter must be the first parameter
+   ,-[misc/fail/receiver-parameter-not-first.java:1:27]
+ 1 | class A { void f(int a, A this) {} }
+   :                           ^^^^
+   `----
+  help: Move the receiver parameter to the start of the parameter list.
+
+  x a receiver parameter must be the first parameter
+   ,-[misc/fail/receiver-parameter-twice.java:1:28]
+ 1 | class A { void f(A this, A this) {} }
+   :                            ^^^^
+   `----
+  help: Move the receiver parameter to the start of the parameter list.
+
+  x expected a parameter name
+   ,-[misc/fail/receiver-parameter-varargs.java:1:23]
+ 1 | class A { void f(A... this) {} }
+   :                       ^^|^
+   :                         `-- a parameter name expected here
+   `----
+
+  x expected `)` to close the record header
+   ,-[misc/fail/record-component-dimensions.java:1:15]
+ 1 | record R(int a[]) {}
+   :               |
+   :               `-- `)` to close the record header expected here
+   `----
+
+  x a varargs record component must be the final component
+   ,-[misc/fail/record-varargs-component-not-last.java:1:29]
+ 1 | record Bad(String... names, int count) {}
+   :                             ^^^
+   `----
+  help: Move the varargs component to the end of the record header.
+
+  x a resource variable access must be a name or field access
+   ,-[misc/fail/resource-array-access.java:1:27]
+ 1 | class A { void f() { try (resources[0]) { read(); } } }
+   :                           ^^^^^^^^^^^^
+   `----
+
+  x a resource variable access must be a name or field access
+   ,-[misc/fail/resource-assignment.java:1:27]
+ 1 | class A { void f() { try (resource = open()) { read(); } } }
+   :                           ^^^^^^^^^^^^^^^^^
+   `----
+
+  x a resource variable access must be a name or field access
+   ,-[misc/fail/resource-call.java:1:27]
+ 1 | class A { void f() { try (open()) { read(); } } }
+   :                           ^^^^^^
+   `----
+
+  x expected `=` in the resource declaration
+   ,-[misc/fail/resource-dimensions.java:1:30]
+ 1 | class A { void f() { try (R r[] = null) {} } }
+   :                              |
+   :                              `-- `=` in the resource declaration expected here
+   `----
+
+  x a resource variable access must be a name or field access
+   ,-[misc/fail/resource-parenthesized-name.java:1:27]
+ 1 | class A { void f() { try ((resource)) { read(); } } }
+   :                           ^^^^^^^^^^
+   `----
+
+  x only one constructor invocation is allowed
+   ,-[misc/fail/second-constructor-invocation.java:1:43]
+ 1 | class A { A(Outer owner) { owner.super(); this(1); } }
+   :                                           ^^^^
+   `----
+  help: Remove the additional constructor invocation.
+
+  x expected an expression
+   ,-[misc/fail/separated-right-angles.java:1:30]
+ 1 | class A { void f() { x = a > > b; } }
+   :                              ^
+   `----
+
+  x expected a class name
+   ,-[misc/fail/short-class-name.java:1:7]
+ 1 | class short {}
+   :       ^^|^^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/short-field-name.java:1:18]
+ 1 | class A { Object short; }
+   :                  ^^|^^
+   :                    `-- a member name expected here
+   `----
+
+  x expected `->` after the switch label
+   ,-[misc/fail/switch-rule-then-statement-group.java:1:56]
+ 1 | class A { void f() { switch (x) { case 1 -> f(); case 2: g(); } } }
+   :                                                        |
+   :                                                        `-- `->` after the switch label expected here
+   `----
+
+  x expected `case` or `default` in a `switch` block
+   ,-[misc/fail/switch-statement-before-label.java:1:35]
+ 1 | class A { void f() { switch (x) { f(); } } }
+   :                                   ^
+   `----
+
+  x expected a class, interface, enum, record, or annotation interface declaration
+   ,-[misc/fail/switch-statement-before-label.java:1:44]
+ 1 | class A { void f() { switch (x) { f(); } } }
+   :                                            ^
+   `----
+
+  x expected `{` to open a block
+   ,-[misc/fail/synchronized-without-block.java:1:42]
+ 1 | class A { void f() { synchronized (lock) work(); } }
+   :                                          ^^|^
+   :                                            `-- `{` to open a block expected here
+   `----
+
+  x expected at least one method declaration in a compact source file
+   ,-[misc/fail/top-level-field.java:2:1]
+ 1 | public int x;
+   `----
+
+  x expected an expression
+   ,-[misc/fail/try-empty-resources.java:1:27]
+ 1 | class A { void f() { try () { read(); } } }
+   :                           ^
+   `----
+
+  x expected `catch` or `finally` after the `try` block
+   ,-[misc/fail/try-without-catch-or-finally.java:1:26]
+ 1 | class A { void f() { try { read(); } } }
+   :                          ^^^^^^^^^^^
+   `----
+
+  x expected `;` after the return statement
+   ,-[misc/fail/type-pattern-dimensions.java:1:53]
+ 1 | class A { boolean f() { return o instanceof String s[]; } }
+   :                                                     |
+   :                                                     `-- `;` after the return statement expected here
+   `----
+
+  x expected an expression
+   ,-[misc/fail/underscore-assignment-target.java:1:22]
+ 1 | class A { void f() { _ = 1; } }
+   :                      ^
+   `----
+
+  x expected `;` after `break`
+   ,-[misc/fail/underscore-break-label.java:1:28]
+ 1 | class A { void f() { break _; } }
+   :                            |
+   :                            `-- `;` after `break` expected here
+   `----
+
+  x expected a class name
+   ,-[misc/fail/underscore-class-name.java:1:7]
+ 1 | class _ {}
+   :       |
+   :       `-- a class name expected here
+   `----
+
+  x `_` cannot be followed by array dimensions
+   ,-[misc/fail/underscore-local-dimensions.java:1:27]
+ 1 | class A { void f() { int _[] = null; } }
+   :                           ^^
+   `----
+
+  x `void` is only valid as a method return type
+   ,-[misc/fail/underscore-method-name.java:1:11]
+ 1 | class A { void _() {} }
+   :           ^^^^
+   `----
+
+  x expected a record component name
+   ,-[misc/fail/underscore-record-component.java:1:14]
+ 1 | record R(int _) {}
+   :              |
+   :              `-- a record component name expected here
+   `----
+
+  x `var` is only valid as an inferred variable type
+   ,-[misc/fail/var-field-type.java:1:11]
+ 1 | class A { var field; }
+   :           ^^^
+   `----
+
+  x `var` is not allowed as an array element type
+   ,-[misc/fail/var-for-each-dimensions.java:1:32]
+ 1 | class A { void f() { for (var a[] : m) {} } }
+   :                                ^^
+   `----
+  help: Use an explicit array type.
+
+  x `var` declarations must declare exactly one variable
+   ,-[misc/fail/var-for-init-two-variables.java:1:27]
+ 1 | class A { void f() { for (var i = 0, j = 1; i < 3; i++) {} } }
+   :                           ^^^
+   `----
+  help: Split the declaration or use an explicit type.
+
+  x expected `;` after the expression statement
+   ,-[misc/fail/var-for-init-two-variables.java:1:55]
+ 1 | class A { void f() { for (var i = 0, j = 1; i < 3; i++) {} } }
+   :                                                       |
+   :                                                       `-- `;` after the expression statement expected here
+   `----
+
+  x `var` is not allowed as an array element type
+   ,-[misc/fail/var-lambda-parameter-dimensions.java:1:30]
+ 1 | class A { void f() { g((var a[]) -> 0); } }
+   :                              ^^
+   `----
+  help: Use an explicit array type.
+
+  x `var` declarations need an expression initializer
+   ,-[misc/fail/var-local-array-initializer.java:1:34]
+ 1 | class A { void f() { var names = {"a"}; } }
+   :                                  ^^^^^
+   `----
+  help: Use an expression initializer or an explicit array type.
+
+  x `var` is not allowed as an array element type
+   ,-[misc/fail/var-local-dimensions.java:1:27]
+ 1 | class A { void f() { var a[] = null; } }
+   :                           ^^
+   `----
+  help: Use an explicit array type.
+
+  x `var` declarations must declare exactly one variable
+   ,-[misc/fail/var-local-two-variables.java:1:22]
+ 1 | class A { void f() { var a = 1, b = 2; } }
+   :                      ^^^
+   `----
+  help: Split the declaration or use an explicit type.
+
+  x `var` declarations need an initializer
+   ,-[misc/fail/var-local-without-initializer.java:1:26]
+ 1 | class A { void f() { var missing; } }
+   :                          ^^^^^^^
+   `----
+  help: Add an initializer or use an explicit type.
+
+  x `var` is only valid as an inferred variable type
+   ,-[misc/fail/var-method-parameter-type.java:1:18]
+ 1 | class A { void f(var value) {} }
+   :                  ^^^
+   `----
+
+  x `var` is only valid as an inferred variable type
+   ,-[misc/fail/var-method-return-type.java:1:11]
+ 1 | class A { var f() { return null; } }
+   :           ^^^
+   `----
+
+  x `var` is only valid as an inferred variable type
+   ,-[misc/fail/var-qualified-type.java:1:21]
+ 1 | class A { java.util.var field; }
+   :                     ^^^
+   `----
+
+  x expected `)` to close the parameter list
+   ,-[misc/fail/varargs-parameter-dimensions.java:1:32]
+ 1 | class A { void f(String... args[]) {} }
+   :                                |
+   :                                `-- `)` to close the parameter list expected here
+   `----
+
+  x a varargs parameter must be the final parameter
+   ,-[misc/fail/varargs-parameter-not-last.java:1:35]
+ 1 | class A { void f(String... names, int count) {} }
+   :                                   ^^^
+   `----
+  help: Move the varargs parameter to the end of the parameter list.
+
+  x expected a class name
+   ,-[misc/fail/void-class-name.java:1:7]
+ 1 | class void {}
+   :       ^^|^
+   :         `-- a class name expected here
+   `----
+
+  x expected a member name
+   ,-[misc/fail/void-field-name.java:1:18]
+ 1 | class A { Object void; }
+   :                  ^^|^
+   :                    `-- a member name expected here
+   `----

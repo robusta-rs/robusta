@@ -1,0 +1,20 @@
+[package]
+name = "robusta_str"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Identifier string type for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+robusta_allocator.workspace = true
+
+[dev-dependencies]
+robusta_data_structures = { workspace = true, features = ["types"] }

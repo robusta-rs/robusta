@@ -1,0 +1,31 @@
+[package]
+name = "robusta_coverage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Corpus conformance runner for Robusta's parser and formatter."
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "robusta_coverage"
+test = false
+doctest = false
+
+[dependencies]
+pico-args.workspace = true
+rayon.workspace = true
+robusta_allocator.workspace = true
+robusta_diagnostics.workspace = true
+robusta_formatter = { workspace = true, features = ["check_idempotency", "detect_code_removal"] }
+robusta_parser.workspace = true
+similar.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

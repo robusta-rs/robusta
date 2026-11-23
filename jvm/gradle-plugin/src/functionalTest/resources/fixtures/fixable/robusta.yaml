@@ -1,0 +1,5 @@
+lint:
+  rules:
+    modifier-order: deny
+    redundant-semicolons: deny
+    uppercase-long-suffix: deny

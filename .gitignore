@@ -1,0 +1,12 @@
+# Rust
+target/
+**/*.rs.bk
+
+.claude/*
+!.claude/commands/
+
+# NOTE: For non-project files such as `.vscode` or `.idea`, please add them to your `.gitignore_global`.
+# In `.gitconfig`, add `[core] excludesfile = ~/.gitignore_global`
+# See also
+# * https://stackoverflow.com/a/7335487
+# * https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files#configuring-ignored-files-for-all-repositories-on-your-computer

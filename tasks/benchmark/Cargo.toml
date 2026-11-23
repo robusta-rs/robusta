@@ -1,0 +1,52 @@
+[package]
+name = "robusta_benchmark"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Criterion benchmarks for Robusta's pipeline stages."
+
+[lints]
+workspace = true
+
+[lib]
+test = false
+bench = false
+doctest = false
+
+[[bench]]
+name = "lexer"
+harness = false
+
+[[bench]]
+name = "parser"
+harness = false
+
+[[bench]]
+name = "semantic"
+harness = false
+
+[[bench]]
+name = "formatter"
+harness = false
+
+[[bench]]
+name = "linter"
+harness = false
+
+[[bench]]
+name = "pipeline"
+harness = false
+
+[dependencies]
+criterion2.workspace = true
+
+[dev-dependencies]
+robusta_allocator = { workspace = true, features = ["pool"] }
+robusta_diagnostics.workspace = true
+robusta_formatter.workspace = true
+robusta_lexer.workspace = true
+robusta_linter.workspace = true
+robusta_parser.workspace = true
+robusta_semantic.workspace = true
+robusta_tasks_common.workspace = true

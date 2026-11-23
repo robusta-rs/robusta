@@ -1,0 +1,14 @@
+crates/robusta_formatter/tests/fixtures/** text=auto eol=lf
+
+# This input deliberately exercises formatter normalization of blank lines at EOF.
+crates/robusta_formatter/tests/fixtures/java/comments-and-trivia/blank-line-normalization.java whitespace=-blank-at-eof
+
+# Gradle acceptance fixtures are byte-exact product inputs.
+# The formatter normalizes CRLF to LF, so without this the `clean` fixtures check
+# out CRLF under Windows autocrlf and the acceptance suite reports them dirty.
+jvm/gradle-plugin/src/functionalTest/resources/fixtures/** text=auto eol=lf
+
+# The bundled-executable stubs stand in for native binaries and are verified by
+# SHA-256, so any end-of-line translation changes their bytes and fails the
+# checksum. Keep the whole directory, checksums included, byte-exact on checkout.
+jvm/maven-plugin/src/test/resources/META-INF/robusta/bin/** -text

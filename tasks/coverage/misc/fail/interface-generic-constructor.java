@@ -1,0 +1,1 @@
+interface Api { <T> Api() {} }

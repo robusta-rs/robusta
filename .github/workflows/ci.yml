@@ -1,0 +1,403 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      INSTA_UPDATE: new
+      RUST_BACKTRACE: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Run tests
+        run: cargo test --all-features --locked --no-fail-fast 2>&1 | tee "$RUNNER_TEMP/robusta-rust-tests.log"
+
+      - name: Build Robusta CLI and plugin test fake
+        id: cli-build
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        run: cargo build --locked --bin robusta --bin robusta_plugin_fake
+
+      # Both plugins are published coordinates, so both get the same gate. The
+      # Maven functional suite drives a real `mvnw` build — the cost the release
+      # job sidesteps by qualifying its `check` — but it is short enough for
+      # every pull request, and `GoalSurfaceFunctionalTest` only keeps a mojo from
+      # drifting away from the shared `RobustaFixedCommand` table if a pull
+      # request runs it. The staged bundle is all `prepareRobustaBinaries` needs.
+      - name: Validate Gradle and Maven plugins with bundled CLI
+        if: ${{ !cancelled() && steps.cli-build.outcome == 'success' }}
+        working-directory: jvm
+        run: |
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=x86_64-unknown-linux-musl ;;
+            Linux-ARM64) target=aarch64-unknown-linux-musl ;;
+            macOS-X64) target=x86_64-apple-darwin ;;
+            macOS-ARM64) target=aarch64-apple-darwin ;;
+            Windows-X64) target=x86_64-pc-windows-msvc ;;
+            *) echo "Unsupported CI host: $RUNNER_OS-$RUNNER_ARCH"; exit 1 ;;
+          esac
+          suffix=""
+          if [[ "$RUNNER_OS" == "Windows" ]]; then suffix=".exe"; fi
+          robusta_executable="$GITHUB_WORKSPACE/target/debug/robusta$suffix"
+          bundle_dir="$RUNNER_TEMP/robusta-binaries"
+          binary_name="robusta-$target$suffix"
+          mkdir -p "$bundle_dir"
+          cp "$robusta_executable" "$bundle_dir/$binary_name"
+          if command -v sha256sum >/dev/null 2>&1; then
+            (cd "$bundle_dir" && sha256sum "$binary_name") > "$bundle_dir/$binary_name.sha256"
+          else
+            (cd "$bundle_dir" && shasum -a 256 "$binary_name") > "$bundle_dir/$binary_name.sha256"
+          fi
+          ./gradlew --continue --stacktrace --console=plain \
+            :common:test :gradle-plugin:test :gradle-plugin:functionalTest \
+            :gradle-plugin:validatePlugins :maven-plugin:test :maven-plugin:functionalTest \
+            verifyPublishedArtifactNames verifyMavenGoalPrefix \
+            "-ProbustaBinariesDirectory=$bundle_dir" \
+            "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake$suffix" \
+            -Drobusta.real.bundled=true 2>&1 | tee "$RUNNER_TEMP/robusta-jvm-tests.log"
+
+      - name: Upload test diagnostics
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-diagnostics-${{ matrix.os }}
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/robusta-*-tests.log
+            jvm/*/build/test-results/**
+            jvm/*/build/reports/tests/**
+            **/*.snap.new
+            **/*.pending-snap
+
+  test-linux-arm64:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    name: Test Linux ARM64
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Verify native ARM64 host
+        run: |
+          rustc -vV
+          host=$(rustc -vV | sed -n 's/^host: //p')
+          test "$host" = aarch64-unknown-linux-gnu
+
+      - name: Check workspace
+        run: cargo ck
+
+      - name: Test workspace
+        run: cargo test --workspace --all-features --locked
+
+      - name: Build release Robusta CLI and plugin test fake
+        run: cargo build --release --locked --bin robusta --bin robusta_plugin_fake
+
+      - name: Smoke test ARM64 product
+        run: |
+          ./target/release/robusta --version
+          file target/release/robusta
+          file target/release/robusta | grep -Eq 'ELF 64-bit LSB.*(ARM aarch64|ARM64|AArch64)'
+
+      - name: Validate Gradle and Maven plugins with bundled ARM64 product
+        working-directory: jvm
+        run: |
+          bundle_dir="$RUNNER_TEMP/robusta-binaries"
+          binary_name=robusta-aarch64-unknown-linux-musl
+          mkdir -p "$bundle_dir"
+          cp "$GITHUB_WORKSPACE/target/release/robusta" "$bundle_dir/$binary_name"
+          (cd "$bundle_dir" && sha256sum "$binary_name") > "$bundle_dir/$binary_name.sha256"
+          ./gradlew :common:test :gradle-plugin:test :gradle-plugin:functionalTest \
+            :gradle-plugin:validatePlugins :maven-plugin:test :maven-plugin:functionalTest \
+            verifyPublishedArtifactNames verifyMavenGoalPrefix \
+            "-ProbustaBinariesDirectory=$bundle_dir" \
+            "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/release/robusta_plugin_fake" \
+            -Drobusta.real.bundled=true
+
+  gradle-compatibility:
+    name: Gradle and JVM compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The published plugin runs on Java 8, 11, and 17 consumer daemons, so all three
+      # must be present. The last entry becomes JAVA_HOME and builds the plugin itself.
+      - name: Provision consumer JVMs
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: |
+            8
+            11
+            17
+
+      - name: Build plugin test fake
+        run: cargo build --locked --bin robusta_plugin_fake
+
+      # Gradle does not scan the runner tool cache, so each provisioned JDK is named
+      # explicitly; a missing one is skipped rather than silently unverified.
+      - name: Test supported Gradle versions, consumer JVMs, and published metadata
+        working-directory: jvm
+        run: |
+          ./gradlew :gradle-plugin:compatibilityTest :gradle-plugin:jvmCompatibilityTest \
+            :gradle-plugin:verifyPluginMetadata :gradle-plugin:validatePlugins \
+            "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
+            "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME_11_X64,JAVA_HOME_17_X64" \
+            -PrequireAllConsumerJvms=true
+
+  test-32bit:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    name: Test 32-bit (ARMv7)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Install cross
+        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
+        with:
+          tool: cross@0.2.5
+
+      - name: Verify cross version
+        run: cross --version | grep -F 'cross 0.2.5'
+
+      # `--lib --bins --tests` skips doctests, which are prohibitively slow
+      # under cross/QEMU: https://github.com/cross-rs/cross/issues/1703. The same
+      # nested-exec limitation breaks any integration target that spawns the
+      # product binary as a child (ENOEXEC -> /bin/sh fallback on the ARM ELF),
+      # so `robusta_cli`, whose integration suite (apps/robusta/tests/cli.rs)
+      # spawns CARGO_BIN_EXE_robusta, is excluded here. It runs natively in
+      # `Test Linux ARM64` and the x86 `Test` matrix. So does `robusta_ast_tools`,
+      # a host-side generator whose tests spawn the pinned toolchain's rustfmt.
+      - name: Test workspace on ARMv7 (in-process targets)
+        run: cross test --workspace --exclude robusta_cli --exclude robusta_ast_tools --lib --bins --tests --all-features --locked --target armv7-unknown-linux-gnueabihf
+
+      - name: Build release Robusta CLI for ARMv7
+        run: cross build --release --locked --bin robusta --target armv7-unknown-linux-gnueabihf
+
+      - name: Smoke test ARMv7 product
+        run: |
+          # cross 0.2.5 consumes a bare `--version` or `-V` anywhere in its
+          # argv instead of forwarding it after Cargo's `--` delimiter. The
+          # exact version route is covered by the native unit tests; use help
+          # here to smoke-test the built executable through QEMU.
+          cross run --release --locked --bin robusta --target armv7-unknown-linux-gnueabihf -- --help
+          file target/armv7-unknown-linux-gnueabihf/release/robusta
+          file target/armv7-unknown-linux-gnueabihf/release/robusta | grep -Eq 'ELF 32-bit LSB.*ARM'
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_WARNINGS: deny
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Rust components
+        run: rustup component add rustfmt clippy
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo lint --locked
+
+      - name: Run clippy (release-like profile)
+        run: cargo lint --profile dev-no-debug-assertions --locked
+
+      - name: Check no uncommitted changes
+        run: git diff --exit-code
+
+  doc:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Build rustdoc
+        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --document-private-items --all-features --locked
+
+  unused-deps:
+    name: Unused dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install cargo-shear
+        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
+        with:
+          tool: cargo-shear@1.13.1
+
+      - name: Check for unused dependencies
+        run: cargo shear --check-test-targets --deny-warnings --format=github
+
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Check typos
+        uses: crate-ci/typos@37bb98842b0d8c4ffebdb75301a13db0267cef89 # v1.47.2
+
+  conformance:
+    name: Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The compatibility contract compiles emitted fixes with `--release 8`
+      # through `--release 25`, which requires a JDK that can target every level.
+      # Provision it explicitly so the guarantee never depends on whatever the
+      # runner happens to preinstall.
+      - name: Provision Temurin JDK 25
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Install just
+        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
+        with:
+          tool: just
+
+      - name: Check Conformance
+        run: |
+          just coverage
+          git diff --exit-code
+
+  allocs:
+    name: Allocations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Check allocations
+        run: |
+          cargo allocs
+          git diff --exit-code ||
+          (echo 'Allocations have changed. Run the `cargo allocs` command to update the allocation snapshot, otherwise please fix the regression.' && exit 1)
+
+  ast-changes:
+    name: AST Changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Check AST changes
+        run: |
+          cargo run --locked -p robusta_ast_tools
+          git diff --exit-code ||
+          (echo 'AST changes caused the generated code to get outdated. Run the `just ast` command and commit the generated code.' && exit 1)
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The root manifest is the single source of truth for the MSRV. Fail loudly
+      # rather than silently falling back to another compiler if it is missing.
+      - name: Resolve MSRV from Cargo.toml
+        run: |
+          msrv=$(sed -nE 's/^rust-version = "([^"]+)".*/\1/p' Cargo.toml | head -n1)
+          if [[ -z "$msrv" ]]; then
+            echo "::error::Could not read [workspace.package] rust-version from Cargo.toml"
+            exit 1
+          fi
+          echo "MSRV=$msrv" >> "$GITHUB_ENV"
+
+      - name: Install MSRV toolchain
+        run: rustup toolchain install "$MSRV" --profile minimal
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
+
+      # A compatibility guard against a dependency or API silently raising the
+      # effective MSRV; the stable three-OS job still owns current-toolchain testing.
+      - name: Check workspace on MSRV
+        run: cargo "+$MSRV" check --workspace --all-targets --all-features --locked
+
+      # `robusta_ast_tools` tests need the pinned toolchain's rustfmt, which this
+      # job does not install. The check above still type-checks them.
+      - name: Test workspace on MSRV
+        run: cargo "+$MSRV" test --workspace --exclude robusta_ast_tools --all-features --locked

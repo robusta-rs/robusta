@@ -1,0 +1,738 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ConfigFile",
+  "description": "Robusta Configuration File\n\nRobusta reads `robusta.yaml` from the directory it processes, or from the\nnearest ancestor directory that has one. Every section is optional: an\nomitted option falls back to `.editorconfig` where one applies, and then to\nRobusta's built-in default.\n\nUsage: `robusta check -c robusta.yaml`\n\nExample\n\n`robusta.yaml`\n\n```yaml\nformat: { line-width: 100, indent-style: space, indent-width: 4 }\nignore-patterns: [\"generated/\"]\nlint: { rules: { unused-import: warn } }\n```",
+  "type": "object",
+  "properties": {
+    "format": {
+      "description": "Java formatter policy.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/FormatSection"
+        }
+      ],
+      "markdownDescription": "Java formatter policy."
+    },
+    "ignore-patterns": {
+      "description": "Java files to skip when checking, formatting, and linting.\n\n`.gitignore` files and the command-line ignore options still apply: a\n`!` pattern here re-includes only a path an earlier entry in this list\nskipped.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/IgnorePatterns"
+        }
+      ],
+      "markdownDescription": "Java files to skip when checking, formatting, and linting.\n\n`.gitignore` files and the command-line ignore options still apply: a\n`!` pattern here re-includes only a path an earlier entry in this list\nskipped."
+    },
+    "lint": {
+      "description": "Which lint rules run, how loudly, and the run-wide lint options.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/LintConfigFile"
+        }
+      ],
+      "markdownDescription": "Which lint rules run, how loudly, and the run-wide lint options."
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AfterClosingBraceConfig": {
+      "description": "`same-line` keeps the keyword on the closing brace's line, and `new-line`\nputs it on a new line.",
+      "type": "string",
+      "enum": [
+        "same-line",
+        "new-line"
+      ],
+      "markdownDescription": "`same-line` keeps the keyword on the closing brace's line, and `new-line`\nputs it on a new line."
+    },
+    "CommentLineStrategyConfig": {
+      "description": "`single-line` writes `/** Content. */` when a comment without block tags\nfits, `multiline` never does, and `keep` does only for a comment already on\none line.",
+      "type": "string",
+      "enum": [
+        "single-line",
+        "multiline",
+        "keep"
+      ],
+      "markdownDescription": "`single-line` writes `/** Content. */` when a comment without block tags\nfits, `multiline` never does, and `keep` does only for a comment already on\none line."
+    },
+    "DescriptionWithDotConfig": {
+      "description": "`never` adds no period, `summary` adds one to the summary javadoc shows for\nthe comment, and `always` adds one to each description paragraph.",
+      "type": "string",
+      "enum": [
+        "never",
+        "summary",
+        "always"
+      ],
+      "markdownDescription": "`never` adds no period, `summary` adds one to the summary javadoc shows for\nthe comment, and `always` adds one to each description paragraph."
+    },
+    "FormatConfig": {
+      "description": "Java formatter settings. Omitted values use `.editorconfig` fallbacks and\nthen Robusta's built-in defaults.",
+      "type": "object",
+      "properties": {
+        "after-closing-brace": {
+          "description": "Where `else`, `catch`, and `finally` go after a closing brace. Default: `same-line`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AfterClosingBraceConfig"
+            }
+          ],
+          "markdownDescription": "Where `else`, `catch`, and `finally` go after a closing brace. Default: `same-line`."
+        },
+        "import-order": {
+          "description": "Order imports are emitted in.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ImportOrderConfig"
+            }
+          ],
+          "markdownDescription": "Order imports are emitted in."
+        },
+        "indent-style": {
+          "description": "Character style used for structural indentation.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/IndentStyleConfig"
+            }
+          ],
+          "markdownDescription": "Character style used for structural indentation."
+        },
+        "indent-width": {
+          "description": "Display columns per indentation level and per tab in tab mode.",
+          "type": "integer",
+          "format": "uint",
+          "maximum": 24.0,
+          "minimum": 0.0,
+          "markdownDescription": "Display columns per indentation level and per tab in tab mode."
+        },
+        "insert-final-newline": {
+          "description": "Whether non-empty formatted output ends with one line terminator.",
+          "type": "boolean",
+          "markdownDescription": "Whether non-empty formatted output ends with one line terminator."
+        },
+        "javadoc": {
+          "description": "Javadoc comment formatting.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JavadocConfig"
+            }
+          ],
+          "markdownDescription": "Javadoc comment formatting."
+        },
+        "line-ending": {
+          "description": "Line terminator emitted by the formatter. Default: `lf`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/LineEndingConfig"
+            }
+          ],
+          "markdownDescription": "Line terminator emitted by the formatter. Default: `lf`."
+        },
+        "line-width": {
+          "description": "Target maximum line width in Unicode display columns.",
+          "type": "integer",
+          "format": "uint",
+          "maximum": 320.0,
+          "minimum": 1.0,
+          "markdownDescription": "Target maximum line width in Unicode display columns."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Java formatter settings. Omitted values use `.editorconfig` fallbacks and\nthen Robusta's built-in defaults."
+    },
+    "FormatOverrideConfig": {
+      "description": "Format settings for the Java files one override matches.",
+      "type": "object",
+      "required": [
+        "files"
+      ],
+      "properties": {
+        "exclude-files": {
+          "description": "Glob patterns for the files this override leaves out.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GlobSet"
+            }
+          ],
+          "markdownDescription": "Glob patterns for the files this override leaves out."
+        },
+        "files": {
+          "description": "Glob patterns for the files this override applies to.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GlobSet"
+            }
+          ],
+          "markdownDescription": "Glob patterns for the files this override applies to."
+        },
+        "options": {
+          "description": "Format settings that replace the ones in effect, each named setting on its own.",
+          "default": {},
+          "allOf": [
+            {
+              "$ref": "#/definitions/FormatConfig"
+            }
+          ],
+          "markdownDescription": "Format settings that replace the ones in effect, each named setting on its own."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Format settings for the Java files one override matches."
+    },
+    "FormatSection": {
+      "description": "Java formatter settings, their overrides, and the Java files to skip when\nformatting. Omitted settings use `.editorconfig` fallbacks and then\nRobusta's built-in defaults.",
+      "type": "object",
+      "properties": {
+        "after-closing-brace": {
+          "description": "Where `else`, `catch`, and `finally` go after a closing brace. Default: `same-line`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AfterClosingBraceConfig"
+            }
+          ],
+          "markdownDescription": "Where `else`, `catch`, and `finally` go after a closing brace. Default: `same-line`."
+        },
+        "ignore-patterns": {
+          "description": "Java files to skip when formatting, besides those the top-level\n`ignore-patterns` skips.\n\nA `!` pattern re-includes only a path an earlier entry in this list\nskipped.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/IgnorePatterns"
+            }
+          ],
+          "markdownDescription": "Java files to skip when formatting, besides those the top-level\n`ignore-patterns` skips.\n\nA `!` pattern re-includes only a path an earlier entry in this list\nskipped."
+        },
+        "import-order": {
+          "description": "Order imports are emitted in.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ImportOrderConfig"
+            }
+          ],
+          "markdownDescription": "Order imports are emitted in."
+        },
+        "indent-style": {
+          "description": "Character style used for structural indentation.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/IndentStyleConfig"
+            }
+          ],
+          "markdownDescription": "Character style used for structural indentation."
+        },
+        "indent-width": {
+          "description": "Display columns per indentation level and per tab in tab mode.",
+          "type": "integer",
+          "format": "uint",
+          "maximum": 24.0,
+          "minimum": 0.0,
+          "markdownDescription": "Display columns per indentation level and per tab in tab mode."
+        },
+        "insert-final-newline": {
+          "description": "Whether non-empty formatted output ends with one line terminator.",
+          "type": "boolean",
+          "markdownDescription": "Whether non-empty formatted output ends with one line terminator."
+        },
+        "javadoc": {
+          "description": "Javadoc comment formatting.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JavadocConfig"
+            }
+          ],
+          "markdownDescription": "Javadoc comment formatting."
+        },
+        "line-ending": {
+          "description": "Line terminator emitted by the formatter. Default: `lf`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/LineEndingConfig"
+            }
+          ],
+          "markdownDescription": "Line terminator emitted by the formatter. Default: `lf`."
+        },
+        "line-width": {
+          "description": "Target maximum line width in Unicode display columns.",
+          "type": "integer",
+          "format": "uint",
+          "maximum": 320.0,
+          "minimum": 1.0,
+          "markdownDescription": "Target maximum line width in Unicode display columns."
+        },
+        "overrides": {
+          "description": "Format settings for the Java files that match globs. When a file\nmatches several overrides, the later one wins.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FormatOverrideConfig"
+          },
+          "markdownDescription": "Format settings for the Java files that match globs. When a file\nmatches several overrides, the later one wins."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Java formatter settings, their overrides, and the Java files to skip when\nformatting. Omitted settings use `.editorconfig` fallbacks and then\nRobusta's built-in defaults."
+    },
+    "GlobSet": {
+      "description": "Glob patterns relative to the directory containing `robusta.yaml`. `*` does not cross `/`, `**` does, and a pattern without `/` matches a name at any depth.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "markdownDescription": "Glob patterns relative to the directory containing `robusta.yaml`. `*` does not cross `/`, `**` does, and a pattern without `/` matches a name at any depth."
+    },
+    "IgnorePatterns": {
+      "description": "Gitignore patterns relative to the directory containing `robusta.yaml`.\nA pattern with a `..` segment, or one the gitignore syntax cannot express,\nis rejected when the file is read.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "markdownDescription": "Gitignore patterns relative to the directory containing `robusta.yaml`.\nA pattern with a `..` segment, or one the gitignore syntax cannot express,\nis rejected when the file is read."
+    },
+    "ImportGroupConfig": {
+      "description": "One package-prefix group in the emitted order.\n\nA string is a single prefix; a list is several prefixes sharing one group.\n`*` is the catch-all group every import not matched by a named prefix\nfalls into.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "markdownDescription": "One package-prefix group in the emitted order.\n\nA string is a single prefix; a list is several prefixes sharing one group.\n`*` is the catch-all group every import not matched by a named prefix\nfalls into."
+    },
+    "ImportOrderConfig": {
+      "description": "Import-kind sections and package-prefix groups, in emitted order.",
+      "type": "object",
+      "properties": {
+        "groups": {
+          "description": "Package-prefix groups in emitted order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportGroupConfig"
+          },
+          "markdownDescription": "Package-prefix groups in emitted order."
+        },
+        "sections": {
+          "description": "Import kinds in emitted section order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportSectionConfig"
+          },
+          "markdownDescription": "Import kinds in emitted section order."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Import-kind sections and package-prefix groups, in emitted order."
+    },
+    "ImportSectionConfig": {
+      "description": "One import kind, as a section in the emitted order.\n\n`static` covers static imports, `module` covers module imports, and\n`type` covers everything else.",
+      "type": "string",
+      "enum": [
+        "static",
+        "module",
+        "type"
+      ],
+      "markdownDescription": "One import kind, as a section in the emitted order.\n\n`static` covers static imports, `module` covers module imports, and\n`type` covers everything else."
+    },
+    "IndentStyleConfig": {
+      "description": "The character style used for structural indentation.\n\n`space` indents with spaces. `tab` emits one tab per level and treats\n`indent-width` as the width a tab is displayed at.",
+      "type": "string",
+      "enum": [
+        "space",
+        "tab"
+      ],
+      "markdownDescription": "The character style used for structural indentation.\n\n`space` indents with spaces. `tab` emits one tab per level and treats\n`indent-width` as the width a tab is displayed at."
+    },
+    "JavadocConfig": {
+      "description": "Javadoc formatting: `false` keeps comments as written, `true` formats them\nwith the default settings, and a mapping formats them with the named\nsettings.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/JavadocSettingsConfig"
+        }
+      ],
+      "markdownDescription": "Javadoc formatting: `false` keeps comments as written, `true` formats them\nwith the default settings, and a mapping formats them with the named\nsettings."
+    },
+    "JavadocSettingsConfig": {
+      "description": "Javadoc settings. An omitted setting keeps its default.",
+      "type": "object",
+      "properties": {
+        "capitalize-descriptions": {
+          "description": "Capitalize the first word of each description paragraph. Default: `false`.",
+          "type": "boolean",
+          "markdownDescription": "Capitalize the first word of each description paragraph. Default: `false`."
+        },
+        "comment-line-strategy": {
+          "description": "When a traditional comment uses the single-line form. Default: `single-line`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/CommentLineStrategyConfig"
+            }
+          ],
+          "markdownDescription": "When a traditional comment uses the single-line form. Default: `single-line`."
+        },
+        "description-with-dot": {
+          "description": "Which descriptions that end in a letter or digit get a period. Default: `never`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DescriptionWithDotConfig"
+            }
+          ],
+          "markdownDescription": "Which descriptions that end in a letter or digit get a period. Default: `never`."
+        },
+        "line-wrapping-style": {
+          "description": "Whether paragraphs are rewrapped or keep line breaks that fit. Default: `greedy`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/LineWrappingStyleConfig"
+            }
+          ],
+          "markdownDescription": "Whether paragraphs are rewrapped or keep line breaks that fit. Default: `greedy`."
+        },
+        "paragraph-html-tags": {
+          "description": "Start each paragraph after the first of a traditional comment with\n`<p>`, and remove one from the first. Default: `false`.",
+          "type": "boolean",
+          "markdownDescription": "Start each paragraph after the first of a traditional comment with\n`<p>`, and remove one from the first. Default: `false`."
+        },
+        "separate-tag-groups": {
+          "description": "Where blank lines separate block tags. Default: `never`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SeparateTagGroupsConfig"
+            }
+          ],
+          "markdownDescription": "Where blank lines separate block tags. Default: `never`."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Javadoc settings. An omitted setting keeps its default."
+    },
+    "LineEndingConfig": {
+      "description": "`lf`, `crlf`, and `cr` end each output line with LF, CRLF, or CR.",
+      "type": "string",
+      "enum": [
+        "lf",
+        "crlf",
+        "cr"
+      ],
+      "markdownDescription": "`lf`, `crlf`, and `cr` end each output line with LF, CRLF, or CR."
+    },
+    "LineWrappingStyleConfig": {
+      "description": "`greedy` fills each line to the line width. `keep` keeps a paragraph's line\nbreaks when every line fits.",
+      "type": "string",
+      "enum": [
+        "greedy",
+        "keep"
+      ],
+      "markdownDescription": "`greedy` fills each line to the line width. `keep` keeps a paragraph's line\nbreaks when every line fits."
+    },
+    "LintCategories": {
+      "type": "object",
+      "properties": {
+        "correctness": {
+          "description": "Code that is wrong or useless.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Code that is wrong or useless."
+        },
+        "style": {
+          "description": "Consistency and readability concerns with no behavioral risk.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Consistency and readability concerns with no behavioral risk."
+        },
+        "suspicious": {
+          "description": "Constructs that commonly indicate stale or misleading code.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Constructs that commonly indicate stale or misleading code."
+        }
+      },
+      "additionalProperties": false
+    },
+    "LintConfigFile": {
+      "description": "Category severities, rule values, overrides, and run-wide options.",
+      "type": "object",
+      "properties": {
+        "categories": {
+          "description": "Category severities: correctness defaults to `warn`, other categories to `allow`.",
+          "default": {},
+          "allOf": [
+            {
+              "$ref": "#/definitions/LintCategories"
+            }
+          ],
+          "markdownDescription": "Category severities: correctness defaults to `warn`, other categories to `allow`."
+        },
+        "ignore-patterns": {
+          "description": "Java files to skip when linting, besides those the top-level\n`ignore-patterns` skips.\n\nA `!` pattern re-includes only a path an earlier entry in this list\nskipped.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/IgnorePatterns"
+            }
+          ],
+          "markdownDescription": "Java files to skip when linting, besides those the top-level\n`ignore-patterns` skips.\n\nA `!` pattern re-includes only a path an earlier entry in this list\nskipped."
+        },
+        "options": {
+          "description": "Run-wide options, accepted only in the main configuration.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/OptionsConfig"
+            }
+          ],
+          "markdownDescription": "Run-wide options, accepted only in the main configuration."
+        },
+        "overrides": {
+          "description": "Rule values for the Java files that match globs. When a file matches\nseveral overrides, the later one wins.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LintOverride"
+          },
+          "markdownDescription": "Rule values for the Java files that match globs. When a file matches\nseveral overrides, the later one wins."
+        },
+        "rules": {
+          "description": "Built-in rule IDs mapped to `allow`, `warn`, or `deny`, or to\n`[severity, settings]`. Overrides the rule's category severity.",
+          "default": {},
+          "allOf": [
+            {
+              "$ref": "#/definitions/LintRules"
+            }
+          ],
+          "markdownDescription": "Built-in rule IDs mapped to `allow`, `warn`, or `deny`, or to\n`[severity, settings]`. Overrides the rule's category severity."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Category severities, rule values, overrides, and run-wide options."
+    },
+    "LintOverride": {
+      "description": "Rule values for the Java files one override matches.",
+      "type": "object",
+      "required": [
+        "files"
+      ],
+      "properties": {
+        "exclude-files": {
+          "description": "Glob patterns for the files this override leaves out.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GlobSet"
+            }
+          ],
+          "markdownDescription": "Glob patterns for the files this override leaves out."
+        },
+        "files": {
+          "description": "Glob patterns for the files this override applies to.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GlobSet"
+            }
+          ],
+          "markdownDescription": "Glob patterns for the files this override applies to."
+        },
+        "rules": {
+          "description": "Rule values that replace the ones in effect, as `lint.rules` does.",
+          "default": {},
+          "allOf": [
+            {
+              "$ref": "#/definitions/LintRules"
+            }
+          ],
+          "markdownDescription": "Rule values that replace the ones in effect, as `lint.rules` does."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Rule values for the Java files one override matches."
+    },
+    "LintRules": {
+      "type": "object",
+      "properties": {
+        "broken-null-check": {
+          "description": "Reports a null comparison whose short-circuited operand dereferences the value just proved null.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports a null comparison whose short-circuited operand dereferences the value just proved null."
+        },
+        "duplicate-import": {
+          "description": "Reports imports repeated later in the file.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports imports repeated later in the file."
+        },
+        "modifier-order": {
+          "description": "Reports keyword modifiers that are not in Java's customary order.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports keyword modifiers that are not in Java's customary order."
+        },
+        "prefer-expression-lambda": {
+          "description": "Reports lambda blocks that only return a value.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports lambda blocks that only return a value."
+        },
+        "redundant-lambda-parameter-parentheses": {
+          "description": "Reports parentheses around one concise lambda parameter.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports parentheses around one concise lambda parameter."
+        },
+        "redundant-return": {
+          "description": "Reports a no-value return that ends a void method, constructor, or void-compatible lambda block.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports a no-value return that ends a void method, constructor, or void-compatible lambda block."
+        },
+        "redundant-semicolons": {
+          "description": "Reports empty declarations and redundant empty statements.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports empty declarations and redundant empty statements."
+        },
+        "redundant-super-call": {
+          "description": "Reports an explicit leading `super()` equivalent to the implicit constructor invocation.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports an explicit leading `super()` equivalent to the implicit constructor invocation."
+        },
+        "unused-import": {
+          "description": "Reports single imports whose imported name is never referenced.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports single imports whose imported name is never referenced."
+        },
+        "unused-local-variable": {
+          "description": "Reports local variables whose value is never read.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            },
+            {
+              "type": "array",
+              "items": [
+                {
+                  "$ref": "#/definitions/RuleSeverityConfig"
+                },
+                {
+                  "$ref": "#/definitions/UnusedLocalVariableConfig"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          ],
+          "markdownDescription": "Reports local variables whose value is never read."
+        },
+        "uppercase-long-suffix": {
+          "description": "Reports integer literals with the visually ambiguous lowercase `l` long suffix.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Reports integer literals with the visually ambiguous lowercase `l` long suffix."
+        }
+      },
+      "additionalProperties": false
+    },
+    "OptionsConfig": {
+      "description": "Run-wide reporting options. CLI flags take precedence.",
+      "type": "object",
+      "properties": {
+        "deny-warnings": {
+          "description": "Fail the run when warnings remain. Equivalent to `--deny-warnings`.\nOnly the main configuration may set this; defaults to `false`.",
+          "type": "boolean",
+          "markdownDescription": "Fail the run when warnings remain. Equivalent to `--deny-warnings`.\nOnly the main configuration may set this; defaults to `false`."
+        },
+        "max-warnings": {
+          "description": "Fail the run when more warnings remain than this. `--max-warnings` replaces it.\nOnly the main configuration may set this; defaults to no limit.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0,
+          "markdownDescription": "Fail the run when more warnings remain than this. `--max-warnings` replaces it.\nOnly the main configuration may set this; defaults to no limit."
+        },
+        "report-unused-suppressions": {
+          "description": "Report suppressions that silence no finding, including those for disabled rules.\nOnly the main configuration may set this; defaults to `allow`.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "Report suppressions that silence no finding, including those for disabled rules.\nOnly the main configuration may set this; defaults to `allow`."
+        }
+      },
+      "additionalProperties": false,
+      "markdownDescription": "Run-wide reporting options. CLI flags take precedence."
+    },
+    "RuleSeverityConfig": {
+      "description": "Configured severity for lint findings.",
+      "type": "string",
+      "enum": [
+        "allow",
+        "warn",
+        "deny"
+      ],
+      "markdownDescription": "Configured severity for lint findings."
+    },
+    "SeparateTagGroupsConfig": {
+      "description": "`never` keeps block tags together, `before-return` adds a blank line before\n`@return`, and `always` adds one between block tags of different kinds.",
+      "type": "string",
+      "enum": [
+        "never",
+        "before-return",
+        "always"
+      ],
+      "markdownDescription": "`never` keeps block tags together, `before-return` adds a blank line before\n`@return`, and `always` adds one between block tags of different kinds."
+    },
+    "UnusedLocalVariableConfig": {
+      "type": "object",
+      "properties": {
+        "ignore-pattern": {
+          "description": "Regular expression matching names the rule should ignore.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Regular expression matching names the rule should ignore."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "markdownDescription": "Robusta Configuration File\n\nRobusta reads `robusta.yaml` from the directory it processes, or from the\nnearest ancestor directory that has one. Every section is optional: an\nomitted option falls back to `.editorconfig` where one applies, and then to\nRobusta's built-in default.\n\nUsage: `robusta check -c robusta.yaml`\n\nExample\n\n`robusta.yaml`\n\n```yaml\nformat: { line-width: 100, indent-style: space, indent-width: 4 }\nignore-patterns: [\"generated/\"]\nlint: { rules: { unused-import: warn } }\n```"
+}

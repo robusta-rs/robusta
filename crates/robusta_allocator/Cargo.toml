@@ -1,0 +1,42 @@
+[package]
+name = "robusta_allocator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Arena allocator for robusta's AST."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[features]
+# Enables `AllocatorPool`.
+pool = []
+# Counts allocations and reallocations, for `tasks/track_memory_allocations` only.
+track_allocations = []
+# Disables `track_allocations`, so `--all-features` does not enable allocation tracking.
+disable_track_allocations = []
+# Exposes the `arena` module to this crate's own integration tests.
+testing = []
+
+[dependencies]
+allocator-api2.workspace = true
+hashbrown.workspace = true
+robusta_data_structures = { workspace = true, features = ["assert_unchecked"] }
+rustc-hash.workspace = true
+
+[dev-dependencies]
+quickcheck.workspace = true
+rand.workspace = true
+robusta_data_structures = { workspace = true, features = ["types"] }
+# Enables `pool` for this crate's unit tests and `testing` for its integration tests.
+robusta_allocator = { path = ".", features = ["pool", "testing"] }
+
+[[test]]
+name = "arena_try_alloc"
+path = "tests/arena_try_alloc.rs"
+harness = false

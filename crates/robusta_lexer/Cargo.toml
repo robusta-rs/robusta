@@ -1,0 +1,22 @@
+[package]
+name = "robusta_lexer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "The Java tokenizer for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+rustc-hash.workspace = true
+memchr.workspace = true
+robusta_ast.workspace = true
+robusta_span.workspace = true
+robusta_syntax.workspace = true
+robusta_diagnostics.workspace = true

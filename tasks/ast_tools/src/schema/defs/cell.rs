@@ -1,0 +1,43 @@
+use proc_macro2::TokenStream;
+use quote::quote;
+
+use super::{super::extensions::layout::Layout, Def, Schema, TypeDef, TypeId};
+
+/// Type definition for a `Cell`.
+pub struct CellDef {
+    pub id: TypeId,
+    pub name: String,
+    pub inner_type_id: TypeId,
+    pub layout: Layout,
+}
+
+impl CellDef {
+    /// Get inner type.
+    #[must_use]
+    pub fn inner_type<'s>(&self, schema: &'s Schema) -> &'s TypeDef {
+        &schema.types[self.inner_type_id]
+    }
+}
+
+impl Def for CellDef {
+    fn id(&self) -> TypeId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn has_lifetime(&self, schema: &Schema) -> bool {
+        self.inner_type(schema).has_lifetime(schema)
+    }
+
+    fn ty_with_lifetime(&self, schema: &Schema, anon: bool) -> TokenStream {
+        let inner_ty = self.inner_type(schema).ty_with_lifetime(schema, anon);
+        quote!( Cell<#inner_ty> )
+    }
+
+    fn maybe_inner_type<'s>(&self, schema: &'s Schema) -> Option<&'s TypeDef> {
+        Some(self.inner_type(schema))
+    }
+}

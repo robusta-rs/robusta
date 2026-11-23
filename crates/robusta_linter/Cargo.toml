@@ -1,0 +1,40 @@
+[package]
+name = "robusta_linter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "File-local Java lint rules and span-edit fixes for robusta."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[features]
+ruledocs = []
+
+[dependencies]
+bitflags.workspace = true
+lazy-regex.workspace = true
+robusta_allocator.workspace = true
+robusta_ast.workspace = true
+robusta_config.workspace = true
+robusta_diagnostics.workspace = true
+robusta_macros.workspace = true
+robusta_semantic.workspace = true
+robusta_span.workspace = true
+robusta_syntax.workspace = true
+rust-lapper.workspace = true
+rustc-hash.workspace = true
+schemars.workspace = true
+serde.workspace = true
+# preserve_order: emit the configuration schema with ordered keys.
+serde_json = { workspace = true, features = ["preserve_order"] }
+
+[dev-dependencies]
+cow-utils.workspace = true
+insta.workspace = true
+robusta_parser.workspace = true

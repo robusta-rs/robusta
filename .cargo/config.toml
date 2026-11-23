@@ -1,0 +1,18 @@
+[alias]
+# Do not append `--` or it will break IDEs
+ck = "check --all-features --all-targets --locked"
+lint = "clippy --all-targets --all-features"
+coverage = "run -p robusta_coverage --profile coverage --"
+conformance = "run -p robusta_conformance --"
+benchmark = "bench -p robusta_benchmark"
+allocs = "run -p robusta_track_memory_allocations --profile coverage --"
+
+# Link the C runtime statically so the Windows CLI needs no Visual C++ redistributable.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

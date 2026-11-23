@@ -1,0 +1,20 @@
+[package]
+name = "robusta_syntax"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Java syntax vocabulary shared beneath robusta's AST: operators, character classes, and semantic index types."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+robusta_ast_macros.workspace = true
+robusta_span.workspace = true
+oxc_index.workspace = true
+unicode-general-category.workspace = true

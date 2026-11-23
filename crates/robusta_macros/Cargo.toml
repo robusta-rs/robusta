@@ -1,0 +1,20 @@
+[package]
+name = "robusta_macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Procedural macros for declaring robusta's lint rules."
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+proc-macro = true
+test = false
+doctest = false
+
+[dependencies]
+quote.workspace = true
+syn = { workspace = true, features = ["full", "parsing", "printing", "proc-macro"] }
