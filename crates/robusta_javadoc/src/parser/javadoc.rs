@@ -130,6 +130,13 @@ impl<'a> Javadoc<'a> {
     pub fn literal_regions(self) -> Vec<String> {
         structure::literal_regions(self)
     }
+
+    /// Whether the last line is Markdown code, so that its trailing whitespace
+    /// is code text.
+    pub fn ends_in_code(self) -> bool {
+        self.kind == JavadocKind::Markdown
+            && self.literal_lines().is_some_and(|lines| structure::ends_in_code(&lines.join("\n")))
+    }
 }
 
 #[cfg(test)]
