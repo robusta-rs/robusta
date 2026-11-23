@@ -765,6 +765,7 @@ fn spaces_after_the_last_line_of_a_markdown_comment_are_dropped() {
             ("/// a  \n/** Doc. */\nclass A {}\n", "/// a\n/** Doc. */\nclass A {}\n"),
             ("/// a\n///\n/// ---  \nclass A {}\n", "/// a\n///\n/// ---\nclass A {}\n"),
             ("/// a  \n\n/// b\nclass A {}\n", "/// a\n\n/// b\nclass A {}\n"),
+            ("/// ```\n/// b\n/// ```  \nclass A {}\n", "/// ```\n/// b\n/// ```\nclass A {}\n"),
             (
                 "class A {\n  public\n  /// first  \n  /* second\n   third */ static int a;\n}\n",
                 "class A {\n  public\n  /// first\n  /* second\n   third */ static int a;\n}\n",
@@ -773,6 +774,42 @@ fn spaces_after_the_last_line_of_a_markdown_comment_are_dropped() {
             assert_eq!(fmt_with_options(source, &options), expected);
         }
     }
+}
+
+// On a line of code they are code text.
+#[test]
+fn spaces_after_the_last_line_of_markdown_code_are_kept() {
+    let javadoc = Options { javadoc: Some(JavadocOptions::default()), ..Options::default() };
+    for source in [
+        "/// a\n///\n///     code  \nclass A {}\n",
+        "/// a\n/// ```text\n/// b  \nclass A {}\n",
+        "/// a\n///\n/// \tcode  \nclass A {}\n",
+        "class A {\n  void m() {\n    /// a\n    ///\n    ///     code\t\n    int x;\n  }\n}\n",
+    ] {
+        assert_eq!(format_stable_with_options(source, &Options::default()), source);
+    }
+    assert_eq!(
+        format_stable_with_options("/// a\n///\n/// \tcode  \nclass A {}\n", &javadoc),
+        "/// a\n///\n/// \tcode  \nclass A {}\n"
+    );
+    // Each block tag ends its own Markdown, wherever it moves.
+    assert_eq!(
+        format_stable_with_options(
+            concat!(
+                "class A {\n",
+                "  /// a\n  ///\n  /// @return r\n  ///\n  /// \tcode  \n",
+                "  /// @param x d\n  ///\n  /// # h  \n",
+                "  int f(int x) {}\n}\n",
+            ),
+            &javadoc,
+        ),
+        concat!(
+            "class A {\n",
+            "  /// a\n  ///\n  /// @param x d\n  ///\n  /// # h\n",
+            "  /// @return r\n  ///\n  /// \tcode  \n",
+            "  int f(int x) {}\n}\n",
+        )
+    );
 }
 
 #[test]

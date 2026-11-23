@@ -181,6 +181,21 @@ impl<'a, 'c> Comments<'a, 'c> {
             .is_some_and(|(_, consumed)| consumed == 2)
     }
 
+    /// Whether `comment` is the last line of a `///` comment printed as written
+    /// and that line is Markdown code.
+    pub(crate) fn ends_markdown_code(&self, comment: Comment) -> bool {
+        let end = self.inner.partition_point(|line| line.span.start <= comment.span.start);
+        if end == 0 || self.inner[end - 1] != comment {
+            return false;
+        }
+        let mut start = end - 1;
+        while start > 0 && self.is_next_markdown_line(self.inner[start - 1], self.inner[start]) {
+            start -= 1;
+        }
+        Javadoc::from_comments(self.source.as_str(), &self.inner[start..end])
+            .is_some_and(|(document, _)| !self.is_rewritable(document) && document.ends_in_code())
+    }
+
     /// Whether no pending comment leads, sits in, or trails the node at `span`,
     /// so its generated `fmt` can skip every comment query.
     #[inline]

@@ -4,6 +4,7 @@ use markdown::mdast::Node;
 use robusta_syntax::identifier::{identifier_name, is_horizontal_whitespace_char};
 
 use crate::html::{HtmlBlock, block_tag_at, find_block_tag, preformatted_end, starts_preformatted};
+use crate::markdown::code_text;
 use crate::parser::javadoc_tag::{Tag, parse_tags, type_parameter_tag_len};
 use crate::{Javadoc, JavadocKind};
 
@@ -344,13 +345,18 @@ fn markdown_blocks(content: &str, markdown: Option<&MarkdownParse>) -> Vec<Block
     // The blank lines after the last text are outside every block but code.
     let text_end =
         content.trim_end_matches(|ch| ch == '\n' || is_horizontal_whitespace_char(ch)).len();
+    // javadoc reads the description and each block tag as separate Markdown, in which
+    // whitespace after the last line is text only in code.
+    let mut section_end = None;
     let mut line_start = 0usize;
     for line in content.split('\n') {
         let line_end = line_start + line.len();
         if range_contains_line(&markdown.ranges.reflowable, line_start, line_end) {
             if block_tag_start(content, line_start, line_end, &[]).is_some() {
+                trim_trailing_whitespace(&mut builder.blocks, section_end);
                 builder.begin_tag();
             }
+            section_end = None;
             builder.append_normal(line);
             builder.physical_space();
         } else if line.trim_matches(is_horizontal_whitespace_char).is_empty()
@@ -361,12 +367,27 @@ fn markdown_blocks(content: &str, markdown: Option<&MarkdownParse>) -> Vec<Block
             builder.blank();
         } else {
             builder.flush();
+            section_end = (!markdown.holds_code(line_end)).then_some(builder.blocks.len());
             builder.blocks.push(Block::PreservedLine(line.to_string()));
         }
         line_start = line_end.saturating_add(1);
     }
     builder.flush();
+    trim_trailing_whitespace(&mut builder.blocks, section_end);
     builder.blocks
+}
+
+/// Drop the trailing spaces and tabs of the preserved line at `index`.
+fn trim_trailing_whitespace(blocks: &mut [Block], index: Option<usize>) {
+    if let Some(Block::PreservedLine(line)) = index.map(|index| &mut blocks[index]) {
+        line.truncate(line.trim_end_matches([' ', '\t']).len());
+    }
+}
+
+/// Whether the last line of Markdown `content` is code, so that its trailing
+/// whitespace is code text.
+pub fn ends_in_code(content: &str) -> bool {
+    parse_markdown(content).is_some_and(|markdown| markdown.holds_code(content.len()))
 }
 
 #[derive(Default)]
@@ -378,6 +399,15 @@ struct MarkdownRanges {
 struct MarkdownParse {
     ranges: MarkdownRanges,
     literal_ranges: Vec<Range<usize>>,
+    /// The lines holding each code block's text.
+    code: Vec<Range<usize>>,
+}
+
+impl MarkdownParse {
+    /// Whether the line ending at `line_end` holds code text.
+    fn holds_code(&self, line_end: usize) -> bool {
+        self.code.iter().any(|range| range.start <= line_end && line_end <= range.end)
+    }
 }
 
 fn parse_markdown(content: &str) -> Option<MarkdownParse> {
@@ -385,7 +415,7 @@ fn parse_markdown(content: &str) -> Option<MarkdownParse> {
         return None;
     };
     let mut ranges = MarkdownRanges::default();
-    let mut literal_ranges = Vec::new();
+    let (mut literal_ranges, mut code) = (Vec::new(), Vec::new());
     for node in &root.children {
         let position = node.position()?;
         let range = position.start.offset..position.end.offset;
@@ -403,9 +433,10 @@ fn parse_markdown(content: &str) -> Option<MarkdownParse> {
         } else {
             ranges.preserved.push(range);
         }
-        collect_markdown_literal_ranges(node, &mut literal_ranges)?;
+        collect_markdown_literal_ranges(node, &mut literal_ranges, &mut code)?;
     }
-    Some(MarkdownParse { ranges, literal_ranges })
+    let code = code.iter().filter_map(|range| code_text(content, range)).collect();
+    Some(MarkdownParse { ranges, literal_ranges, code })
 }
 
 fn indented_marker_prefix_len(source: &str) -> usize {
@@ -425,15 +456,23 @@ fn indented_marker_prefix_len(source: &str) -> usize {
         .sum()
 }
 
-fn collect_markdown_literal_ranges(node: &Node, ranges: &mut Vec<Range<usize>>) -> Option<()> {
+fn collect_markdown_literal_ranges(
+    node: &Node,
+    ranges: &mut Vec<Range<usize>>,
+    blocks: &mut Vec<Range<usize>>,
+) -> Option<()> {
     if matches!(node, Node::Code(_) | Node::InlineCode(_)) {
         let position = node.position()?;
-        ranges.push(position.start.offset..position.end.offset);
+        let range = position.start.offset..position.end.offset;
+        if matches!(node, Node::Code(_)) {
+            blocks.push(range.clone());
+        }
+        ranges.push(range);
         return Some(());
     }
     if let Some(children) = node.children() {
         for child in children {
-            collect_markdown_literal_ranges(child, ranges)?;
+            collect_markdown_literal_ranges(child, ranges, blocks)?;
         }
     }
     Some(())
@@ -1079,6 +1118,29 @@ mod tests {
                 "{content}"
             );
         }
+    }
+
+    #[test]
+    fn markdown_sections_end_with_trailing_whitespace_only_in_code() {
+        let preserved = |content| {
+            Structure::from_markdown(content)
+                .blocks
+                .into_iter()
+                .filter_map(|block| match block {
+                    Block::PreservedLine(line) => Some(line),
+                    Block::Blank | Block::Flow(_) => None,
+                })
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(preserved("a\n\n    code  "), ["    code  "]);
+        assert_eq!(preserved("- a\n\n      code\t"), ["- a", "", "      code\t"]);
+        assert_eq!(preserved("> ```\n> b  "), ["> ```", "> b  "]);
+        assert_eq!(preserved("```\nb  \n```  "), ["```", "b  ", "```"]);
+        assert_eq!(preserved("a\n\n    code\n      "), ["    code", ""]);
+        assert_eq!(preserved("# h  \n@param x y\n\n    code  "), ["# h", "    code  "]);
+        assert!(!ends_in_code("```\nb\n```"));
+        assert!(ends_in_code("a\n\n    code"));
     }
 
     #[test]

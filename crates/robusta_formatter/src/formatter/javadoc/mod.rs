@@ -58,7 +58,6 @@ pub(super) fn format_javadoc_comment(
             if blocks.is_empty() {
                 text("///").fmt(f);
             }
-            let last = blocks.len().saturating_sub(1);
             for (index, block) in blocks.into_iter().enumerate() {
                 if index > 0 {
                     hard_line_break().fmt(f);
@@ -74,11 +73,8 @@ pub(super) fn format_javadoc_comment(
                     }
                     Block::PreservedLine(line) => {
                         text("///").fmt(f);
-                        // Spaces after the last line mean nothing.
-                        let line =
-                            if index == last { line.trim_end_matches([' ', '\t']) } else { &line };
                         if !line.is_empty() {
-                            write!(f, [text(" "), text(f.allocator().alloc_str(line))]);
+                            write!(f, [text(" "), text(f.allocator().alloc_str(&line))]);
                         }
                     }
                 }

@@ -210,6 +210,44 @@ impl IndentedCode {
     }
 }
 
+/// The closing fence of the fenced code at `range`, without its indentation and trailing
+/// whitespace, or `None` when the block runs to its container's end.
+pub fn closing_fence(content: &str, range: &Range<usize>) -> Option<Range<usize>> {
+    let source = &content[range.clone()];
+    let marker = source.as_bytes()[0];
+    let opening = source.bytes().take_while(|byte| *byte == marker).count();
+    let start = range.start + source.rfind('\n')? + 1;
+    let line = &content[start..range.end];
+    let unquoted = quote_content(line);
+    let depth = |text: &str| text.bytes().filter(|byte| *byte == b'>').count();
+    if depth(&line[..line.len() - unquoted.len()])
+        != depth(&continuation_prefix(content, range.start))
+    {
+        return None;
+    }
+    let trimmed = unquoted.trim();
+    let start = start + line.len() - unquoted.trim_start().len();
+    (trimmed.len() >= opening && trimmed.bytes().all(|byte| byte == marker))
+        .then_some(start..start + trimmed.len())
+}
+
+/// The lines holding the text of the code block at `range`, without its fences or the blank
+/// lines that end indented code.
+pub fn code_text(content: &str, range: &Range<usize>) -> Option<Range<usize>> {
+    let end = block_end(content, range);
+    if content[range.start..].starts_with(['`', '~']) {
+        let start = range.start + content[range.start..end].find('\n')? + 1;
+        let end = match closing_fence(content, range) {
+            Some(closing) => content[..closing.start].rfind('\n')?,
+            None => end,
+        };
+        return (start <= end).then_some(start..end);
+    }
+    let text_end =
+        range.start + content[range.start..end].trim_end_matches([' ', '\t', '\n']).len();
+    Some(range.start..content[text_end..end].find('\n').map_or(end, |newline| text_end + newline))
+}
+
 /// Skip quote markers while retaining indentation within the innermost quote.
 pub fn quote_content(mut line: &str) -> &str {
     loop {

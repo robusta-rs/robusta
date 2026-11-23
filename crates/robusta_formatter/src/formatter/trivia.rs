@@ -415,20 +415,26 @@ fn format_run_comment(
     }
 }
 
-/// End `comment`'s line, with `next` printed on the line after it. Trailing
-/// spaces make a Markdown hard break only when that line continues a `///` comment.
+/// End `comment`'s line, with `next` printed on the line after it.
 fn format_comment_line_end(comment: Comment, next: Option<Comment>, f: &mut JavaFormatter<'_, '_>) {
     format_comment_trailing_whitespace(comment, next, f);
     hard_line_break().fmt(f);
 }
 
+/// Trailing spaces make a Markdown hard break when another line of the `///`
+/// comment follows, and are code text on its last line when that is code.
 fn format_comment_trailing_whitespace(
     comment: Comment,
     next: Option<Comment>,
     f: &mut JavaFormatter<'_, '_>,
 ) {
-    if next.is_some_and(|next| f.comments().is_next_markdown_line(comment, next)) {
-        text(trailing_whitespace(f.source_text().text_for(&comment.span))).fmt(f);
+    let whitespace = trailing_whitespace(f.source_text().text_for(&comment.span));
+    let comments = f.comments();
+    if !whitespace.is_empty()
+        && (next.is_some_and(|next| comments.is_next_markdown_line(comment, next))
+            || comments.ends_markdown_code(comment))
+    {
+        text(whitespace).fmt(f);
     }
 }
 

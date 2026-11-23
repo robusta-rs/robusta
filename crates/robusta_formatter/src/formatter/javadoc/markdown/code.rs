@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use markdown::mdast::Code;
-use robusta_javadoc::markdown::{IndentedCode, block_end, continuation_prefix, quote_content};
+use robusta_javadoc::markdown::{IndentedCode, block_end, closing_fence, continuation_prefix};
 
 use super::super::embedded::code_lines;
 use super::{Edit, Normalizer};
@@ -51,22 +51,8 @@ impl Normalizer<'_> {
             return None;
         }
         let mut group = vec![Edit::new(range.start..range.start + opening, fence.clone())];
-        let last_start = source.rfind('\n').map(|newline| range.start + newline + 1);
-        let closing = last_start.and_then(|start| {
-            let line = &self.content[start..range.end];
-            let unquoted = quote_content(line);
-            let quote_depth =
-                line[..line.len() - unquoted.len()].bytes().filter(|byte| *byte == b'>').count();
-            if quote_depth != prefix.bytes().filter(|byte| *byte == b'>').count() {
-                return None;
-            }
-            let trimmed = unquoted.trim();
-            let start = start + line.len() - unquoted.trim_start().len();
-            (trimmed.len() >= opening && trimmed.bytes().all(|byte| byte == marker))
-                .then_some(start..start + trimmed.len())
-        });
         let end = block_end(self.content, &range);
-        group.push(match closing {
+        group.push(match closing_fence(self.content, &range) {
             Some(closing) => Edit::new(closing, fence),
             None => Edit::new(end..end, format!("\n{prefix}{fence}")),
         });
