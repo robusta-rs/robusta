@@ -10,7 +10,7 @@ use crate::print::{FormatWrite, format_dot_before_nodeless_operand};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::member_chain::format_member_chain;
 use crate::utils::statement_body::{
-    format_callee, write_attached_brace_separator, write_comments_between_blocks,
+    format_callee, format_head_body, write_comments_between_blocks,
 };
 use robusta_allocator::Vec;
 use robusta_ast::{
@@ -117,8 +117,7 @@ fn format_creation<'a>(
     let rest = format_with(|f| {
         format_arguments(f, args, close_end);
         if let Some(body) = &body {
-            write_attached_brace_separator(f);
-            body.fmt(f);
+            format_head_body(body, f);
         }
     });
     if comment_ends_line_before_type_args(f, args.parent()) {

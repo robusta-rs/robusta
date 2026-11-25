@@ -1223,11 +1223,11 @@ record Pair(String left, String right) implements FirstContract, SecondContract 
 
 #[test]
 fn wrapped_declaration_clauses_keep_their_entries_comments() {
-    // A comment written after the last clause entry belongs to the header. It
-    // must not be carried past the brace into the body or pull the brace to
-    // the continuation indent, and it counts toward the header's width.
+    // A line comment written after the last clause entry follows the brace, so
+    // it does not count toward the header's width, and a block comment between
+    // entries stays with them.
     let source = "class Outer { \
-                  static class Wide<T extends Comparable<T>> extends Predicate<T> implements Serializable // required by the caller\n\
+                  static class Wide<T extends Comparable<T>> extends Predicate<T> implements Serializable, Cloneable, AutoCloseable // required by the caller\n\
                   { int a; } \
                   static class Narrow extends Base implements Ser // trailing\n\
                   { int b; } \
@@ -1237,13 +1237,11 @@ fn wrapped_declaration_clauses_keep_their_entries_comments() {
     assert_snapshot!(fmt_with_options(source, &options), @"
     class Outer {
       static class Wide<T extends Comparable<T>> extends Predicate<T>
-          implements Serializable // required by the caller
-      {
+          implements Serializable, Cloneable, AutoCloseable { // required by the caller
         int a;
       }
 
-      static class Narrow extends Base implements Ser // trailing
-      {
+      static class Narrow extends Base implements Ser { // trailing
         int b;
       }
 

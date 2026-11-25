@@ -7,8 +7,12 @@ use crate::formatter::trivia::{
     FormatCommentBeforeContent, FormatLeadingComments, FormatTrailingComments,
     format_dangling_comments, should_nestle_adjacent_comments,
 };
+use crate::print::FormatWrite;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
-use robusta_ast::{Comment, Statement};
+use robusta_ast::{
+    AnnotationInterfaceBody, AnnotationInterfaceMemberDeclaration, Block, ClassBody, ClassMember,
+    Comment, EnumBody, InterfaceBody, InterfaceMember, Statement,
+};
 use robusta_formatter_core::write;
 use robusta_span::{GetSpan, Span};
 
@@ -182,6 +186,122 @@ pub fn write_head_body_separator(body_start: u32, f: &mut JavaFormatter<'_, '_>)
     FormatLeadingComments::Comments(comments).fmt(f);
 }
 
+/// A `{`-delimited body that [`format_head_body`] prints after its head.
+pub trait Body: GetSpan {
+    /// Whether the body has no entries.
+    fn is_empty(&self) -> bool;
+
+    /// Whether the body's first entry is a declaration, which a documentation
+    /// comment moved after the `{` would come to document.
+    fn starts_with_declaration(&self) -> bool;
+}
+
+impl Body for Block<'_> {
+    fn is_empty(&self) -> bool {
+        self.statements.is_empty()
+    }
+
+    fn starts_with_declaration(&self) -> bool {
+        self.statements.first().is_some_and(Statement::is_local_class_or_interface_declaration)
+    }
+}
+
+impl Body for ClassBody<'_> {
+    fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    fn starts_with_declaration(&self) -> bool {
+        self.members.first().is_some_and(|member| {
+            !matches!(member, ClassMember::Initializer(_) | ClassMember::Empty(_))
+        })
+    }
+}
+
+impl Body for InterfaceBody<'_> {
+    fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    fn starts_with_declaration(&self) -> bool {
+        self.members.first().is_some_and(|member| !matches!(member, InterfaceMember::Empty(_)))
+    }
+}
+
+impl Body for EnumBody<'_> {
+    fn is_empty(&self) -> bool {
+        self.constants.is_empty() && !self.has_body_semicolon && self.members.is_empty()
+    }
+
+    fn starts_with_declaration(&self) -> bool {
+        !self.constants.is_empty()
+    }
+}
+
+impl Body for AnnotationInterfaceBody<'_> {
+    fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    fn starts_with_declaration(&self) -> bool {
+        self.members
+            .first()
+            .is_some_and(|member| !matches!(member, AnnotationInterfaceMemberDeclaration::Empty(_)))
+    }
+}
+
+/// How many of the head-side `comments` before a `{` stay in front of it: those
+/// before the first that would push the `{` to a later line, by being a line
+/// comment or by starting a line.
+pub fn comments_staying_before_brace(comments: &[Comment]) -> usize {
+    comments
+        .iter()
+        .position(|comment| comment.is_line() || comment.preceded_by_newline())
+        .unwrap_or(comments.len())
+}
+
+/// The head's side of [`format_head_body`]: the comments that stay before the
+/// `{` at `body_start`, trailing the head, then the separator.
+fn write_brace_separator(
+    body_start: u32,
+    starts_with_declaration: bool,
+    f: &mut JavaFormatter<'_, '_>,
+) {
+    let comments = f.comments().comments_before(body_start);
+    let (staying, moving) = comments.split_at(comments_staying_before_brace(comments));
+    if starts_with_declaration && moving.iter().any(Comment::is_documentation) {
+        write_head_body_separator(body_start, f);
+    } else {
+        FormatTrailingComments::Comments(staying).fmt(f);
+        space().fmt(f);
+    }
+}
+
+/// The separator between a construct's head and its `{`-delimited `body`, then
+/// the body, whose `{` stays on the head's line. A comment before the `{` that
+/// would push it to a later line, by being a line comment or by starting a
+/// line, moves after the `{` with every comment after it, where the body
+/// prints them; the comments before that one stay in front of the `{`:
+///
+/// ```java
+/// if (full) /* by count */ { // or by weight
+///
+/// while (more) {
+///   // drained in order
+/// ```
+///
+/// None moves when a documentation comment would come to document the body's
+/// first declaration; [`write_head_body_separator`] then places them.
+pub fn format_head_body<'a, T>(body: &AstNode<'_, 'a, T>, f: &mut JavaFormatter<'_, 'a>)
+where
+    T: Body,
+    for<'p> AstNode<'p, 'a, T>: FormatWrite<'a>,
+{
+    write_brace_separator(body.span().start, body.starts_with_declaration(), f);
+    body.write(f);
+    body.format_trailing_comments(f);
+}
+
 /// Comments between a block's `}` and a following keyword (`else`, `catch`,
 /// `finally`, `while`) keep their positions: the same-line prefix trails the
 /// previous block, own-line comments keep their own lines. No blank line
@@ -311,8 +431,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for FormatStatementBody<'a, '_> {
         let body_start = self.body.span().start;
         match self.body.inner() {
             Statement::Block(_) => {
-                write_head_body_separator(body_start, f);
-                self.body.as_block().expect("block variant").fmt(f);
+                format_head_body(&self.body.as_block().expect("block variant"), f);
             }
             Statement::Empty(_) => {
                 // The `;` is the body, so the head-body separator applies before it
@@ -346,21 +465,14 @@ pub fn format_continuation_keyword(
     keyword.fmt(f);
 }
 
-/// The separator between a construct's head and its `{`-delimited body.
-///
-/// A body that attaches to a preceding header is written by its own printer;
-/// the separator in front of it belongs to the header, so the caller writes
-/// this first and then formats the body itself.
-pub fn write_attached_brace_separator(f: &mut JavaFormatter<'_, '_>) {
-    space().fmt(f);
-}
-
 /// The `{`-delimited frame every body sits in: the collapsed `{}` when there
 /// is nothing to write, otherwise braces around an indented body that starts
 /// and ends on its own line.
 ///
-/// `is_empty` says the body has no entries. Comments before the end of `span`
-/// still open the frame, and take a line each inside it.
+/// `span` ends with the body, and its `{` is the first after `span`'s start.
+/// `is_empty` says the body has no entries.
+/// Comments before the end of `span` still open the frame, and take a line
+/// each inside it, except a line comment that stays on the `{`'s line.
 ///
 /// The frame owns both of those line breaks, so `body` writes what it has
 /// without a leading break — the same division as `JoinNodesBuilder`, which
@@ -371,11 +483,39 @@ pub fn format_braced_body<'ast>(
     span: Span,
     body: impl FnOnce(&mut JavaFormatter<'_, 'ast>),
 ) {
-    if is_empty {
-        write!(f, ["{", format_dangling_comments(span).with_block_indent(), "}"]);
+    "{".fmt(f);
+    let kept = write_line_comment_after_brace(span.start, f);
+    if !is_empty {
+        write!(f, [block_indent(&format_once(body)), "}"]);
+    } else if kept && f.comments().comments_before(span.end).is_empty() {
+        write!(f, [hard_line_break(), "}"]);
     } else {
-        write!(f, ["{", block_indent(&format_once(body)), "}"]);
+        write!(f, [format_dangling_comments(span).with_block_indent(), "}"]);
     }
+}
+
+/// Print the first comment after the first `{` from `start`, written there or
+/// moved there by [`format_head_body`], on the `{`'s line when it is a line
+/// comment that does not start a line. Returns whether it did.
+///
+/// A `///` comment that a blank line ends stays on a line of its own, where
+/// the blank line keeps it apart from a `///` comment after it.
+fn write_line_comment_after_brace(start: u32, f: &mut JavaFormatter<'_, '_>) -> bool {
+    let comments = f.comments();
+    let first_entry = comments.token_start_after(comments.position_after_character(start, b'{'));
+    let first = comments.comments_before(first_entry);
+    let stays = first.first().is_some_and(|comment| {
+        comment.is_line()
+            && !comment.preceded_by_newline()
+            && !(comment.is_documentation()
+                && f.source_text().lines_after_skipping_terminators(comment.span.end, None) > 1)
+    });
+    if !stays {
+        return false;
+    }
+    // Indented with the body, where a documentation comment's later lines go.
+    indent(&FormatTrailingComments::Comments(&first[..1])).fmt(f);
+    true
 }
 
 /// A [`format_braced_body`] attached to the header that ends at `header_end`,
@@ -387,6 +527,7 @@ pub fn format_attached_braced_body<'ast>(
     span: Span,
     body: impl FnOnce(&mut JavaFormatter<'_, 'ast>),
 ) {
-    write_head_body_separator(f.comments().position_after_character(header_end, b'{') - 1, f);
-    format_braced_body(f, is_empty, span, body);
+    let body_start = f.comments().position_after_character(header_end, b'{') - 1;
+    write_brace_separator(body_start, false, f);
+    format_braced_body(f, is_empty, Span::new(header_end, span.end), body);
 }

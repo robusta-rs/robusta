@@ -448,8 +448,7 @@ fn comments_before_a_lambda_arrow_stay_on_the_signature_line_or_lead_the_body() 
         x = a ->
           // c
           b;
-        x = (a) -> {
-          // c
+        x = (a) -> { // c
           b();
         };
         x = (a) /* c */ -> {
@@ -484,20 +483,16 @@ fn comments_ending_their_line_before_a_lambda_block_follow_its_brace() {
         rule = (a) ->
           // unused
           price;
-        check = (a) -> {
-          // unused
+        check = (a) -> { // unused
           return price;
         };
         check = (a) /* unused */ -> {
           return price;
         };
-        check = (a) -> {
-          // unused
+        check = (a) -> { // unused
           return price;
         };
-        check = (a) -> {
-          /* unused */
-          // later
+        check = (a) -> /* unused */ { // later
         };
         check = (a) -> /** unused */ {
           class Price {}
@@ -865,9 +860,8 @@ fn multi_line_block_comments_around_operator_tokens_are_stable_on_a_second_pass(
           y;
         x = (T) /* c */ /* d
                          */ y;
-        x = (a) -> {
-          /* c
-           */
+        x = (a) -> /* c
+                    */ {
           b();
         };
       }
@@ -1950,8 +1944,8 @@ fn compound_token_gap_block_comments_keep_every_internal_side() {
       }
 
       int choose(int value) {
-        return switch (value /* before close */) {
-          /* before brace */ /* after brace */ default -> 1;
+        return switch (value /* before close */) /* before brace */ {
+          /* after brace */ default -> 1;
         };
       }
     }
@@ -2023,8 +2017,7 @@ fn compound_token_gap_line_comments_keep_every_internal_side() {
       int choose(int value) {
         return switch (
           value // before close
-        ) {
-          // before brace
+        ) { // before brace
           // after brace
           default -> 1;
         };
@@ -2074,8 +2067,8 @@ fn compound_token_gap_unicode_escapes_use_parser_boundaries() {
       }
 
       int choose(int value) {
-        return switch (value /* before escaped close */) {
-          /* before escaped brace */ /* after escaped brace */ default -> 1;
+        return switch (value /* before escaped close */) /* before escaped brace */ {
+          /* after escaped brace */ default -> 1;
         };
       }
     }

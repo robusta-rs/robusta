@@ -51,7 +51,7 @@ use crate::utils::assignment_like::AssignmentLike;
 use crate::utils::conditional::should_extra_indent;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
-    FormatStatementBody, StatementContinuation, format_continuation_keyword,
+    FormatStatementBody, StatementContinuation, format_continuation_keyword, format_head_body,
     write_comments_after_unbraced_body, write_comments_before_opener,
     write_comments_between_blocks, write_head_body_separator, write_node_with_terminator,
     write_trailing_comments, write_trailing_comments_before,
@@ -613,8 +613,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SynchronizedStatement<'a>> {
         "synchronized".fmt(f);
         space().fmt(f);
         format_header_condition(f, node.span.start, &self.lock());
-        write_head_body_separator(node.body.span.start, f);
-        self.body().fmt(f);
+        format_head_body(&self.body(), f);
     }
 }
 

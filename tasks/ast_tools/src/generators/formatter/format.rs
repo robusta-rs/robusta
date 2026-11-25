@@ -39,6 +39,12 @@ const AST_NODE_WITHOUT_PRINTING_COMMENTS_LIST: &[&str] = &[
     // places those after `)`, such as the comments before `->`.
     "FormalParameters",
     "RecordHeader",
+    // The declaration, enum constant, or class instance creation that holds a body prints the
+    // comments before its `{`, some of which move after it.
+    "ClassBody",
+    "InterfaceBody",
+    "EnumBody",
+    "AnnotationInterfaceBody",
     // The `try` statement prints `catch` with the comments before it,
     // and the next clause or the statement prints those after it.
     "CatchClause",

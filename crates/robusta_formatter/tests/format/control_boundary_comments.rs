@@ -1,11 +1,12 @@
 //! Comment ownership at header→body seams.
 //!
-//! Header comments stay before their body. A block comment sharing the brace's
-//! line hugs it, and any other comment puts the brace on the next line. A
-//! brace, an empty body's `;`, and the comments before them stay at the header
-//! indent. An unbraced control body that breaks indents one level, with its
-//! own-line comments. Shared test support checks parse success, tokens,
-//! comments, and final newlines, and shows a second pass that differs.
+//! A body's brace stays on its header's line. A block comment sharing the
+//! header's line stays before the brace, and a comment that would push the
+//! brace to a later line moves after it, with the comments after it. An empty
+//! body's `;` and the comments before it stay at the header indent. An
+//! unbraced control body that breaks indents one level, with its own-line
+//! comments. Shared test support checks parse success, tokens, comments, and
+//! final newlines, and shows a second pass that differs.
 
 use insta::assert_snapshot;
 use robusta_formatter::{JavadocOptions, Options};
@@ -46,13 +47,12 @@ fn if_same_line_block_comment_hugs_a_block_body() {
 }
 
 #[test]
-fn if_line_comment_puts_a_block_brace_at_header_indent() {
+fn if_line_comment_follows_the_block_brace() {
     let source = "class A { void f() { if (a) // c\n{ x(); } } }";
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        if (a) // c
-        {
+        if (a) { // c
           x();
         }
       }
@@ -104,16 +104,14 @@ fn if_multiline_block_comment_on_the_header_line_hugs_a_block() {
 }
 
 #[test]
-fn own_line_comments_before_a_brace_stay_at_the_header_indent() {
+fn own_line_comments_before_a_brace_move_into_the_body() {
     let source = "class A { void f()\n/* m */\n{ if (a)\n// c\n{ x(); } } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      void f()
-      /* m */
-      {
-        if (a)
-        // c
-        {
+      void f() {
+        /* m */
+        if (a) {
+          // c
           x();
         }
       }
@@ -336,8 +334,7 @@ fn comments_around_a_default_label_stay_on_their_sides() {
         switch (x) {
           /* a */ default /* b */ -> g();
         }
-        switch (x) {
-          // c
+        switch (x) { // c
           default -> g(); // d
         }
         switch (x) {
@@ -452,8 +449,8 @@ fn header_punctuation_comments_stay_on_a_line_with_code() {
             break;
         }
         switch (o) {
-          case 3 -> // three
-          {}
+          case 3 -> { // three
+          }
           default -> {}
         }
       }
@@ -666,17 +663,16 @@ fn for_seam_comment_covers_basic_and_enhanced() {
     ");
 }
 
-// Seam 6: `switch (...)` `)` → block. A switch body has no head-body
-// separator: the comments before its `{` lead the first case.
+// Seam 6: `switch (...)` `)` → block.
 
 #[test]
-fn switch_block_seam_comment_leads_the_first_case() {
+fn switch_block_seam_comment_hugs_the_block() {
     let source = "class A { void f() { switch (x) /* c */ { case 1 -> f(); } } }";
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        switch (x) {
-          /* c */ case 1 -> f();
+        switch (x) /* c */ {
+          case 1 -> f();
         }
       }
     }
@@ -684,13 +680,12 @@ fn switch_block_seam_comment_leads_the_first_case() {
 }
 
 #[test]
-fn switch_block_seam_line_comment_leads_the_first_case() {
+fn switch_block_seam_line_comment_follows_the_brace() {
     let source = "class A { void f() { switch (x) // c\n{ case 1 -> f(); } } }";
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        switch (x) {
-          // c
+        switch (x) { // c
           case 1 -> f();
         }
       }
@@ -841,19 +836,38 @@ fn switch_rule_arrow_line_comment_trails_the_rule() {
 }
 
 #[test]
-fn switch_rule_line_comment_before_a_block_puts_the_brace_at_rule_indent() {
+fn switch_rule_line_comment_before_a_block_follows_the_brace() {
     let source = "class A { void f() { switch (x) { case 1 // c\n-> { f(); } \
                   case 2 -> // d\n{ g(); } } } }";
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
         switch (x) {
-          case 1 -> // c
-          {
+          case 1 -> { // c
             f();
           }
-          case 2 -> // d
-          {
+          case 2 -> { // d
+            g();
+          }
+        }
+      }
+    }
+    ");
+}
+
+#[test]
+fn switch_group_line_comment_before_a_lone_block_follows_the_brace() {
+    let source = "class A { void f() { switch (x) { case 1 // c\n: { f(); } \
+                  case 2 /* d */\n// e\n: { g(); } } } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f() {
+        switch (x) {
+          case 1: { // c
+            f();
+          }
+          case 2 /* d */: {
+            // e
             g();
           }
         }
@@ -867,12 +881,11 @@ fn switch_rule_line_comment_before_a_block_puts_the_brace_at_rule_indent() {
 // still inside the parameter list is left to the list itself.
 
 #[test]
-fn method_seam_line_comment_puts_the_body_brace_at_header_indent() {
+fn method_seam_line_comment_follows_the_body_brace() {
     let source = "class A { void f() // c\n{ x(); } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      void f() // c
-      {
+      void f() { // c
         x();
       }
     }
@@ -917,7 +930,7 @@ fn type_body_seam_block_comments_stay_before_the_brace() {
 }
 
 #[test]
-fn type_body_seam_line_comments_keep_the_brace_at_header_indent() {
+fn type_body_seam_line_comments_follow_the_brace() {
     let source = "class X // class\n{}\n\
                   class G<T> // generic\n{ int x; }\n\
                   interface I<T> // interface\n{}\n\
@@ -925,39 +938,36 @@ fn type_body_seam_line_comments_keep_the_brace_at_header_indent() {
                   record R(int x) // record\n{}\n\
                   @interface B // annotation\n{}";
     assert_snapshot!(fmt(source), @"
-    class X // class
-    {}
+    class X { // class
+    }
 
-    class G<T> // generic
-    {
+    class G<T> { // generic
       int x;
     }
 
-    interface I<T> // interface
-    {}
+    interface I<T> { // interface
+    }
 
-    enum E // enum
-    {
+    enum E { // enum
       A,
     }
 
-    record R(int x) // record
-    {}
+    record R(int x) { // record
+    }
 
-    @interface B // annotation
-    {}
+    @interface B { // annotation
+    }
     ");
 }
 
 #[test]
-fn type_body_seam_own_line_comments_stay_outside_the_body() {
+fn type_body_seam_own_line_comments_move_into_the_body() {
     let source = "class X\n/* head */\n{ /* body */ int x; }\n\
                   record R(int x) /* first\nsecond */ {}\n\
                   class Outer { interface I<T>\n// head\n{ /* body */ } }";
     assert_snapshot!(fmt(source), @"
-    class X
-    /* head */
-    {
+    class X {
+      /* head */
       /* body */ int x;
     }
 
@@ -965,9 +975,8 @@ fn type_body_seam_own_line_comments_stay_outside_the_body() {
     second */ {}
 
     class Outer {
-      interface I<T>
-      // head
-      {
+      interface I<T> {
+        // head
         /* body */
       }
     }
@@ -979,8 +988,7 @@ fn method_seam_comment_follows_a_throws_clause() {
     let source = "class A { void f() throws E // c\n{ x(); } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      void f() throws E // c
-      {
+      void f() throws E { // c
         x();
       }
     }
@@ -1000,12 +1008,11 @@ fn method_seam_leaves_a_parameter_list_comment_to_the_list() {
 }
 
 #[test]
-fn constructor_seam_line_comment_puts_the_body_brace_at_header_indent() {
+fn constructor_seam_line_comment_follows_the_body_brace() {
     let source = "class A { A() // c\n{ x(); } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      A() // c
-      {
+      A() { // c
         x();
       }
     }
@@ -1013,12 +1020,11 @@ fn constructor_seam_line_comment_puts_the_body_brace_at_header_indent() {
 }
 
 #[test]
-fn compact_constructor_seam_line_comment_puts_the_body_brace_at_header_indent() {
+fn compact_constructor_seam_line_comment_follows_the_body_brace() {
     let source = "record A(int a) { A // c\n{ x(); } }";
     assert_snapshot!(fmt(source), @"
     record A(int a) {
-      A // c
-      {
+      A { // c
         x();
       }
     }
@@ -1029,12 +1035,11 @@ fn compact_constructor_seam_line_comment_puts_the_body_brace_at_header_indent() 
 // initializer has no header, and so no seam.
 
 #[test]
-fn static_initializer_seam_line_comment_puts_the_block_brace_at_header_indent() {
+fn static_initializer_seam_line_comment_follows_the_block_brace() {
     let source = "class A { static // c\n{ x(); } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      static // c
-      {
+      static { // c
         x();
       }
     }
@@ -1313,8 +1318,8 @@ fn comments_between_a_split_list_and_its_clause_keep_their_lines() {
       void i(
         Customer customer,
         List<Item> items
-      ) throws E /* a */ // c
-      {}
+      ) throws E /* a */ { // c
+      }
     }
     ");
 }

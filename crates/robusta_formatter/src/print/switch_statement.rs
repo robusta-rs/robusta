@@ -1,16 +1,18 @@
 use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
 use crate::formatter::separated::format_undelimited_list;
+use crate::formatter::trivia::FormatTrailingComments;
 use crate::print::binary_like_expression::format_operator_and_break;
 use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::print::{FormatWrite, format_header_condition};
+use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
-    FormatStatementBody, format_braced_body, write_attached_brace_separator,
-    write_node_with_terminator, write_node_with_trailing_comments_before,
+    FormatStatementBody, comments_staying_before_brace, format_attached_braced_body,
+    format_head_body,
 };
 use robusta_ast::{
     CaseLabel, CasePatternLabel, DefaultLabel, Statement, SwitchBlockStatementGroup,
-    SwitchExpression, SwitchRule, SwitchRuleBody, SwitchStatement, match_expression,
+    SwitchExpression, SwitchLabel, SwitchRule, SwitchRuleBody, SwitchStatement, match_expression,
 };
 use robusta_formatter_core::write;
 use robusta_span::GetSpan;
@@ -35,8 +37,8 @@ fn format_switch<'a>(f: &mut JavaFormatter<'_, 'a>, switch: AstNodes<'_, 'a>) {
     "switch".fmt(f);
     space().fmt(f);
     format_header_condition(f, span.start, &selector);
-    space().fmt(f);
-    format_braced_body(f, cases.is_empty(), span, |f| {
+    let selector_end = f.comments().position_after_character(selector.span().end, b')');
+    format_attached_braced_body(f, selector_end, cases.is_empty(), span, |f| {
         f.join_nodes_with_hardline().entries(cases.iter());
     });
 }
@@ -50,7 +52,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
                 hard_line_break().fmt(f);
             }
             if lone_block && index + 1 == node.labels.len() {
-                write_node_with_terminator(&label, ":", f);
+                format_label_before_block(&label, b':', f);
+                ":".fmt(f);
             } else {
                 write!(f, [label, ":"]);
             }
@@ -83,15 +86,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         let label = self.label();
-        // Before a block, a line comment trailing the label would print after
-        // the `{`, so the label's comments stop at the `->`, and a line comment
-        // among them ends the line after it, as before a group's lone block.
-        let line_ended = if matches!(node.body, SwitchRuleBody::Block(_)) {
-            write_node_with_trailing_comments_before(&label, b'-', f)
+        if matches!(node.body, SwitchRuleBody::Block(_)) {
+            format_label_before_block(&label, b'-', f);
         } else {
             label.fmt(f);
-            false
-        };
+        }
         group(&indent(&format_once(|f| {
             write!(f, [soft_line_break_or_space(), "->"]);
         })))
@@ -99,12 +98,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
         let body = self.body();
         match &node.body {
             SwitchRuleBody::Block(_) => {
-                if line_ended {
-                    hard_line_break().fmt(f);
-                } else {
-                    write_attached_brace_separator(f);
-                }
-                body.fmt(f);
+                format_head_body(&body.as_block().expect("block variant"), f);
             }
             SwitchRuleBody::Throw(_) => format_arrow_body(f, |f| body.fmt(f)),
             // The `;` belongs to the rule (JLS 14.11.1).
@@ -118,6 +112,22 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
             }
         }
     }
+}
+
+/// Print the `label` of a block, with the comments before the `separator`
+/// that follows it (`:` or `->`) that stay there. Those that would end the
+/// label's line move after the block's `{` with the comments after the
+/// separator, as [`format_head_body`] places them.
+fn format_label_before_block<'a>(
+    label: &AstNode<'_, 'a, SwitchLabel<'a>>,
+    separator: u8,
+    f: &mut JavaFormatter<'_, 'a>,
+) {
+    let end = label.span().end;
+    format_content_without_comments_after(label, end, f);
+    let comments = f.comments().comments_before_character(end, separator);
+    let staying = comments_staying_before_brace(comments);
+    FormatTrailingComments::Comments(&comments[..staying]).fmt(f);
 }
 
 /// Format a switch-rule value after `->`: beside the arrow if it fits,

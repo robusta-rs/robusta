@@ -365,18 +365,18 @@ fn comments_around_requires_modifiers_stay_in_place() {
 }
 
 #[test]
-fn comments_after_a_module_name_stay_before_the_body() {
+fn comments_after_a_module_name_that_end_its_line_follow_the_brace() {
     for head in ["module m", "open module m"] {
-        for (run, brace) in [
-            (" /* c */ ", " "),
-            (" /* a */ /* c */ ", " "),
-            (" // c\n", "\n"),
-            (" /* a */ // c\n", "\n"),
-            ("\n// c\n", "\n"),
+        for (run, empty, directive) in [
+            (" /* c */ ", " /* c */ {}", " /* c */ {\n  requires a;\n}"),
+            (" /* a */ /* c */ ", " /* a */ /* c */ {}", " /* a */ /* c */ {\n  requires a;\n}"),
+            (" // c\n", " { // c\n}", " { // c\n  requires a;\n}"),
+            (" /* a */ // c\n", " /* a */ { // c\n}", " /* a */ { // c\n  requires a;\n}"),
+            ("\n// c\n", " {\n  // c\n}", " {\n  // c\n  requires a;\n}"),
         ] {
-            for (body, formatted) in [("{}", "{}"), ("{ requires a; }", "{\n  requires a;\n}")] {
+            for (body, formatted) in [("{}", empty), ("{ requires a; }", directive)] {
                 let source = format!("{head}{run}{body}");
-                assert_eq!(fmt(&source), format!("{head}{}{brace}{formatted}\n", run.trim_end()));
+                assert_eq!(fmt(&source), format!("{head}{formatted}\n"));
                 check_contract_at_widths_and_modes(&source);
             }
         }
