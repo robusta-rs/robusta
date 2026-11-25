@@ -29,6 +29,6 @@ public class Config {
   @A @B int x = // c
     1;
   @A @B String s = """
-        text
-        """;
+    text
+    """;
 }

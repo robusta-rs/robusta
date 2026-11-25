@@ -11,7 +11,7 @@ use robusta_formatter_core::SourceText;
 use robusta_span::Span;
 use robusta_syntax::{
     identifier::is_horizontal_whitespace,
-    line_terminator::{contains_line_terminator, line_start},
+    line_terminator::contains_line_terminator,
     unicode_escape::{SourceBytes, skip_whitespace, unicode_escape},
 };
 
@@ -48,9 +48,6 @@ pub fn line_breaks(text: &str) -> impl Iterator<Item = u8> + '_ {
 pub trait SourceTextExt {
     /// Check if range contains line terminators.
     fn contains_newline_between(&self, start: u32, end: u32) -> bool;
-
-    /// Whether only horizontal whitespace precedes `position` on its line.
-    fn starts_line(&self, position: u32) -> bool;
 
     /// Whether only horizontal whitespace follows `position` on its line.
     fn ends_line(&self, position: u32) -> bool;
@@ -94,13 +91,6 @@ impl SourceTextExt for SourceText<'_> {
             return contains_line_terminator(text);
         }
         SourceBytes::new(text).any(|(byte, _)| matches!(byte, b'\r' | b'\n'))
-    }
-
-    fn starts_line(&self, position: u32) -> bool {
-        let prefix = self.slice_range(line_start(self, position), position);
-        SourceBytes::new(prefix).fold(true, |own_line, (byte, _)| {
-            matches!(byte, b'\r' | b'\n') || (own_line && is_horizontal_whitespace(byte))
-        })
     }
 
     fn ends_line(&self, position: u32) -> bool {

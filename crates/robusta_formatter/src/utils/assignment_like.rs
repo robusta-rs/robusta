@@ -257,8 +257,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                             | Expression::IntLiteral(_)
                             | Expression::FloatLiteral(_)
                     )
-                )
-                || matches!(right_shape, Some(Expression::StringLiteral(literal)) if literal.is_text_block()))
+                ))
         {
             return AssignmentLikeLayout::NeverBreakAfterOperator;
         }

@@ -23,6 +23,7 @@ pub mod return_or_throw_statement;
 pub mod semicolon;
 mod statement_expression_list;
 pub mod switch_statement;
+pub mod text_block;
 pub mod try_statement;
 pub mod type_parameters;
 pub mod variable_declaration;
@@ -43,6 +44,7 @@ use crate::print::member_expression::{
 };
 use crate::print::return_or_throw_statement::format_keyword_expression_statement;
 use crate::print::semicolon::FormatContentWithSemicolon;
+use crate::print::text_block::format_text_block;
 use crate::print::type_parameters::format_type_arguments_before_name;
 
 use crate::ast_nodes::impls::ast_nodes::format_node_leading_comments;
@@ -58,9 +60,7 @@ use crate::utils::statement_body::{
 };
 use crate::utils::{is_header_condition, keyword_end};
 use robusta_ast::*;
-use robusta_formatter_core::{
-    FormatElement, FormatElements, LINE_TERMINATORS, arena_cow_str, normalize_newlines, write,
-};
+use robusta_formatter_core::{FormatElement, FormatElements, write};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::operator::UnaryOp;
 
@@ -95,14 +95,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CharLiteral<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, StringLiteral<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        // A text block is the one Java token whose text spans physical
-        // lines, so literals take the width-per-line text element. The IR
-        // carries LF as its only break, so CR and CRLF fold to LF here and
-        // the printer re-emits the configured line ending at the end. JLS
-        // §3.10.6 normalizes a text block's terminators before escape
-        // interpretation, so this cannot change the compiled string value.
-        let normalized = normalize_newlines(self.raw, LINE_TERMINATORS);
-        text(arena_cow_str(&normalized, f)).fmt(f);
+        if self.is_text_block() {
+            format_text_block(self.raw, f);
+        } else {
+            text(self.raw).fmt(f);
+        }
     }
 }
 

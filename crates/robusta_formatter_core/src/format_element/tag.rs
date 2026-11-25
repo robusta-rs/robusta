@@ -26,6 +26,12 @@ pub enum Tag {
     StartAlignToColumn,
     EndAlignToColumn,
 
+    /// Variant of `Indent` that indents any content following a line break one level deeper than
+    /// the line where the content starts, or to the content's column when it starts that line.
+    /// See [crate::builders::indent_from_line].
+    StartIndentFromLine,
+    EndIndentFromLine,
+
     /// Reduces the indention of the specified content either by one level or to the root, depending on the mode.
     /// Reverse operation of `Indent` and can be used to *undo* an `Align` for nested content.
     StartDedent(DedentMode),
@@ -90,6 +96,7 @@ impl Tag {
             Tag::StartIndent
                 | Tag::StartAlign(_)
                 | Tag::StartAlignToColumn
+                | Tag::StartIndentFromLine
                 | Tag::StartDedent(_)
                 | Tag::StartGroup { .. }
                 | Tag::StartConditionalContent(_)
@@ -110,15 +117,17 @@ impl Tag {
     pub const fn kind(&self) -> TagKind {
         use Tag::{
             EndAlign, EndAlignToColumn, EndConditionalContent, EndDedent, EndEntry, EndFill,
-            EndGroup, EndIndent, EndIndentIfGroupBreaks, EndLineSuffix, EndMarkAsRoot, StartAlign,
-            StartAlignToColumn, StartConditionalContent, StartDedent, StartEntry, StartFill,
-            StartGroup, StartIndent, StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
+            EndGroup, EndIndent, EndIndentFromLine, EndIndentIfGroupBreaks, EndLineSuffix,
+            EndMarkAsRoot, StartAlign, StartAlignToColumn, StartConditionalContent, StartDedent,
+            StartEntry, StartFill, StartGroup, StartIndent, StartIndentFromLine,
+            StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
         };
 
         match self {
             StartIndent | EndIndent => TagKind::Indent,
             StartAlign(_) | EndAlign => TagKind::Align,
             StartAlignToColumn | EndAlignToColumn => TagKind::AlignToColumn,
+            StartIndentFromLine | EndIndentFromLine => TagKind::IndentFromLine,
             StartDedent(_) | EndDedent(_) => TagKind::Dedent,
             StartGroup(_) | EndGroup => TagKind::Group,
             StartConditionalContent(_) | EndConditionalContent => TagKind::ConditionalContent,
@@ -142,6 +151,7 @@ pub enum TagKind {
     Indent,
     Align,
     AlignToColumn,
+    IndentFromLine,
     Dedent,
     Group,
     ConditionalContent,

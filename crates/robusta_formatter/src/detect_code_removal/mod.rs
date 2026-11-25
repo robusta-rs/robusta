@@ -8,6 +8,8 @@ use documentation::{
 };
 use normalize::normalize_tokens;
 
+use crate::print::text_block::text_block_lines;
+
 /// One lexed revision, with imports sorted and trailing commas dropped.
 #[derive(Debug)]
 struct SourceSnapshot {
@@ -29,7 +31,7 @@ impl SourceSnapshot {
             .map(|token| TokenFingerprint {
                 kind: token.kind,
                 spelling: preserves_source_spelling(token.kind)
-                    .then(|| token.span.source_text(source).to_string()),
+                    .then(|| spelling(token.kind, token.span.source_text(source))),
             })
             .collect();
         let starts = declaration_starts(source, &lexed.comments);
@@ -148,6 +150,15 @@ fn documented_mismatch_message(before: &[Documented], after: &[Documented]) -> S
 /// Keywords print canonically, contextual ones included: `record` -> `record`.
 fn preserves_source_spelling(kind: TokenKind) -> bool {
     matches!(kind, TokenKind::Identifier | TokenKind::Underscore) || kind.is_literal()
+}
+
+/// The spelling formatting must keep: a text block's without the indentation
+/// the compiler removes, which moves with the text block.
+fn spelling(kind: TokenKind, source: &str) -> String {
+    match text_block_lines(source).filter(|_| kind == TokenKind::StringLiteral) {
+        Some(lines) => lines.collect::<Vec<_>>().join("\n"),
+        None => source.to_string(),
+    }
 }
 
 #[cfg(test)]

@@ -292,19 +292,22 @@ fn should_group_last_argument_impl<'a>(
         return false;
     }
 
-    let creation = last.as_array_creation();
-    match creation.as_ref().and_then(AstNode::<ArrayCreation>::init) {
-        Some(init) if penultimate.is_some() => {
+    match grouped_kind(last) {
+        Some(GroupedKind::Array) if penultimate.is_some() => {
             // Not after a lambda in a two-argument call
             if args_len == 2 && matches!(penultimate, Some(Expression::Lambda(_))) {
                 return false;
             }
 
-            !can_concisely_print_array_list(
-                init.span,
-                init.elements().iter().map(|element| element.as_expression()),
-                f,
-            )
+            // A text block is never a concise list of numbers.
+            let creation = last.as_array_creation();
+            creation.as_ref().and_then(AstNode::<ArrayCreation>::init).is_none_or(|init| {
+                !can_concisely_print_array_list(
+                    init.span,
+                    init.elements().iter().map(|element| element.as_expression()),
+                    f,
+                )
+            })
         }
         _ => true,
     }
@@ -349,10 +352,11 @@ enum GroupedKind {
 }
 
 /// The kind of a groupable argument, for comparing the last two arguments.
-/// A cast reads as an `as` expression.
+/// A cast reads as an `as` expression, and a text block as an array literal.
 fn grouped_kind(expression: &Expression<'_>) -> Option<GroupedKind> {
     match expression {
         Expression::ArrayCreation(creation) if creation.init.is_some() => Some(GroupedKind::Array),
+        Expression::StringLiteral(literal) if literal.is_text_block() => Some(GroupedKind::Array),
         Expression::Cast(_) => Some(GroupedKind::Cast),
         Expression::Lambda(_) => Some(GroupedKind::Lambda),
         expression if expression.anonymous_class_body().is_some() => {
@@ -457,6 +461,7 @@ pub fn can_group_expression_argument(argument: &Expression<'_>, f: &JavaFormatte
             .init
             .as_ref()
             .is_some_and(|init| can_group_array_argument(init.span, init.elements.is_empty(), f)),
+        Expression::StringLiteral(literal) => literal.is_text_block(),
         Expression::Cast(cast) => can_group_expression_argument(&cast.operand, f),
         Expression::Lambda(lambda) => can_group_lambda_argument(lambda, false),
         expression => expression.anonymous_class_body().is_some(),
@@ -472,6 +477,7 @@ pub fn can_group_array_argument(span: Span, is_empty: bool, f: &JavaFormatter<'_
 fn can_group_lambda_argument(lambda: &LambdaExpression, is_lambda_recursion: bool) -> bool {
     lambda.get_expression().is_none_or(|expression| match expression {
         Expression::ArrayCreation(creation) => creation.init.is_some(),
+        Expression::StringLiteral(literal) => literal.is_text_block(),
         Expression::Lambda(inner_lambda) => can_group_lambda_argument(inner_lambda, true),
         Expression::Conditional(_) | Expression::MethodCall(_) => !is_lambda_recursion,
         _ => false,
