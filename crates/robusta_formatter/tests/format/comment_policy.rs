@@ -627,6 +627,131 @@ int total = totalFor(order, customer, shippingRegion); // note
 }
 
 #[test]
+fn a_line_comment_after_a_body_brace_does_not_break_its_header() {
+    use crate::fixtures::{format_source_with_options, line_width};
+    use robusta_formatter::Options;
+
+    let source = "class A { void f() {
+if (ready) { // checked by the caller before each run
+  run();
+}
+} }";
+    // The class and method take 4 columns, leaving 50 for the statements.
+    let options = Options { line_width: line_width(54), ..Options::default() };
+    assert_snapshot!(format_source_with_options(source, &options), @"
+    class A {
+      void f() {
+        if (ready) { // checked by the caller before each run
+          run();
+        }
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn body_braces_stay_on_their_header_line() {
+    let source = "class Stock {
+  void refill() { // called hourly
+    if (ready) // checked by the caller
+    { run(); }
+    else { /* retried later */ queue(); }
+    while (more)
+    // drained in order
+    { next(); }
+    if (full) /* by count */ // or by weight
+    { stop(); }
+    for (Item item : items)
+    /* each */ /* once */ { count(item); }
+  }
+
+  class Shelf
+  /// Holds one product.
+  {
+    int units;
+  }
+}";
+    assert_snapshot!(fmt(source), @"
+    class Stock {
+      void refill() { // called hourly
+        if (ready) { // checked by the caller
+          run();
+        } else {
+          /* retried later */ queue();
+        }
+        while (more) {
+          // drained in order
+          next();
+        }
+        if (full) /* by count */ { // or by weight
+          stop();
+        }
+        for (Item item : items) {
+          /* each */ /* once */ count(item);
+        }
+      }
+
+      class Shelf
+      /// Holds one product.
+      {
+        int units;
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn documentation_comments_before_a_brace_move_unless_they_would_document_a_declaration() {
+    let source = "class A {
+  void f()
+  /** moves */
+  { run(); }
+  void g()
+  /** stays */
+  { class Local {} }
+  void h() /// moves
+  { int count; }
+}";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f() {
+        /** moves */
+        run();
+      }
+
+      void g()
+      /** stays */
+      {
+        class Local {}
+      }
+
+      void h() { /// moves
+        int count;
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn a_documentation_comment_that_a_blank_line_ends_leaves_the_brace_line() {
+    // On the brace's line it would lose the blank line and join the next `///`
+    // comment, which documents `cells` alone.
+    let source = "class Grid { /// h\n\n/// i\nint cells; }";
+    assert_snapshot!(fmt(source), @"
+    class Grid {
+      /// h
+
+      /// i
+      int cells;
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
 fn documentation_comments_lay_out_as_ordinary_comments_unless_that_changes_what_they_document() {
     let source = r"class Order {
   int a /// B

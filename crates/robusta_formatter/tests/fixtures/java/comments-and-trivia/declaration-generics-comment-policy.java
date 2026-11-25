@@ -11,4 +11,9 @@ class DeclarationGenericsCommentPolicy<T> {
   <U> /* return type */ U first(U value) {
     return value;
   }
+
+  <U> // return type
+  U last(U value) {
+    return value;
+  }
 }

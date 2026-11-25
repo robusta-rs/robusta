@@ -611,8 +611,8 @@ fixture_tests! {
 #[test]
 fn structural_comment_breaks_leave_no_blank_line_after_spaces() {
     let cases = [
-        ("class A { // first  \n int x; }", "class A {\n  // first\n  int x;\n}\n"),
-        ("class A { void m() { // last  \n } }", "class A {\n  void m() {\n    // last\n  }\n}\n"),
+        ("class A { // first  \n int x; }", "class A { // first\n  int x;\n}\n"),
+        ("class A { void m() { // last  \n } }", "class A {\n  void m() { // last\n  }\n}\n"),
         (
             "class A { public // first  \n void m() {} }",
             "class A {\n  public // first\n  void m() {}\n}\n",
@@ -718,8 +718,7 @@ fn lambda_block_bodies_keep_interior_comments() {
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        r = x -> {
-          // add
+        r = x -> { // add
           int y = x + 1;
           return;
         };
@@ -802,8 +801,7 @@ fn comments_inside_method_bodies_are_kept() {
     let source = "class A { void f() { // first\nint x = 1;\n/* dangling */ } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      void f() {
-        // first
+      void f() { // first
         int x = 1;
         /* dangling */
       }

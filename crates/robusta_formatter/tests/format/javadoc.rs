@@ -506,7 +506,7 @@ fn javadoc_moved_off_code_at_token_gaps_formats_in_one_pass() {
         "package p\n/** */ ;\nclass A {}",
         "class A { <U\n/** */ >\nU last(U v) { return v; } }",
         "import java.util.List\n/** */ ; /* import */\nclass A {}",
-        "class A { <U\n/** */ > // r\nU last(U v) {} }",
+        "class A { <U\n/** */ > // r\nU last(U v) { return v; } }",
         "class A { void f() { try (A a = x(); /**  x */\n B b = y()) {} } }",
         "class A\n/**  x */ extends B {}",
         "record A(int x)\n/**  x */ implements B {}",

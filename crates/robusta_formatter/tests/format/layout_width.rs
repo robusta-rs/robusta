@@ -1203,12 +1203,10 @@ fn line_comments_before_grouped_lambda_arrows_lead_the_body() {
     assert_snapshot!(fmt_with_options(source, &options), @"
     class C {
       void f() {
-        handlers.put(key, first -> {
-          // end
+        handlers.put(key, first -> { // end
           combine(first);
         });
-        handlers.put(key, first -> second -> {
-          // end
+        handlers.put(key, first -> second -> { // end
           combine(first, second);
         });
         handlers.put(key, first -> second ->
@@ -1217,8 +1215,7 @@ fn line_comments_before_grouped_lambda_arrows_lead_the_body() {
             combine(first, second, third);
           }
         );
-        handlers.put(first -> {
-          // first
+        handlers.put(first -> { // first
           combine(first);
         }, key);
         handlers.put(key, first -> second /* inline */ -> {

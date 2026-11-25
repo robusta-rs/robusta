@@ -9,7 +9,7 @@ use crate::print::{FormatWrite, format_name_after_type, write_type_name_separato
 use crate::utils::assignment_like::AssignmentLike;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
-    format_continuation_keyword, write_head_body_separator, write_node_with_terminator,
+    format_continuation_keyword, format_head_body, write_node_with_terminator,
 };
 use robusta_ast::{CatchClause, Resource, ResourceDeclaration, TryStatement};
 use robusta_formatter_core::write;
@@ -23,10 +23,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TryStatement<'a>> {
             space().fmt(f);
             format_resource_specification(f, &self.resources(), node.resources_trailing_semicolon);
         }
-        let block = format_once(|f| {
-            write_head_body_separator(node.block.span.start, f);
-            self.block().fmt(f);
-        });
+        let block = format_once(|f| format_head_body(&self.block(), f));
         if !node.catches.is_empty() || node.finally_block.is_some() {
             format_content_without_comments_after(&block, node.block.span.end, f);
         } else {
@@ -44,8 +41,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TryStatement<'a>> {
         }
         if let Some(finally_block) = self.finally_block() {
             format_continuation_keyword(f, "finally", previous_end);
-            write_head_body_separator(finally_block.span.start, f);
-            finally_block.fmt(f);
+            format_head_body(&finally_block, f);
         }
     }
 }
@@ -162,7 +158,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
             trailing.fmt(f);
         }
         ")".fmt(f);
-        write_head_body_separator(node.block.span.start, f);
-        self.block().fmt(f);
+        format_head_body(&self.block(), f);
     }
 }

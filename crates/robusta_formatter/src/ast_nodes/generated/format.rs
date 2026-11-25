@@ -303,13 +303,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ClassDeclaration<
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ClassBody<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
         self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, InterfaceDeclaration<'a>> {
@@ -325,13 +319,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, InterfaceDeclarat
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, InterfaceBody<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
         self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, EnumDeclaration<'a>> {
@@ -347,13 +335,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, EnumDeclaration<'
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, EnumBody<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
         self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, EnumConstant<'a>> {
@@ -407,13 +389,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AnnotationInterfa
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AnnotationInterfaceBody<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
         self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>>

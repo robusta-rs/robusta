@@ -42,8 +42,7 @@ fn switch_expression_bodies_keep_their_comments() {
       int b = switch (x) {
         /* only */
       };
-      int c = switch (x) {
-        // first
+      int c = switch (x) { // first
         case 1 -> 1; /* between */
         // next
         default -> 2; // last
@@ -131,7 +130,7 @@ fn comments_after_the_last_switch_group_stay_in_the_switch() {
 }
 
 #[test]
-fn comments_around_a_lone_case_block_stay_outside_its_braces() {
+fn comments_before_a_lone_case_block_that_end_their_line_follow_its_brace() {
     let source = "class A { void f() { switch (x) { case 1: /* a */ { y(); } case 2: // b\n{ y(); } \
                   case 3:\n// c\n{ y(); } default: { y(); } // d\n} } }";
     let expected = "class A {
@@ -140,13 +139,11 @@ fn comments_around_a_lone_case_block_stay_outside_its_braces() {
       case 1: /* a */ {
         y();
       }
-      case 2: // b
-      {
+      case 2: { // b
         y();
       }
-      case 3:
-      // c
-      {
+      case 3: {
+        // c
         y();
       }
       default: {
@@ -734,9 +731,9 @@ fn comments_before_an_empty_for_head_lead_the_body() {
     class A {
       void m() {
         for (;;) /* l */ {}
-        for (;;)
-        /* b */
-        {}
+        for (;;) {
+          /* b */
+        }
       }
     }
     ");

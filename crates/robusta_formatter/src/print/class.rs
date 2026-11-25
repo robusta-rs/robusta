@@ -13,8 +13,8 @@ use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::print::type_parameters::format_type_declaration_parameters;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
-    format_braced_body, write_attached_brace_separator, write_comments_before_opener,
-    write_comments_between_blocks, write_head_body_separator,
+    Body, format_braced_body, format_head_body, write_comments_before_opener,
+    write_comments_between_blocks,
 };
 use robusta_allocator::Vec;
 use robusta_ast::{
@@ -42,8 +42,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ClassDeclaration<'a>> {
             FormatDeclarationClause::names("permits", self.permits()),
         ];
         FormatTypeHead::new("class", self.modifiers(), self.name(), self.type_params())
-            .format_header(f, &clauses, None, node.body.span, node.body.members.is_empty());
-        self.body().fmt(f);
+            .format_header(f, &clauses, None, &node.body);
+        format_head_body(&self.body(), f);
     }
 }
 
@@ -61,8 +61,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, InterfaceDeclaration<'a>> {
             FormatDeclarationClause::names("permits", self.permits()),
         ];
         FormatTypeHead::new("interface", self.modifiers(), self.name(), self.type_params())
-            .format_header(f, &clauses, None, node.body.span, node.body.members.is_empty());
-        self.body().fmt(f);
+            .format_header(f, &clauses, None, &node.body);
+        format_head_body(&self.body(), f);
     }
 }
 
@@ -77,24 +77,16 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordDeclaration<'a>> {
         let node = self.inner();
         let clauses = [FormatDeclarationClause::types("implements", self.interfaces())];
         FormatTypeHead::new("record", self.modifiers(), self.name(), self.type_params())
-            .format_header(
-                f,
-                &clauses,
-                Some(self.header()),
-                node.body.span,
-                node.body.members.is_empty(),
-            );
-        self.body().fmt(f);
+            .format_header(f, &clauses, Some(self.header()), &node.body);
+        format_head_body(&self.body(), f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, AnnotationInterfaceDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let node = self.inner();
         FormatTypeHead::new("@interface", self.modifiers(), self.name(), None)
             .format_name(f, false, false);
-        write_head_body_separator(node.body.span.start, f);
-        self.body().fmt(f);
+        format_head_body(&self.body(), f);
     }
 }
 
@@ -108,14 +100,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         let clauses = [FormatDeclarationClause::types("implements", self.interfaces())];
-        FormatTypeHead::new("enum", self.modifiers(), self.name(), None).format_header(
-            f,
-            &clauses,
-            None,
-            node.body.span,
-            enum_body_is_empty(&node.body),
-        );
-        self.body().fmt(f);
+        FormatTypeHead::new("enum", self.modifiers(), self.name(), None)
+            .format_header(f, &clauses, None, &node.body);
+        format_head_body(&self.body(), f);
     }
 }
 
@@ -131,7 +118,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
             Span::new(end - 1, end)
         });
         let first_member = node.members.first().map_or(0, |member| member.span().start);
-        format_braced_body(f, enum_body_is_empty(node), node.span, |f| {
+        format_braced_body(f, node.is_empty(), node.span, |f| {
             let mut join = f.join_nodes_with_hardline();
             let constants = self.constants();
             for (index, constant) in constants.iter().enumerate() {
@@ -182,10 +169,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
     }
 }
 
-fn enum_body_is_empty(body: &EnumBody<'_>) -> bool {
-    body.constants.is_empty() && !body.has_body_semicolon && body.members.is_empty()
-}
-
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumConstant<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
@@ -197,8 +180,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumConstant<'a>> {
             format_arguments(f, &arguments, close_end);
         }
         if let Some(body) = self.body() {
-            write_attached_brace_separator(f);
-            body.fmt(f);
+            format_head_body(&body, f);
         }
     }
 }
@@ -206,9 +188,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumConstant<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, InitializerBlock<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         if self.is_static {
-            write!(f, ["static", space()]);
+            "static".fmt(f);
+            format_head_body(&self.block(), f);
+        } else {
+            self.block().fmt(f);
         }
-        self.block().fmt(f);
     }
 }
 
@@ -247,9 +231,10 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
         f: &mut JavaFormatter<'_, 'ast>,
         clauses: &[FormatDeclarationClause<'_, 'ast>],
         record_header: Option<AstNode<'_, 'ast, RecordHeader<'ast>>>,
-        body: Span,
-        empty_body: bool,
+        body: &impl Body,
     ) {
+        let empty_body = body.is_empty();
+        let body_starts_with_declaration = body.starts_with_declaration();
         let name_end = self.name.span.end;
         let params_end = self.type_params.as_ref().map_or(name_end, |params| params.span.end);
         let head_end = record_header.as_ref().map_or(params_end, |header| header.span.end);
@@ -264,18 +249,20 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
         let keep_javadoc = record_header.is_some()
             || empty_body && !has_clauses
             || (before_params.len() > 1 && has_documentation);
-        let body_has_content = !empty_body
-            || f.comments().all_comments_in_range(body.start, body.end).next().is_some();
-        let after_params = if record_header.is_none()
-            && (has_clauses || (body_has_content && self.type_params.is_some()))
-        {
-            f.comments().comments_in_range(head_end, first_clause.unwrap_or(body.start))
-        } else {
-            &[]
+        // Without a clause, the comments after the head are the body's to place.
+        let after_params = match first_clause {
+            Some(first_clause) if record_header.is_none() => {
+                f.comments().comments_in_range(head_end, first_clause)
+            }
+            _ => &[],
         };
         let name_has_suffix = has_trailing_line_comment(before_params);
         let params_have_suffix = has_trailing_line_comment(after_params);
-        let grouped = record_header.is_none() && (name_has_suffix || params_have_suffix);
+        // Without a clause, a line comment after the name rides past the `{`, unless it
+        // would come to document the body's first declaration.
+        let grouped = record_header.is_none()
+            && (has_clauses || has_documentation && body_starts_with_declaration)
+            && (name_has_suffix || params_have_suffix);
         let heritage = grouped.then(|| f.state().group_id("heritage"));
         let header = format_once(|f| {
             self.format_name(f, has_clauses && record_header.is_none(), keep_javadoc);
@@ -308,13 +295,14 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
         });
         if let Some(heritage) = heritage {
             group(&header).with_group_id(Some(heritage)).fmt(f);
-            if body_has_content {
+            // Without a clause, the header is grouped only to keep a documentation
+            // comment before the `{`, which then starts the next line.
+            if !has_clauses {
                 if_group_breaks(&hard_line_break()).with_group_id(Some(heritage)).fmt(f);
             }
         } else {
             header.fmt(f);
         }
-        write_head_body_separator(body.start, f);
     }
 }
 

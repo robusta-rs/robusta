@@ -4,10 +4,10 @@ use crate::ast_nodes::AstNode;
 use crate::ast_nodes::generated::ast_nodes::AstNodeKind;
 use crate::formatter::comments::stays_on_operator_line;
 use crate::formatter::prelude::*;
-use crate::formatter::trivia::{FormatTrailingComments, format_documentation_comments_before};
+use crate::formatter::trivia::FormatTrailingComments;
 use crate::print::FormatWrite;
 use crate::utils::assignment_like::AssignmentLikeLayout;
-use crate::utils::statement_body::write_attached_brace_separator;
+use crate::utils::statement_body::format_head_body;
 use robusta_ast::{Comment, Expression, LambdaBody, LambdaExpression, match_expression};
 use robusta_formatter_core::{format_args, write};
 use robusta_span::{GetSpan, Span};
@@ -468,44 +468,25 @@ fn stays_before_arrow(comment: &Comment) -> bool {
     comment.is_block() && stays_on_operator_line(comment)
 }
 
-/// The separator before a body that starts after the `->`. A block attaches
-/// with the configured brace separator.
+/// The separator before an expression body that starts after the `->`. A
+/// block body writes its own.
 fn write_space_before_body(lambda: &LambdaExpression<'_>, f: &mut JavaFormatter<'_, '_>) {
-    if lambda.get_expression().is_none() {
-        write_attached_brace_separator(f);
-    } else {
+    if lambda.get_expression().is_some() {
         space().fmt(f);
     }
 }
 
-/// The lambda's body. When a comment leading a block body ends its line, the
-/// leading comments move after the `{`, where the first statement, or the
-/// empty block's dangling comments, print them:
-///
-/// ```java
-/// check = (a) -> {
-///   // unused
-///   return price;
-/// };
-/// ```
-///
-/// The comments up to the last documentation comment stay before the `{`,
-/// where they document nothing, rather than come to document a local class.
+/// The lambda's body. A block places the comments before its `{` through
+/// [`format_head_body`].
 fn format_body<'a, 'b>(
     lambda: &'b AstNode<'b, 'a, LambdaExpression<'a>>,
     cache_mode: FunctionCacheMode,
 ) -> impl Format<'a, JavaFormatContext<'a>> + 'b {
     let content = format_with(move |f| {
         let body = lambda.body();
-        match body.as_kind() {
-            AstNodeKind::Block(block) if has_own_line_comment_before_body(lambda, f) => {
-                let start = lambda.params.span.end;
-                if format_documentation_comments_before(start, block.span.start, f) != start {
-                    write_attached_brace_separator(f);
-                }
-                block.write(f);
-            }
-            _ => body.fmt(f),
+        match body.as_block() {
+            Some(block) => format_head_body(&block, f),
+            None => body.fmt(f),
         }
     });
     FormatContentWithCacheMode::new(body_span(lambda), content, cache_mode)

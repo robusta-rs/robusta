@@ -9,7 +9,7 @@ use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::print::{FormatWrite, format_name_after_type, format_name_after_type_with_indent};
 use crate::utils::assignment_like::AssignmentLike;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
-use crate::utils::statement_body::write_head_body_separator;
+use crate::utils::statement_body::format_head_body;
 use robusta_allocator::Vec;
 use robusta_ast::{
     AnnotationInterfaceElementDeclaration, ArrayTypeDimension, CompactConstructorDeclaration,
@@ -34,8 +34,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodDeclaration<'a>> {
             },
         );
         if let Some(body) = self.body() {
-            write_head_body_separator(body.span.start, f);
-            body.fmt(f);
+            format_head_body(&body, f);
         } else {
             // The header, already printed, is the content before the `;`.
             FormatContentWithSemicolon::new(&(), header_end, method.span.end).fmt(f);
@@ -45,7 +44,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodDeclaration<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ConstructorDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let constructor = self.inner();
         format_signature(
             f,
             &Signature {
@@ -58,8 +56,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ConstructorDeclaration<'a>> {
                 throws: self.throws(),
             },
         );
-        write_head_body_separator(constructor.body.span.start, f);
-        self.body().fmt(f);
+        format_head_body(&self.body(), f);
     }
 }
 
@@ -68,8 +65,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CompactConstructorDeclaration<'a>> 
         let node = self.inner();
         format_modifiers_stacked(f, &self.modifiers());
         format_content_without_comments_after(&self.name(), node.name.span.end, f);
-        write_head_body_separator(node.body.span.start, f);
-        self.body().fmt(f);
+        format_head_body(&self.body(), f);
     }
 }
 

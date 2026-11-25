@@ -76,7 +76,7 @@ fn comments_after_type_keywords_stay_in_place() {
 }
 
 #[test]
-fn comment_runs_after_type_clauses_stay_before_the_body() {
+fn comment_runs_after_type_clauses_keep_the_brace_on_the_header_line() {
     for head in [
         "class A extends B",
         "class A implements B, C",
@@ -86,9 +86,11 @@ fn comment_runs_after_type_clauses_stay_before_the_body() {
         "enum A implements B, C",
         "record A(int x) implements B, C",
     ] {
-        for run in ["/* a */ // c", "/* a */ /* c */"] {
+        for (run, formatted) in
+            [("/* a */ // c", "/* a */ { // c\n}"), ("/* a */ /* c */", "/* a */ /* c */ {}")]
+        {
             let source = format!("{head} {run}\n{{}}");
-            assert_eq!(fmt(&source), format!("{source}\n"));
+            assert_eq!(fmt(&source), format!("{head} {formatted}\n"));
             check_contract_at_widths_and_modes(&source);
         }
     }
@@ -369,9 +371,9 @@ fn comments_after_a_method_name_trail_it() {
 }
 
 /// The line comment after the name, the type parameters, or a return type's
-/// name rides to the body's `{`, and the second pass reads it inside the body.
+/// name rides to the body's `{` and stays on its line.
 #[test]
-fn line_comment_in_a_method_header_moves_into_a_non_empty_body_on_a_second_pass() {
+fn line_comment_in_a_method_header_follows_the_body_brace() {
     let source = "class Z { void m // c\n(int a) { f(); } <U> // r\nU last(U v) { return v; } \
                   List // t\n<T> g() { return null; } }";
     assert_snapshot!(fmt(source), @"
@@ -385,23 +387,6 @@ fn line_comment_in_a_method_header_moves_into_a_non_empty_body_on_a_second_pass(
       }
 
       List<T> g() { // t
-        return null;
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class Z {
-      void m(int a) {
-        // c
-        f();
-      }
-
-      <U> U last(U v) {
-        // r
-        return v;
-      }
-
-      List<T> g() {
-        // t
         return null;
       }
     }
@@ -469,14 +454,12 @@ fn line_comments_in_type_headers_break_before_the_clauses() {
 
     class K<T> // b
         extends Y
-        implements A, B
-    {
+        implements A, B {
       int x;
     }
 
     class D /// c
-        extends E
-    {
+        extends E {
       int x;
     }
 
@@ -484,14 +467,12 @@ fn line_comments_in_type_headers_break_before_the_clauses() {
         extends E {}
 
     interface I<T> // e
-        extends J
-    {
+        extends J {
       int N = 0;
     }
 
     enum Kind // f
-        implements J
-    {
+        implements J {
       A,
     }
     ");
@@ -510,23 +491,33 @@ fn line_comment_stays_before_breaking_type_parameters() {
 }
 
 #[test]
-fn a_line_comment_before_type_parameters_breaks_before_body_content() {
+fn a_line_comment_before_type_parameters_follows_the_body_brace() {
     let source = "class K // e\n<T> {\n  int x;\n}\nclass L // f\n<T> { /* g */ }\n\
-                  interface ReadOnlyCachedRepository // h\n<T> { /* i */ }";
+                  interface ReadOnlyCachedRepository // h\n<T> { /* i */ }\n\
+                  class M /// documents nothing\n<T> { { init(); } }\n\
+                  class N /// would document x\n<T> { int x; }";
     assert_snapshot!(fmt(source), @"
-    class K<T> // e
-    {
+    class K<T> { // e
       int x;
     }
 
-    class L<T> // f
-    {
+    class L<T> { // f
       /* g */
     }
 
-    interface ReadOnlyCachedRepository<T> // h
-    {
+    interface ReadOnlyCachedRepository<T> { // h
       /* i */
+    }
+
+    class M<T> { /// documents nothing
+      {
+        init();
+      }
+    }
+
+    class N<T> /// would document x
+    {
+      int x;
     }
     ");
     check_contract_at_widths_and_modes(source);
@@ -541,8 +532,7 @@ fn comments_before_type_parameters_and_inside_a_clause_keep_their_order() {
     <T> /* first
          * second */ // inheritance
         extends S
-        implements I
-    {
+        implements I {
       int count;
     }
     ");

@@ -262,7 +262,7 @@ fn line_comments_merged_onto_one_line_pass() {
 #[test]
 fn a_trimmed_line_comment_passes() {
     detect_code_removal("class A { // c  \t\n}", "class A { // c\n}").unwrap();
-    assert_eq!(format_checked("class A { // c  \t\n}"), "class A {\n  // c\n}\n");
+    assert_eq!(format_checked("class A { // c  \t\n}"), "class A { // c\n}\n");
 }
 
 /// Comments the formatter moves where the placement rules put them, whatever
