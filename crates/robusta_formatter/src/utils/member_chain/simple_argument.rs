@@ -31,8 +31,9 @@ impl<'a, 'b> SimpleArgument<'a, 'b> {
         }
 
         match self.0 {
-            // A text block spans lines.
-            Expression::StringLiteral(literal) => !literal.is_text_block(),
+            // A text block reads as an array initializer of string literals,
+            // whose elements are one level deeper.
+            Expression::StringLiteral(literal) => !literal.is_text_block() || depth == 0,
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::CharLiteral(_)

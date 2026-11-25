@@ -36,6 +36,16 @@ fn token_mismatch_reports_first_spelling_difference() {
 }
 
 #[test]
+fn a_text_block_may_move_its_lines_but_not_change_them() {
+    let input = "class A { String s = \"\"\"\n        a\n          b\n        \"\"\"; }";
+    let moved = "class A { String s = \"\"\"\n  a\n    b\n  \"\"\"; }";
+    let changed = "class A { String s = \"\"\"\n  a\n  b\n  \"\"\"; }";
+
+    assert!(detect_code_removal(input, moved).is_ok());
+    assert!(detect_code_removal(input, changed).is_err());
+}
+
+#[test]
 fn a_dropped_token_is_caught() {
     assert_eq!(
         detect_code_removal("class A { int x; int y; }", "class A { int x; }").unwrap_err(),

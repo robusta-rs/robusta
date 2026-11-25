@@ -76,9 +76,10 @@ where
     fn fmt(&self, f: &mut Formatter<'_, 'a, C>) {
         use Tag::{
             EndAlign, EndAlignToColumn, EndConditionalContent, EndDedent, EndEntry, EndFill,
-            EndGroup, EndIndent, EndIndentIfGroupBreaks, EndLineSuffix, EndMarkAsRoot, StartAlign,
-            StartAlignToColumn, StartConditionalContent, StartDedent, StartEntry, StartFill,
-            StartGroup, StartIndent, StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
+            EndGroup, EndIndent, EndIndentFromLine, EndIndentIfGroupBreaks, EndLineSuffix,
+            EndMarkAsRoot, StartAlign, StartAlignToColumn, StartConditionalContent, StartDedent,
+            StartEntry, StartFill, StartGroup, StartIndent, StartIndentFromLine,
+            StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
         };
 
         w!(f, [ContentArrayStart]);
@@ -297,6 +298,10 @@ where
                             w!(f, [token("align_to_column(")]);
                         }
 
+                        StartIndentFromLine => {
+                            w!(f, [token("indent_from_line(")]);
+                        }
+
                         StartLineSuffix => {
                             w!(f, [token("line_suffix(")]);
                         }
@@ -408,6 +413,7 @@ where
                         | EndIndentIfGroupBreaks(_)
                         | EndAlign
                         | EndAlignToColumn
+                        | EndIndentFromLine
                         | EndIndent
                         | EndGroup
                         | EndLineSuffix

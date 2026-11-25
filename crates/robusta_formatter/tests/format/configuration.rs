@@ -1379,9 +1379,9 @@ fn a_text_block_interior_takes_the_configured_line_ending() {
     // re-emitted as the configured ending, exactly like structural breaks —
     // JLS §3.10.6 normalizes a text block's terminators before escape
     // interpretation, so this never changes the compiled string value.
-    let crlf_source = "class A {\r\n  String s = \"\"\"\r\n        hi\r\n        \"\"\";\r\n}\r\n";
+    let crlf_source = "class A {\r\n  String s = \"\"\"\r\n    hi\r\n    \"\"\";\r\n}\r\n";
     let cr_source = "class A {\r    String s = \"\"\"\r        hi\r        \"\"\";\r}\r";
-    let lf_source = "class A {\n  String s = \"\"\"\n        hi\n        \"\"\";\n}\n";
+    let lf_source = "class A {\n  String s = \"\"\"\n    hi\n    \"\"\";\n}\n";
 
     let lf = Options { line_ending: LineEnding::Lf, ..Options::default() };
     let crlf = Options { line_ending: LineEnding::Crlf, ..Options::default() };
@@ -1418,7 +1418,8 @@ fn text_block_interiors_follow_the_configured_line_ending() {
     // Defect regression: a CRLF source's text-block interior used to keep its
     // source bytes while structural breaks were normalized, so output was
     // neither LF nor CRLF.
-    let crlf_source = "class T {\r\n  String s = \"\"\"\r\n        alpha\r\n        beta\r\n        \"\"\";\r\n}\r\n";
+    let crlf_source =
+        "class T {\r\n  String s = \"\"\"\r\n    alpha\r\n    beta\r\n    \"\"\";\r\n}\r\n";
 
     let lf_out =
         format_raw(crlf_source, &Options { line_ending: LineEnding::Lf, ..Options::default() });

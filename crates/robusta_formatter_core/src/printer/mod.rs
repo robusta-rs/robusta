@@ -126,9 +126,10 @@ impl<'a> Printer<'a> {
     ) -> PrintResult<()> {
         use Tag::{
             EndAlign, EndAlignToColumn, EndConditionalContent, EndDedent, EndEntry, EndFill,
-            EndGroup, EndIndent, EndIndentIfGroupBreaks, EndLineSuffix, EndMarkAsRoot, StartAlign,
-            StartAlignToColumn, StartConditionalContent, StartDedent, StartEntry, StartFill,
-            StartGroup, StartIndent, StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
+            EndGroup, EndIndent, EndIndentFromLine, EndIndentIfGroupBreaks, EndLineSuffix,
+            EndMarkAsRoot, StartAlign, StartAlignToColumn, StartConditionalContent, StartDedent,
+            StartEntry, StartFill, StartGroup, StartIndent, StartIndentFromLine,
+            StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
         };
 
         let args = stack.top();
@@ -288,6 +289,15 @@ impl<'a> Printer<'a> {
                 stack.push(TagKind::AlignToColumn, args);
             }
 
+            FormatElement::Tag(StartIndentFromLine) => {
+                indent_stack.push(self.state.line_indent.indent_from_line(
+                    self.state.line_width,
+                    self.state.pending_space,
+                    self.options.indent_width().value() as usize,
+                ));
+                stack.push(TagKind::IndentFromLine, args);
+            }
+
             FormatElement::Tag(StartMarkAsRoot) => {
                 indent_stack.mark_root();
                 stack.push(TagKind::MarkAsRoot, args);
@@ -344,7 +354,9 @@ impl<'a> Printer<'a> {
                 }
                 stack.pop(tag.kind())?;
             }
-            FormatElement::Tag(tag @ (EndIndent | EndAlign | EndAlignToColumn | EndLineSuffix)) => {
+            FormatElement::Tag(
+                tag @ (EndIndent | EndAlign | EndAlignToColumn | EndIndentFromLine | EndLineSuffix),
+            ) => {
                 stack.pop(tag.kind())?;
                 indent_stack.pop();
             }
@@ -930,16 +942,16 @@ impl Default for Indention {
     }
 }
 
-/// Keeps the line's structural indent after the pending whitespace has been consumed.
+/// Keeps the line's indention after the pending whitespace has been consumed.
 #[derive(Copy, Clone, Debug, Default)]
 struct LineIndention {
     pending: Indention,
-    level: u16,
+    indention: Indention,
 }
 
 impl LineIndention {
     fn new(pending: Indention) -> Self {
-        Self { pending, level: pending.level() }
+        Self { pending, indention: pending }
     }
 
     fn align_to_column(
@@ -948,11 +960,27 @@ impl LineIndention {
         pending_space: bool,
         indent_width: usize,
     ) -> Indention {
+        let level = self.indention.level();
         let column = line_width + self.pending.width(indent_width) + usize::from(pending_space);
-        let spaces = column - usize::from(self.level) * indent_width;
+        let spaces = column - usize::from(level) * indent_width;
         match NonZeroU16::new(u16::try_from(spaces).unwrap_or(u16::MAX)) {
-            Some(align) => Indention::Align { level: self.level, align },
-            None => Indention::Level(self.level),
+            Some(align) => Indention::Align { level, align },
+            None => Indention::Level(level),
+        }
+    }
+
+    /// One level past the line's indention, or the column reached when nothing precedes it on the
+    /// line.
+    fn indent_from_line(
+        self,
+        line_width: usize,
+        pending_space: bool,
+        indent_width: usize,
+    ) -> Indention {
+        if line_width == 0 {
+            self.align_to_column(line_width, pending_space, indent_width)
+        } else {
+            self.indention.increment_level()
         }
     }
 }
@@ -1102,9 +1130,10 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
     fn fits_element(&mut self, element: &'a FormatElement) -> PrintResult<Fits> {
         use Tag::{
             EndAlign, EndAlignToColumn, EndConditionalContent, EndDedent, EndEntry, EndFill,
-            EndGroup, EndIndent, EndIndentIfGroupBreaks, EndLineSuffix, EndMarkAsRoot, StartAlign,
-            StartAlignToColumn, StartConditionalContent, StartDedent, StartEntry, StartFill,
-            StartGroup, StartIndent, StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
+            EndGroup, EndIndent, EndIndentFromLine, EndIndentIfGroupBreaks, EndLineSuffix,
+            EndMarkAsRoot, StartAlign, StartAlignToColumn, StartConditionalContent, StartDedent,
+            StartEntry, StartFill, StartGroup, StartIndent, StartIndentFromLine,
+            StartIndentIfGroupBreaks, StartLineSuffix, StartMarkAsRoot,
         };
 
         let args = self.stack.top();
@@ -1286,6 +1315,15 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
                 self.stack.push(TagKind::AlignToColumn, args);
             }
 
+            FormatElement::Tag(StartIndentFromLine) => {
+                self.indent_stack.push(self.state.line_indent.indent_from_line(
+                    self.state.line_width,
+                    self.state.pending_space,
+                    self.options().indent_width().value() as usize,
+                ));
+                self.stack.push(TagKind::IndentFromLine, args);
+            }
+
             FormatElement::Tag(StartGroup(group)) => {
                 if self.must_be_flat && !group.mode().is_flat() {
                     return Ok(Fits::No);
@@ -1378,7 +1416,9 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
             }
             // A skipped suffix hides its end, so `EndLineSuffix` closes a flushed
             // suffix whose content holds a group.
-            FormatElement::Tag(tag @ (EndIndent | EndAlign | EndAlignToColumn | EndLineSuffix)) => {
+            FormatElement::Tag(
+                tag @ (EndIndent | EndAlign | EndAlignToColumn | EndIndentFromLine | EndLineSuffix),
+            ) => {
                 self.stack.pop(tag.kind())?;
                 self.indent_stack.pop();
             }
@@ -1569,8 +1609,8 @@ mod tests {
         builders::{
             align, align_to_column, best_fitting_variant, block_indent, dedent_to_root, empty_line,
             expand_parent, group, hard_line_break, if_group_breaks, if_group_fits_on_line, indent,
-            line_suffix, literal_line_break, mark_as_root, soft_block_indent, soft_line_break,
-            soft_line_break_or_space, space, text, token,
+            indent_from_line, line_suffix, literal_line_break, mark_as_root, soft_block_indent,
+            soft_line_break, soft_line_break_or_space, space, text, token,
         },
         format_args,
         printer::PrintWidth,
@@ -2149,6 +2189,45 @@ two lines`,
             ),
         );
         assert_eq!(format!("{multiline}/* a\n{padding} * b */"), result.as_code());
+    }
+
+    #[test]
+    fn indent_from_line_indents_past_the_line_its_content_starts_on() {
+        let allocator = Allocator::default();
+        let block = test_format_with(|f| {
+            write!(
+                f,
+                [indent_from_line(&format_args!(token("[a"), hard_line_break(), token("b]")))]
+            );
+        });
+
+        let result = format_simple(
+            &allocator,
+            &indent(&format_args!(hard_line_break(), token("x ="), space(), block)),
+        );
+        assert_eq!("  x = [a\n    b]", result.as_code());
+
+        let result = format_simple(
+            &allocator,
+            &indent(&format_args!(
+                hard_line_break(),
+                token("x ="),
+                indent(&format_args!(hard_line_break(), block))
+            )),
+        );
+        assert_eq!("  x =\n    [a\n    b]", result.as_code());
+
+        let options = PrinterOptions {
+            indent_style: IndentStyle::Tab,
+            indent_width: 2.try_into().unwrap(),
+            ..PrinterOptions::default()
+        };
+        let result = format_simple_with_options(
+            &allocator,
+            &indent(&format_args!(hard_line_break(), token("x ="), space(), block)),
+            options,
+        );
+        assert_eq!("\tx = [a\n\t\tb]", result.as_code());
     }
 
     #[test]

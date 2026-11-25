@@ -1320,11 +1320,9 @@ foo(() -> { use("""
         }, executor)) {}
         foo(
           () -> {
-            use(
-              """
-          text
-          """
-            );
+            use("""
+              text
+              """);
           },
           argumentPastTheClosingLine
         );
@@ -1790,8 +1788,8 @@ fn a_chain_breaks_when_its_head_breaks() {
           .toString()
           .trim();
         Object t = """
-            text
-            """
+          text
+          """
           .strip()
           .trim();
       }

@@ -172,8 +172,8 @@ fn literal_values_and_short_names_never_break_after_the_operator() {
         SOME_FEATURE_IS_ENABLED_BY_DEFAULT = false;
       private static final String
         TEMPLATE_WITH_A_LONG_NAME = """
-            text
-            """;
+          text
+          """;
       @Size(
         max = someConfiguration
           .limits()
@@ -503,7 +503,151 @@ fn comments_ending_their_line_before_a_lambda_block_follow_its_brace() {
 }
 
 #[test]
-fn text_block_lambda_bodies_stay_on_the_arrow_line_where_written() {
+fn text_blocks_are_placed_as_array_literals_and_their_lines_move_with_them() {
+    let source = r#"class Shop {
+    String footer = """
+        Thanks""";
+    String menu = """
+    Tea
+        Green
+Coffee
+""";
+    String greeting = """
+  Hello
+  """ + name;
+    String footerWithStoreAddressAndOpeningHours = """
+        Main Street 1""";
+
+    void send(Order order) {
+        log("""
+            Paid
+            """);
+        log(order, """
+            Paid
+            """);
+    }
+}"#;
+    let options = Options { line_width: crate::fixtures::line_width(50), ..Options::default() };
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class Shop {
+      String footer = """
+        Thanks""";
+      String menu = """
+            Tea
+                Green
+        Coffee
+        """;
+      String greeting =
+        """
+        Hello
+        """ + name;
+      String footerWithStoreAddressAndOpeningHours =
+        """
+        Main Street 1""";
+
+      void send(Order order) {
+        log("""
+          Paid
+          """);
+        log(order, """
+          Paid
+          """);
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_block_lines_keep_the_white_space_the_compiler_keeps() {
+    let source = "class A {\n\
+        String tab = \"\"\"\n\t\ttab\n\t\t\"\"\";\n\
+        String mixed = \"\"\"\n\t  mixed\n\t    deeper\n\t  \"\"\";\n\
+        String blank = \"\"\"\n        first\n   \n\n          \n        second\n        \"\"\";\n\
+        String opensBlank = \"\"\"\n\n        after\n        \"\"\";\n\
+        String escapes = \"\"\"\n        joined \\\n        line\\s\n        \"\"\";\n\
+        String closedAfterText = \"\"\"\n            a\n          b\"\"\";\n\
+        String lessThanClosing = \"\"\"\n    left\n        \"\"\";\n\
+        String moreThanClosing = \"\"\"\n            right\n        \"\"\";\n\
+        String ideographic = \"\"\"\n\u{3000}\u{3000}wide\n\u{3000}\u{3000}\"\"\";\n\
+        String escaped = \"\"\"\n\\u0020   kept\n    \"\"\";\n\
+    }";
+    assert_snapshot!(fmt(source), @r#"
+    class A {
+      String tab = """
+        tab
+        """;
+      String mixed = """
+        mixed
+          deeper
+        """;
+      String blank = """
+        first
+
+
+
+        second
+        """;
+      String opensBlank = """
+
+        after
+        """;
+      String escapes = """
+        joined \
+        line\s
+        """;
+      String closedAfterText = """
+          a
+        b""";
+      String lessThanClosing = """
+        left
+        """;
+      String moreThanClosing = """
+            right
+        """;
+      String ideographic = """
+        wide
+        """;
+      String escaped = """
+    \u0020   kept
+        """;
+    }
+    "#);
+}
+
+#[test]
+fn text_block_arguments_keep_a_chain_on_one_line_as_array_initializers_do() {
+    let source = r#"class A { void m() {
+        assertThat(error).hasMessageThat().contains(new String[] {
+            "Paid",
+        });
+        assertThat(error).hasMessageThat().contains("""
+            Paid
+            """);
+        assertThat(error).hasMessageThat().contains(format("""
+            Paid
+            """));
+    } }"#;
+    assert_snapshot!(fmt(source), @r#"
+    class A {
+      void m() {
+        assertThat(error).hasMessageThat().contains(new String[] {"Paid"});
+        assertThat(error).hasMessageThat().contains("""
+          Paid
+          """);
+        assertThat(error)
+          .hasMessageThat()
+          .contains(
+            format("""
+              Paid
+              """)
+          );
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_block_lambda_bodies_stay_on_the_arrow_line() {
     let source = r#"class A { void m() {
         supplier = () -> """
             text
@@ -527,27 +671,22 @@ fn text_block_lambda_bodies_stay_on_the_arrow_line_where_written() {
     class A {
       void m() {
         supplier = () -> """
-                text
-                """;
-        supplier = () ->
-          """
-                text
-                """;
-        supplier = () ->
-          """
-                text
-                """;
-        run(
-          () -> /* c */ """
-                text
-                """
-        );
-        chain = a -> () ->
-          """
-                text
-                """;
-        supplier = () ->
-          """\u000a    a text block written on one line that is too wide for it\u000a    """;
+          text
+          """;
+        supplier = () -> """
+          text
+          """;
+        supplier = () -> """
+          text
+          """;
+        run(() -> /* c */ """
+          text
+          """);
+        chain = a -> () -> """
+          text
+          """;
+        supplier =
+          () -> """\u000a    a text block written on one line that is too wide for it\u000a    """;
       }
     }
     "#);
@@ -576,21 +715,20 @@ fn line_comments_before_text_block_lambda_arrows_move_onto_their_own_lines() {
         supplier = () ->
           // assignment
           """
-              text
-              """;
-        run(
-          () ->
-            // only
-            """
-              text
-              """
+          text
+          """;
+        run(() ->
+          // only
+          """
+          text
+          """
         );
         run(
           () ->
             // first
             """
-              text
-              """,
+            text
+            """,
           name
         );
       }

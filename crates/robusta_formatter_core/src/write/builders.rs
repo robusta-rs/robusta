@@ -18,9 +18,9 @@ use crate::{
 
 use Tag::{
     EndAlign, EndAlignToColumn, EndConditionalContent, EndDedent, EndEntry, EndFill, EndGroup,
-    EndIndent, EndIndentIfGroupBreaks, EndLineSuffix, StartAlign, StartAlignToColumn,
-    StartConditionalContent, StartDedent, StartEntry, StartFill, StartGroup, StartIndent,
-    StartIndentIfGroupBreaks, StartLineSuffix,
+    EndIndent, EndIndentFromLine, EndIndentIfGroupBreaks, EndLineSuffix, StartAlign,
+    StartAlignToColumn, StartConditionalContent, StartDedent, StartEntry, StartFill, StartGroup,
+    StartIndent, StartIndentFromLine, StartIndentIfGroupBreaks, StartLineSuffix,
 };
 
 // ---------------------------------------------------------------------------
@@ -581,6 +581,37 @@ impl<'ast, C> Format<'ast, C> for AlignToColumn<'_, 'ast, C> {
 impl<C> std::fmt::Debug for AlignToColumn<'_, '_, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("AlignToColumn").field(&"{{content}}").finish()
+    }
+}
+
+/// Indents each line of `content` after a line break one level deeper than the line where
+/// `content` starts, or to the column where `content` starts when it starts that line.
+///
+/// The printer resolves the indention, so it follows the line `content` lands on: the same
+/// content indents one level past `x = ` but lines up under itself after a break before it.
+pub fn indent_from_line<'ast, C, Content>(content: &Content) -> IndentFromLine<'_, 'ast, C>
+where
+    Content: Format<'ast, C>,
+{
+    IndentFromLine { content: Argument::new(content) }
+}
+
+#[derive(Copy, Clone)]
+pub struct IndentFromLine<'a, 'ast, C> {
+    content: Argument<'a, 'ast, C>,
+}
+
+impl<'ast, C> Format<'ast, C> for IndentFromLine<'_, 'ast, C> {
+    fn fmt(&self, f: &mut Formatter<'_, 'ast, C>) {
+        f.write_element(FormatElement::Tag(StartIndentFromLine));
+        Arguments::from(&self.content).fmt(f);
+        f.write_element(FormatElement::Tag(EndIndentFromLine));
+    }
+}
+
+impl<C> std::fmt::Debug for IndentFromLine<'_, '_, C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("IndentFromLine").field(&"{{content}}").finish()
     }
 }
 

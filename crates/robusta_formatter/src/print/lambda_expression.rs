@@ -11,7 +11,6 @@ use crate::utils::statement_body::format_head_body;
 use robusta_ast::{Comment, Expression, LambdaBody, LambdaExpression, match_expression};
 use robusta_formatter_core::{format_args, write};
 use robusta_span::{GetSpan, Span};
-use robusta_syntax::line_terminator::contains_line_terminator;
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, LambdaExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
@@ -107,9 +106,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for FormatLambdaExpression<'a, '_> {
         //     name.last(),
         //   });
         let body_has_soft_line_break = lambda.get_expression().is_none_or(|expression| {
-            (is_hugging_body(expression)
-                || is_multiline_text_block_starting_on_same_line(expression, f))
-                && !has_own_line_comment_before_body(lambda, f)
+            is_hugging_body(expression) && !has_own_line_comment_before_body(lambda, f)
         });
 
         if body_has_soft_line_break {
@@ -414,33 +411,15 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
 }
 
 /// Whether the body breaks inside itself and can start after the `->`: a
-/// lambda, or an array creation with an initializer.
+/// lambda, an array creation with an initializer, or a text block, which
+/// reads as an array literal.
 fn is_hugging_body(expression: &Expression<'_>) -> bool {
     match expression {
         Expression::Lambda(_) => true,
         Expression::ArrayCreation(creation) => creation.init.is_some(),
+        Expression::StringLiteral(literal) => literal.is_text_block(),
         _ => false,
     }
-}
-
-/// Whether `expression` is a text block that starts on the line of the token
-/// before it and spans lines as written, not only through `\u000a` escapes.
-///
-/// ```java
-/// () -> """
-///     some content
-///     """
-/// ```
-fn is_multiline_text_block_starting_on_same_line(
-    expression: &Expression<'_>,
-    f: &JavaFormatter<'_, '_>,
-) -> bool {
-    let Expression::StringLiteral(literal) = expression else {
-        return false;
-    };
-    literal.is_text_block()
-        && contains_line_terminator(literal.raw)
-        && !f.source_text().starts_line(expression.span().start)
 }
 
 /// Whether an own-line comment sits between the lambda's signature and its

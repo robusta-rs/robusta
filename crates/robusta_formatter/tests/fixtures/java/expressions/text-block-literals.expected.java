@@ -1,13 +1,13 @@
 class Texts {
   String body = """
-        hello
-          world
-        """;
+    hello
+      world
+    """;
 
   String escaped() {
     return """
-        \"""
-        \
-        """;
+      \"""
+      \
+      """;
   }
 }
