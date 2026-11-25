@@ -7,14 +7,14 @@ mod rules;
 
 use robusta_diagnostics::Severity;
 
+use crate::RuleSeverityConfig;
+
 pub use categories::LintCategories;
 pub use config_builder::{ConfigBuilderError, ConfigStoreBuilder};
 pub use config_store::Config;
 pub use lint_config_file::{LintConfigFile, OptionsConfig};
 pub use overrides::LintOverride;
 pub use rules::{LintRules, RuleConfig};
-
-use config_builder::rule_severity;
 
 /// The run-wide `lint.options` of a configuration.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -30,7 +30,8 @@ impl From<OptionsConfig> for RunOptions {
         Self {
             deny_warnings: deny_warnings.unwrap_or(false),
             max_warnings,
-            report_unused_suppressions: report_unused_suppressions.and_then(rule_severity),
+            report_unused_suppressions: report_unused_suppressions
+                .and_then(RuleSeverityConfig::severity),
         }
     }
 }

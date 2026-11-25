@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use bpaf::{Bpaf, Parser};
 use robusta_diagnostics::Severity;
-use robusta_linter::{FixKind, LintFilterKind, RuleCategory};
+use robusta_linter::{FixKind, LintFilterKind, RuleCategory, RuleSeverityConfig};
 
 /// Fix options:
 #[derive(Debug, Clone, Copy, Bpaf)]
@@ -139,15 +139,6 @@ impl ReportUnusedSuppressions {
     }
 }
 
-fn audit_severity(severity: &str) -> Result<Option<Severity>, &'static str> {
-    match severity {
-        "allow" => Ok(None),
-        "warn" => Ok(Some(Severity::Warning)),
-        "deny" => Ok(Some(Severity::Error)),
-        _ => Err("expected `allow`, `warn`, or `deny`"),
-    }
-}
-
 /// The two flags are alternatives, so passing both is a usage error. Neither
 /// parser succeeds without its flag, so an invalid severity is reported as
 /// such instead of falling back to the configuration.
@@ -165,7 +156,9 @@ pub(super) fn report_unused_suppressions() -> impl Parser<ReportUnusedSuppressio
              the configuration.",
         )
         .argument::<String>("SEVERITY")
-        .parse(|severity| audit_severity(&severity))
+        .parse(|severity| {
+            RuleSeverityConfig::try_from(severity.as_str()).map(RuleSeverityConfig::severity)
+        })
         .map(ReportUnusedSuppressions::WithSeverity);
     bpaf::construct!([without_severity, with_severity])
         .fallback(ReportUnusedSuppressions::Configured)
