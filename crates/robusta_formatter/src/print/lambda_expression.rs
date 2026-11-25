@@ -94,7 +94,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for FormatLambdaExpression<'a, '_> {
                     cache_mode
                 ),
                 space(),
-                token("->")
+                "->"
             ]
         );
         let format_body = format_body(lambda, cache_mode);
@@ -348,7 +348,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
                     // The arrow of the tail is formatted outside of the group to ensure it never
                     // breaks from the body
                     if !std::ptr::eq(lambda, tail) {
-                        write!(f, [space(), token("->")]);
+                        write!(f, [space(), "->"]);
                     }
                 }
             });
@@ -386,7 +386,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
                 );
             }
 
-            write!(f, [space(), token("->")]);
+            write!(f, [space(), "->"]);
 
             if is_grouped_call_arg_layout {
                 // An own-line comment in the chain breaks the body below the

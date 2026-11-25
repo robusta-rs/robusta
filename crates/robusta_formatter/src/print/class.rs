@@ -29,7 +29,7 @@ use std::cell::Cell;
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EmptyDeclaration> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token(";").fmt(f);
+        ";".fmt(f);
     }
 }
 
@@ -159,7 +159,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
                     _ if is_last => write!(f, [constant, if_group_breaks(&token(","))]),
                     _ => {
                         constant.fmt(f);
-                        token(",").fmt(f);
+                        ",".fmt(f);
                     }
                 });
                 join.entry(constant.span(), &entry);
@@ -171,7 +171,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
             {
                 let entry = format_with(|f| {
                     format_leading_comments(semicolon).fmt(f);
-                    token(";").fmt(f);
+                    ";".fmt(f);
                     format_trailing_comments(node.span, semicolon, first_member).fmt(f);
                 });
                 join.entry(semicolon, &entry);
@@ -206,7 +206,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumConstant<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, InitializerBlock<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         if self.is_static {
-            write!(f, [token("static"), space()]);
+            write!(f, ["static", space()]);
         }
         self.block().fmt(f);
     }
@@ -231,7 +231,7 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
 
     fn format_name(&self, f: &mut JavaFormatter<'_, 'ast>, has_clauses: bool, keep_javadoc: bool) {
         format_modifiers_stacked(f, &self.modifiers);
-        write!(f, [token(self.keyword), space()]);
+        write!(f, [self.keyword, space()]);
         if has_clauses || self.type_params.is_some() {
             self.name.fmt(f);
         } else {
@@ -525,7 +525,7 @@ fn format_dart_clause_content<'ast>(
     clause: FormatDeclarationClause<'_, 'ast>,
     entries: &impl Format<'ast, JavaFormatContext<'ast>>,
 ) {
-    token(clause.keyword).fmt(f);
+    clause.keyword.fmt(f);
     write!(f, [group(&wrapped_indent(true, &format_args!(soft_line_break_or_space(), entries)))]);
 }
 
@@ -539,7 +539,7 @@ fn format_filled_clause_content<'ast>(
     keyword_comment: bool,
     entries: &impl Format<'ast, JavaFormatContext<'ast>>,
 ) {
-    token(clause.keyword).fmt(f);
+    clause.keyword.fmt(f);
     let single = clause.entries.len() == 1;
     if keyword_comment {
         space().fmt(f);
@@ -631,7 +631,7 @@ fn format_clause_entries<'ast>(
         let has_next = index + 1 < entries.len();
         format_declaration_entry(f, entries, index, has_next);
         if has_next {
-            token(",").fmt(f);
+            ",".fmt(f);
         }
     }
 }

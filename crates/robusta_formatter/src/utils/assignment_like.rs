@@ -110,10 +110,10 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                 write!(
                     f,
                     [
-                        token("("),
+                        "(",
                         format_dangling_comments(Span::new(open_end, close_end))
                             .with_soft_block_indent(),
-                        token(")")
+                        ")"
                     ]
                 );
                 format_array_type_dimensions(f, close_end, &element.post_paren_dimensions());
@@ -149,7 +149,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
     }
 
     fn write_operator(&self, f: &mut JavaFormatter<'_, 'a>) {
-        write!(f, [space(), token(self.operator())]);
+        write!(f, [space(), self.operator()]);
     }
 
     /// End of the left-hand side, before the operator and any comments around it.

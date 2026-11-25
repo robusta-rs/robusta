@@ -36,13 +36,12 @@ pub fn format_record_header<'ast>(
     let components = header.components();
     if components.is_empty() {
         let comments = format_dangling_comments(header.span);
-        write!(f, [token("("), comments.with_soft_block_indent(), token(")")]);
+        write!(f, ["(", comments.with_soft_block_indent(), ")"]);
         return None;
     }
     let group_id = f.state().group_id("record_components");
     format_delimited_frame(f, "(", ")", Some(group_id), |f| {
-        f.join_with(&format_args!(token(","), soft_line_break_or_space()))
-            .entries(components.iter());
+        f.join_with(&format_args!(",", soft_line_break_or_space())).entries(components.iter());
     });
     Some(group_id)
 }
@@ -73,12 +72,12 @@ pub fn format_parameter_list<'ast>(
     }
     if receiver.is_none() && parameters.is_empty() {
         let comments = format_dangling_comments(list.span);
-        write!(f, [token("("), comments.with_soft_block_indent(), token(")")]);
+        write!(f, ["(", comments.with_soft_block_indent(), ")"]);
         return None;
     }
     let group_id = f.state().group_id("parameters");
     format_delimited_frame(f, "(", ")", Some(group_id), |f| {
-        f.join_with(&format_args!(token(","), soft_line_break_or_space()))
+        f.join_with(&format_args!(",", soft_line_break_or_space()))
             .entries(receiver)
             .entries(parameters.iter());
     });
@@ -116,7 +115,7 @@ fn format_receiver_parameter<'ast>(
         let this_start = f.comments().position_after_character(receiver.ty.span().end, b't') - 1;
         let this = format_once(|f| {
             format_node_leading_comments(&receiver.as_ast_nodes(), this_start, f);
-            token("this").fmt(f);
+            "this".fmt(f);
         });
         format_name_after_type(this_start, &this, f);
     }
@@ -211,10 +210,10 @@ pub fn format_varargs<'a>(
     annotations: &AstNode<'_, 'a, Vec<'a, Annotation<'a>>>,
 ) {
     if annotations.is_empty() {
-        format_after_comments_before_opener(type_end, b'.', &token("..."), f);
+        format_after_comments_before_opener(type_end, b'.', &"...", f);
     } else {
         space().fmt(f);
         format_type_annotations(f, annotations);
-        token("...").fmt(f);
+        "...".fmt(f);
     }
 }

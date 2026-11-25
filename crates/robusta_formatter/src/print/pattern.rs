@@ -29,16 +29,16 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordPattern<'a>> {
             write!(
                 f,
                 [
-                    token("("),
+                    "(",
                     format_dangling_comments(Span::new(open_end, self.span.end))
                         .with_soft_block_indent(),
-                    token(")")
+                    ")"
                 ]
             );
             return;
         }
         format_delimited_frame(f, "(", ")", None, |f| {
-            f.join_with(&format_args!(token(","), soft_line_break_or_space()))
+            f.join_with(&format_args!(",", soft_line_break_or_space()))
                 .entries(self.components().iter());
         });
     }
@@ -46,6 +46,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordPattern<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MatchAllPattern> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("_").fmt(f);
+        "_".fmt(f);
     }
 }

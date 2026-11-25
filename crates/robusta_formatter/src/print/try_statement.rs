@@ -18,7 +18,7 @@ use robusta_span::{GetSpan, Span};
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TryStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
-        token("try").fmt(f);
+        "try".fmt(f);
         if !node.resources.is_empty() {
             space().fmt(f);
             format_resource_specification(f, &self.resources(), node.resources_trailing_semicolon);
@@ -60,7 +60,7 @@ fn format_catch_parameter<'ast>(
     format_undelimited_list(f, true, count, |f, index| {
         let ty = types.get(index).expect("catch type");
         if index > 0 {
-            write!(f, [format_hoisted_leading_comments(ty.span()), token("|"), space()]);
+            write!(f, [format_hoisted_leading_comments(ty.span()), "|", space()]);
         } else {
             format_modifiers_inline(f, &catch.modifiers());
         }
@@ -123,7 +123,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         space().fmt(f);
-        token("(").fmt(f);
+        "(".fmt(f);
         let first_start = node.modifiers.first().map_or_else(
             || node.types.first().expect("a catch parameter has a type").span().start,
             |modifier| modifier.span().start,
@@ -161,7 +161,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
             format_catch_parameter(f, self);
             trailing.fmt(f);
         }
-        token(")").fmt(f);
+        ")".fmt(f);
         write_head_body_separator(node.block.span.start, f);
         self.block().fmt(f);
     }

@@ -43,15 +43,15 @@ where
             write!(
                 f,
                 [
-                    token("{"),
+                    "{",
                     format_dangling_comments(self.elements.parent().span())
                         .with_soft_block_indent(),
-                    token("}")
+                    "}"
                 ]
             );
             return;
         }
-        token("{").fmt(f);
+        "{".fmt(f);
         let group_id = f.state().group_id("array");
         let elements = ArrayElementList::new(self.elements, group_id, self.fill);
         group(&format_once(|f| {
@@ -60,6 +60,6 @@ where
         }))
         .with_group_id(Some(group_id))
         .fmt(f);
-        token("}").fmt(f);
+        "}".fmt(f);
     }
 }

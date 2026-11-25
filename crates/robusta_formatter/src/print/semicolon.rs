@@ -106,7 +106,7 @@ where
                     trailing_comments_to_move_behind_semicolon(f, content_end, self.node_end);
             }
         }
-        token(";").fmt(f);
+        ";".fmt(f);
         if self.dangling || before_continuation {
             FormatTrailingComments::Dangling(comments).fmt(f);
         } else {

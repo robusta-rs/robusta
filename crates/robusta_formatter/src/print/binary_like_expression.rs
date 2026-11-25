@@ -248,7 +248,7 @@ fn format_right_side<'a>(
 ) {
     let operator_and_right = format_once(|f| match binary {
         BinaryLikeExpression::Binary(binary) => {
-            format_operator_and_break(token(binary.op.as_str()), binary.rhs.span(), f);
+            format_operator_and_break(binary.op.as_str(), binary.rhs.span(), f);
             binary.rhs().fmt(f);
         }
         // The keyword is grouped with the type it tests rather than with the
@@ -259,11 +259,7 @@ fn format_right_side<'a>(
             [
                 soft_line_break_or_space(),
                 format_hoisted_leading_comments(instanceof.rhs.span()),
-                group(&format_args!(
-                    token("instanceof"),
-                    soft_line_break_or_space(),
-                    instanceof.rhs()
-                ))
+                group(&format_args!("instanceof", soft_line_break_or_space(), instanceof.rhs()))
             ]
         ),
     });

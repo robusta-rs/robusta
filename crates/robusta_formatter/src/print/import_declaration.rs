@@ -55,19 +55,19 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ImportDeclaration<'a>> {
             let on_demand =
                 matches!(self.kind, ImportKind::TypeOnDemand | ImportKind::StaticOnDemand);
             let content = format_with(|f| {
-                token("import").fmt(f);
+                "import".fmt(f);
                 let modifier = match self.kind {
                     ImportKind::SingleStatic | ImportKind::StaticOnDemand => Some("static"),
                     ImportKind::SingleModule => Some("module"),
                     ImportKind::SingleType | ImportKind::TypeOnDemand => None,
                 };
                 if let Some(modifier) = modifier {
-                    write!(f, [space(), token(modifier)]);
+                    write!(f, [space(), modifier]);
                 }
                 space().fmt(f);
                 if on_demand {
                     format_content_without_comments_after(&self.name(), name.end, f);
-                    format_dot_before_nodeless_operand(name, &token("*"), f);
+                    format_dot_before_nodeless_operand(name, &"*", f);
                 } else {
                     self.name().fmt(f);
                 }

@@ -31,9 +31,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CastExpression<'a>> {
             );
             FormatTrailingComments::Comments(left_trailing_comments(types_end, b')', f)).fmt(f);
         });
-        write!(f, [token("("), group(&soft_block_indent(&format_types))]);
+        write!(f, ["(", group(&soft_block_indent(&format_types))]);
         let (glued, layout) = comments_after_cast(types_end, self.operand.span().start, f);
-        token(")").fmt(f);
+        ")".fmt(f);
         FormatTrailingComments::Comments(glued).fmt(f);
         match layout {
             OperandLayout::Inline => write!(f, [space(), self.operand()]),

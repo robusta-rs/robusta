@@ -1,7 +1,7 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/566b11b2db6b664e787e67e2199d4ffcaa31c30a/crates/oxc_formatter/src/formatter/formatter_js.rs
 
-use robusta_formatter_core::builders::{Line, hard_line_break, soft_line_break_or_space};
-use robusta_formatter_core::{Formatter, SourceText};
+use robusta_formatter_core::builders::{Line, hard_line_break, soft_line_break_or_space, token};
+use robusta_formatter_core::{Format, Formatter, SourceText, write};
 use robusta_span::Span;
 
 use super::{Comments, JavaFormatContext, builders::JoinNodesBuilder};
@@ -44,5 +44,18 @@ impl<'buf, 'ast> JavaFormatterExt<'buf, 'ast> for JavaFormatter<'buf, 'ast> {
 
     fn join_nodes_with_hardline<'fmt>(&'fmt mut self) -> JoinNodesBuilder<'fmt, 'buf, 'ast, Line> {
         JoinNodesBuilder::new(hard_line_break(), self)
+    }
+}
+
+/// `Format` impl for `&'static str` specialized to `JavaFormatContext`.
+///
+/// Hardcoded to `JavaFormatContext` rather than generic over `C` so the blanket
+/// `&T where T: Format` doesn't overlap (`str` doesn't impl `Format` for any C).
+/// Uses `Token` (not `Text`) because fixed text is ASCII without line breaks,
+/// so the printer measures it by its length.
+impl<'ast> Format<'ast, JavaFormatContext<'ast>> for &'static str {
+    #[inline]
+    fn fmt(&self, f: &mut JavaFormatter<'_, 'ast>) {
+        write!(f, token(self));
     }
 }

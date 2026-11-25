@@ -14,7 +14,7 @@ use crate::utils::{
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayCreation<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        write!(f, [token("new"), space()]);
+        write!(f, ["new", space()]);
         let element_end = self.element.span().end;
         format_content_without_comments_after(&self.element(), element_end, f);
         format_dimensions(f, element_end, &self.dims(), |dimension| {
@@ -40,10 +40,10 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayDimension<'a>> {
             write!(
                 f,
                 [
-                    token("["),
+                    "[",
                     format_dangling_comments(Span::new(open_end, self.span.end))
                         .with_soft_block_indent(),
-                    token("]")
+                    "]"
                 ]
             );
         }
@@ -71,11 +71,7 @@ pub(super) fn format_type_dimension<'a>(
     );
     write!(
         f,
-        [
-            token("["),
-            format_dangling_comments(Span::new(open_end, end)).with_soft_block_indent(),
-            token("]")
-        ]
+        ["[", format_dangling_comments(Span::new(open_end, end)).with_soft_block_indent(), "]"]
     );
 }
 

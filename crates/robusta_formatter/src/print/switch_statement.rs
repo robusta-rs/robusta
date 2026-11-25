@@ -32,7 +32,7 @@ fn format_switch<'a>(f: &mut JavaFormatter<'_, 'a>, switch: AstNodes<'_, 'a>) {
         AstNodes::SwitchExpression(node) => (node.span, node.selector(), node.cases()),
         _ => unreachable!("a switch header belongs to its switch"),
     };
-    token("switch").fmt(f);
+    "switch".fmt(f);
     space().fmt(f);
     format_header_condition(f, span.start, &selector);
     space().fmt(f);
@@ -52,7 +52,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
             if lone_block && index + 1 == node.labels.len() {
                 write_node_with_terminator(&label, ":", f);
             } else {
-                write!(f, [label, token(":")]);
+                write!(f, [label, ":"]);
             }
         }
         if node.statements.is_empty() {
@@ -93,7 +93,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
             false
         };
         group(&indent(&format_once(|f| {
-            write!(f, [soft_line_break_or_space(), token("->")]);
+            write!(f, [soft_line_break_or_space(), "->"]);
         })))
         .fmt(f);
         let body = self.body();
@@ -132,18 +132,18 @@ fn format_arrow_body<'ast>(
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CaseLabel<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
-        write!(f, [token("case"), space()]);
+        write!(f, ["case", space()]);
         let constants = self.constants();
         let mut constants_iter = constants.iter();
         format_undelimited_list(f, false, node.constants.len(), |f, index| {
             let constant = constants_iter.next().expect("case constant");
             if index + 1 < constants.len() || node.has_default {
-                write!(f, [constant, token(","), line_suffix_boundary()]);
+                write!(f, [constant, ",", line_suffix_boundary()]);
             } else {
                 constant.fmt(f);
             }
             if index + 1 == constants.len() && node.has_default {
-                write!(f, [space(), token("default")]);
+                write!(f, [space(), "default"]);
             }
         });
     }
@@ -151,7 +151,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CaseLabel<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CasePatternLabel<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        write!(f, [token("case"), space()]);
+        write!(f, ["case", space()]);
         let count = self.patterns.len();
         let guard = self.guard();
         // The guard follows the patterns as a binary operand follows the
@@ -161,12 +161,12 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CasePatternLabel<'a>> {
                 let pattern = self.patterns().get(index).expect("pattern");
                 pattern.fmt(f);
                 if index + 1 < count {
-                    token(",").fmt(f);
+                    ",".fmt(f);
                 }
             });
             if let Some(guard) = &guard {
                 let when = format_once(|f| {
-                    format_operator_and_break(token("when"), guard.span(), f);
+                    format_operator_and_break("when", guard.span(), f);
                     guard.fmt(f);
                 });
                 indent(&when).fmt(f);
@@ -178,6 +178,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CasePatternLabel<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DefaultLabel> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("default").fmt(f);
+        "default".fmt(f);
     }
 }

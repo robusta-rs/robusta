@@ -111,7 +111,7 @@ impl<'a> AstNode<'_, 'a, ConditionalExpression<'a>> {
     fn format_consequent_and_alternate(&self, f: &mut JavaFormatter<'_, 'a>) {
         let when_true = self.when_true();
         let when_false = self.when_false();
-        format_operator_and_break(token("?"), when_true.span(), f);
+        format_operator_and_break("?", when_true.span(), f);
         let when_true_end = when_true.span().end;
         format_branch(
             &format_once(|f| {
@@ -120,7 +120,7 @@ impl<'a> AstNode<'_, 'a, ConditionalExpression<'a>> {
             }),
             f,
         );
-        format_operator_and_break(token(":"), when_false.span(), f);
+        format_operator_and_break(":", when_false.span(), f);
         format_branch(&when_false, f);
     }
 

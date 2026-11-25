@@ -12,7 +12,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, AssertStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         let content = format_with(|f| {
-            token("assert").fmt(f);
+            "assert".fmt(f);
             space().fmt(f);
             let condition_end = node.condition.span().end;
             if let Some(message) = self.message() {
@@ -42,7 +42,7 @@ fn format_message<'a>(
     let colon_has_line_comment = !comments.has_comment_before(colon_end)
         && comments.end_of_line_comments_after(colon_end).last().is_some_and(Comment::is_line);
     let detail = format_once(|f| {
-        token(":").fmt(f);
+        ":".fmt(f);
         if needs_flush {
             hard_line_break().fmt(f);
         }

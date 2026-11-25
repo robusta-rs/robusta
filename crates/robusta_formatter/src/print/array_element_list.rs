@@ -31,7 +31,7 @@ where
         let entry = |f: &mut JavaFormatter<'_, 'a>, index: usize, element: AstNode<'b, 'a, T>| {
             element.fmt(f);
             if index + 1 < count {
-                token(",").fmt(f);
+                ",".fmt(f);
             } else {
                 if_group_breaks(&token(",")).with_group_id(Some(self.group_id)).fmt(f);
             }

@@ -17,9 +17,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, StatementExpressionList<'a>> {
 
         let format_inner = format_once(|f| {
             let separator = format_with(|f| {
-                write!(f, [token(","), line_suffix_boundary(), soft_line_break_or_space()]);
+                write!(f, [",", line_suffix_boundary(), soft_line_break_or_space()]);
             });
-            write!(f, [expressions.next(), token(","), line_suffix_boundary()]);
+            write!(f, [expressions.next(), ",", line_suffix_boundary()]);
             // The list only appears in a `for` header, where a broken list indents the
             // expressions after the first.
             let rest = format_once(|f| {

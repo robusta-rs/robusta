@@ -171,7 +171,7 @@ fn comment_starting_line_after(end: u32, f: &JavaFormatter<'_, '_>) -> Option<(u
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, Annotation<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("@").fmt(f);
+        "@".fmt(f);
         let name = self.name();
         format_content_without_comments_after(&name, name.span().end, f);
         if let Some(args) = self.args() {

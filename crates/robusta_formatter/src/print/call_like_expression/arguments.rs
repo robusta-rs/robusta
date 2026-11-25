@@ -71,10 +71,7 @@ pub fn format_arguments<'p, 'a, T: Argument<'a>>(
     if arguments.is_empty() {
         // A class body may follow the `)`.
         let span = Span::new(arguments.parent().span().start, close_end);
-        write!(
-            f,
-            [token("("), format_dangling_comments(span).with_soft_block_indent(), token(")")]
-        );
+        write!(f, ["(", format_dangling_comments(span).with_soft_block_indent(), ")"]);
         return;
     }
 
@@ -147,7 +144,7 @@ fn format_all_args_broken_out<'p, 'a, T: Argument<'a>>(
     write!(
         f,
         [group(&format_args!(
-            token("("),
+            "(",
             soft_block_indent(&format_once(|f| {
                 for (index, argument) in node.iter().enumerate() {
                     if index > 0 {
@@ -160,11 +157,11 @@ fn format_all_args_broken_out<'p, 'a, T: Argument<'a>>(
                     if index == last_index {
                         format_last_delimited_entry(f, last, &argument);
                     } else {
-                        write!(f, [argument, token(",")]);
+                        write!(f, [argument, ","]);
                     }
                 }
             })),
-            token(")"),
+            ")",
         ))
         .should_expand(expand)]
     );
@@ -190,7 +187,7 @@ fn format_all_elements_broken_out<'a>(
     write!(
         f,
         [group(&format_args!(
-            token("("),
+            "(",
             soft_block_indent(&format_once(move |f| {
                 for (index, element) in elements.enumerate() {
                     if let Some(element) = element {
@@ -202,7 +199,7 @@ fn format_all_elements_broken_out<'a>(
                     }
                 }
             })),
-            token(")"),
+            ")",
         ))
         .should_expand(expand)]
     );
@@ -519,7 +516,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
                     argument.fmt(f);
                 }
                 if index != last_index {
-                    token(",").fmt(f);
+                    ",".fmt(f);
                 }
             }));
 
@@ -597,7 +594,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
             )
             .fmt(f);
             if last_index != 0 && group_layout.is_grouped_first() {
-                token(",").fmt(f);
+                ",".fmt(f);
             }
         }));
     }
@@ -607,7 +604,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
         write!(
             f,
             [
-                token("("),
+                "(",
                 format_with(|f| {
                     let mut joiner = f.join_with(soft_line_break_or_space());
 
@@ -634,7 +631,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
                         }
                     }
                 }),
-                token(")")
+                ")"
             ]
         );
     });
@@ -650,7 +647,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
             write!(
                 f,
                 [
-                    token("("),
+                    "(",
                     format_once(|f| {
                         f.join_with(soft_line_break_or_space()).entries(grouped.into_iter().map(
                             |element| {
@@ -662,7 +659,7 @@ fn write_grouped_arguments<'p, 'a, T: Argument<'a>>(
                             },
                         ));
                     }),
-                    token(")"),
+                    ")",
                 ]
             );
         });

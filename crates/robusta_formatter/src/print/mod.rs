@@ -122,13 +122,13 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, NullLiteral> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ThisExpression> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("this").fmt(f);
+        "this".fmt(f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, Super> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("super").fmt(f);
+        "super".fmt(f);
     }
 }
 
@@ -154,20 +154,20 @@ pub fn format_qualified_keyword<'p, 'a, T: GetSpan>(
 {
     let span = qualifier.span();
     format_content_without_comments_after(qualifier, span.end, f);
-    format_dot_before_nodeless_operand(span, &token(keyword), f);
+    format_dot_before_nodeless_operand(span, &keyword, f);
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ClassLiteral<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let ty = self.ty.span();
         format_content_without_comments_after(&self.ty(), ty.end, f);
-        format_dot_before_nodeless_operand(ty, &token("class"), f);
+        format_dot_before_nodeless_operand(ty, &"class", f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UnaryExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token(self.op.as_str()).fmt(f);
+        self.op.as_str().fmt(f);
         let operand = self.operand();
         // `- -x` must keep its space: fused to `--x` it would tokenize as
         // a decrement and change meaning (same for `+ +x`, `- --x`, and
@@ -201,7 +201,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PostfixExpression<'a>> {
         } else {
             operand.fmt(f);
         }
-        token(self.op.as_str()).fmt(f);
+        self.op.as_str().fmt(f);
     }
 }
 
@@ -357,9 +357,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ParenthesizedExpression<'a>> {
             _ => false,
         };
         if breaks_inside {
-            write!(f, [token("("), group(&soft_block_indent(&self.expression())), token(")")]);
+            write!(f, ["(", group(&soft_block_indent(&self.expression())), ")"]);
         } else {
-            write!(f, [token("("), self.expression(), line_suffix_boundary(), token(")")]);
+            write!(f, ["(", self.expression(), line_suffix_boundary(), ")"]);
         }
     }
 }
@@ -390,9 +390,9 @@ pub fn format_header_condition<'ast>(
         format_trailing_comments(Span::new(header_start, close_end), condition_span, 0).fmt(f);
     });
     if can_break {
-        write!(f, [token("("), content, line_suffix_boundary(), token(")")]);
+        write!(f, ["(", content, line_suffix_boundary(), ")"]);
     } else {
-        write!(f, [token("("), group(&soft_block_indent(&content)), token(")")]);
+        write!(f, ["(", group(&soft_block_indent(&content)), ")"]);
     }
 }
 
@@ -409,7 +409,7 @@ fn may_break(elements: &[FormatElement<'_>]) -> bool {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EmptyStatement> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token(";").fmt(f);
+        ";".fmt(f);
     }
 }
 
@@ -439,7 +439,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ConstructorInvocation<'a>> {
                         - 1;
                 format_node_leading_comments(&parent, keyword_start, f);
             }
-            token(keyword).fmt(f);
+            keyword.fmt(f);
         });
         let content = format_with(|f| {
             if let Some(qualifier) = &node.qualifier {
@@ -474,7 +474,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, WhileStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         let content = format_once(|f| {
-            token("while").fmt(f);
+            "while".fmt(f);
             space().fmt(f);
             format_header_condition(f, node.span.start, &self.condition());
             FormatStatementBody::new(&self.body()).fmt(f);
@@ -494,7 +494,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DoStatement<'a>> {
         if matches!(node.body, Statement::Block(_)) {
             // The block's trailing pass would claim a comment past the `while`
             // keyword, so the keyword site splits the comments instead.
-            token("do").fmt(f);
+            "do".fmt(f);
             format_content_without_comments_after(&format_body, body_end, f);
             let comments = f.comments().comments_before_character(body_end, b'w');
             if write_comments_between_blocks(comments, f) {
@@ -502,7 +502,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DoStatement<'a>> {
             }
         } else {
             let content = format_once(|f| {
-                token("do").fmt(f);
+                "do".fmt(f);
                 format_body
                     .format_before_continuation(StatementContinuation::DoWhile(while_start), f);
             });
@@ -510,7 +510,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DoStatement<'a>> {
             write_comments_after_unbraced_body(body_end, while_start, f);
         }
         let content = format_with(|f| {
-            token("while").fmt(f);
+            "while".fmt(f);
             space().fmt(f);
             format_header_condition(f, while_start, &self.condition());
         });
@@ -533,9 +533,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
             FormatLeadingComments::Comments(comments).fmt(f);
         }
         let content = format_once(|f| {
-            token("for").fmt(f);
+            "for".fmt(f);
             space().fmt(f);
-            token("(").fmt(f);
+            "(".fmt(f);
             format_modifiers_inline(f, &self.modifiers());
             format_content_without_comments_after(&self.ty(), node.ty.span().end, f);
             wrapped_indent(
@@ -556,7 +556,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
                     format_array_type_dimensions(f, node.name.span.end, &dimensions);
                     write_comments_before_opener(variable_end, b':', f);
                 }
-                write!(f, [space(), token(":")]);
+                write!(f, [space(), ":"]);
                 // The iterable wraps inside the `for` parentheses, as dart format wraps an `if`.
                 wrapped_indent(
                     true,
@@ -578,7 +578,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
             let close_end = f.comments().position_after_character(iterable_span.end, b')');
             format_trailing_comments(Span::new(node.span.start, close_end), iterable_span, 0)
                 .fmt(f);
-            write!(f, [line_suffix_boundary(), token(")")]);
+            write!(f, [line_suffix_boundary(), ")"]);
             FormatStatementBody::new(&self.body()).fmt(f);
         });
         group(&content).fmt(f);
@@ -588,10 +588,10 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, BreakStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         if let Some(label) = self.label() {
-            let content = format_with(|f| write!(f, [token("break"), space(), label]));
+            let content = format_with(|f| write!(f, ["break", space(), label]));
             FormatContentWithSemicolon::new(&content, label.span.end, self.span.end).fmt(f);
         } else {
-            write!(f, [token("break"), token(";")]);
+            write!(f, ["break", ";"]);
         }
     }
 }
@@ -599,10 +599,10 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, BreakStatement<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ContinueStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         if let Some(label) = self.label() {
-            let content = format_with(|f| write!(f, [token("continue"), space(), label]));
+            let content = format_with(|f| write!(f, ["continue", space(), label]));
             FormatContentWithSemicolon::new(&content, label.span.end, self.span.end).fmt(f);
         } else {
-            write!(f, [token("continue"), token(";")]);
+            write!(f, ["continue", ";"]);
         }
     }
 }
@@ -610,7 +610,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ContinueStatement<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SynchronizedStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
-        token("synchronized").fmt(f);
+        "synchronized".fmt(f);
         space().fmt(f);
         format_header_condition(f, node.span.start, &self.lock());
         write_head_body_separator(node.body.span.start, f);
@@ -639,7 +639,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, IfStatement<'a>> {
         let node = self.inner();
         let then_end = node.then_branch.span().end;
         let content = format_once(|f| {
-            token("if").fmt(f);
+            "if".fmt(f);
             space().fmt(f);
             format_header_condition(f, node.span.start, &self.condition());
             let then_branch = self.then_branch();
@@ -662,7 +662,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, IfStatement<'a>> {
             // regardless of the configured placement.
             let else_start = f.comments().position_after_character(then_end, b'e') - 1;
             write_comments_after_unbraced_body(then_end, else_start, f);
-            token("else").fmt(f);
+            "else".fmt(f);
         }
         let is_else_if = matches!(else_branch.inner(), Statement::If(_));
         let alternate = FormatStatementBody::new(&else_branch).with_forced_space(is_else_if);
@@ -675,11 +675,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
         let node = self.inner();
         let is_headless = node.init.is_none() && node.condition.is_none() && node.update.is_none();
         let content = format_once(|f| {
-            token("for").fmt(f);
+            "for".fmt(f);
             let for_end = keyword_end(f, node.span.start, "for");
             let open_end = f.comments().position_after_character(for_end, b'(');
             space().fmt(f);
-            token("(").fmt(f);
+            "(".fmt(f);
             group(&soft_block_indent(&format_once(|f| {
                 // Each clause keeps the comments before its closing `;` or `)`. Those
                 // after the `)` lead the body.
@@ -726,7 +726,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
                 }
             })))
             .fmt(f);
-            token(")").fmt(f);
+            ")".fmt(f);
             FormatStatementBody::new(&self.body()).fmt(f);
         });
         group(&content).fmt(f);
@@ -740,7 +740,7 @@ fn write_for_head_slot(anchor: u32, f: &mut JavaFormatter<'_, '_>) -> u32 {
     // A line comment riding past the `;` breaks the head group, so a break
     // follows the `;`.
     let _ = write_trailing_comments_before(anchor, b';', f);
-    token(";").fmt(f);
+    ";".fmt(f);
     let end = f.comments().position_after_character(anchor, b';');
     FormatTrailingComments::Comments(f.comments().end_of_line_comments_after(end)).fmt(f);
     end
@@ -750,19 +750,19 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PrimitiveType<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         format_type_annotations(f, &self.annotations());
         // The keyword prints without Unicode escapes, as other keywords do.
-        token(self.kind.as_str()).fmt(f);
+        self.kind.as_str().fmt(f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, VoidType> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("void").fmt(f);
+        "void".fmt(f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, VarType> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token("var").fmt(f);
+        "var".fmt(f);
     }
 }
 
