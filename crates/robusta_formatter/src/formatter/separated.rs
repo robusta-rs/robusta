@@ -13,7 +13,7 @@ pub fn format_delimited_frame<'ast>(
 ) {
     write!(
         f,
-        [group(&format_args!(token(open), soft_block_indent(&format_once(entries)), token(close)))
+        [group(&format_args!(open, soft_block_indent(&format_once(entries)), close))
             .with_group_id(group_id)]
     );
 }

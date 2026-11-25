@@ -102,7 +102,7 @@ pub fn format_member_separator(
     name_start: u32,
     f: &mut JavaFormatter<'_, '_>,
 ) {
-    write!(f, [token(separator), format_leading_comments(Span::empty(name_start))]);
+    write!(f, [separator, format_leading_comments(Span::empty(name_start))]);
 }
 
 /// Where the line may break between an object and the member after its `.`

@@ -36,5 +36,5 @@ pub fn format_additional_bound<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     bound: &AstNode<'_, 'a, Type<'a>>,
 ) {
-    write!(f, [token("&"), space(), bound]);
+    write!(f, ["&", space(), bound]);
 }

@@ -72,7 +72,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ModularCompilationUnit<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PackageDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         format_annotations_stacked(f, &self.annotations());
-        write!(f, [token("package"), space()]);
+        write!(f, ["package", space()]);
         FormatContentWithSemicolon::new(&self.name(), self.name.span().end, self.span.end).fmt(f);
     }
 }

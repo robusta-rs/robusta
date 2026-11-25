@@ -20,7 +20,7 @@ use robusta_span::{GetSpan, Span};
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypeParameters<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         format_delimited_frame(f, "<", ">", None, |f| {
-            f.join_with(&format_args!(token(","), soft_line_break_or_space()))
+            f.join_with(&format_args!(",", soft_line_break_or_space()))
                 .entries(self.params().iter());
         });
     }
@@ -37,8 +37,7 @@ pub fn format_type_declaration_parameters<'a>(
     let last = parameters.last().expect("type parameter").span;
     let list = format_once(|f| {
         format_type_header_list(f, type_params.span, last, |f| {
-            f.join_with(&format_args!(token(","), soft_line_break_or_space()))
-                .entries(parameters.iter());
+            f.join_with(&format_args!(",", soft_line_break_or_space())).entries(parameters.iter());
         });
     });
     if has_clauses {
@@ -65,16 +64,16 @@ fn format_type_header_list<'ast>(
         .any(|&comment| comment.is_line() || comment.preceded_by_newline());
     let closing = format_with(|f| {
         if comment_owns_line {
-            write!(f, [hard_line_break(), token(">")]);
+            write!(f, [hard_line_break(), ">"]);
         } else {
-            write!(f, [group(&format_args!(soft_line_break(), token(">"))).measure_flat()]);
+            write!(f, [group(&format_args!(soft_line_break(), ">")).measure_flat()]);
         }
     });
     let entries = format_once(entries);
     write!(
         f,
         [
-            token("<"),
+            "<",
             group(&wrapped_indent(
                 true,
                 &format_args!(soft_line_break(), group(&format_args!(entries, closing)))
@@ -88,19 +87,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypeArguments<'a>> {
         let arguments = self.args();
         let Some(last) = arguments.last().map(GetSpan::span) else {
             // `<>`
-            write!(
-                f,
-                [
-                    token("<"),
-                    format_dangling_comments(self.span).with_soft_block_indent(),
-                    token(">")
-                ]
-            );
+            write!(f, ["<", format_dangling_comments(self.span).with_soft_block_indent(), ">"]);
             return;
         };
         let entries = |f: &mut JavaFormatter<'_, 'a>| {
-            f.join_with(&format_args!(token(","), soft_line_break_or_space()))
-                .entries(arguments.iter());
+            f.join_with(&format_args!(",", soft_line_break_or_space())).entries(arguments.iter());
         };
         if !is_in_type_declaration_header(self.parent()) {
             // `f<T // c` + `>()`: a comment before `>` needs the broken layout to stay in place.
@@ -110,12 +101,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypeArguments<'a>> {
                 // Surrounding breaks are tried first, and the list splits only if they fail.
                 write!(
                     f,
-                    [group(&format_args!(
-                        token("<"),
-                        soft_block_indent(&format_once(entries)),
-                        token(">")
-                    ))
-                    .measure_flat()]
+                    [group(&format_args!("<", soft_block_indent(&format_once(entries)), ">"))
+                        .measure_flat()]
                 );
             } else {
                 format_delimited_frame(f, "<", ">", None, entries);
@@ -229,7 +216,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypeParameter<'a>> {
                 [
                     group(&wrapped_indent(type_declaration, &soft_line_break_or_space()))
                         .measure_flat(),
-                    token("extends")
+                    "extends"
                 ]
             );
             if type_declaration {
@@ -298,7 +285,7 @@ fn format_type_declaration_bounds<'a>(
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, WildcardTypeArgument<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         format_type_annotations(f, &self.annotations());
-        token("?").fmt(f);
+        "?".fmt(f);
         if let Some(bound) = self.bound() {
             write!(f, [space(), bound]);
         }
@@ -307,7 +294,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, WildcardTypeArgument<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, WildcardBound<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token(self.kind.as_str()).fmt(f);
+        self.kind.as_str().fmt(f);
         if is_in_type_declaration_header(self.parent()) {
             write!(
                 f,

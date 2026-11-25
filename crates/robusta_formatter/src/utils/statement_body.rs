@@ -41,7 +41,7 @@ pub fn write_node_with_terminator<'a, T>(
     T: Format<'a, JavaFormatContext<'a>> + GetSpan,
 {
     let needs_flush = write_node_with_trailing_comments_before(node, terminator.as_bytes()[0], f);
-    token(terminator).fmt(f);
+    terminator.fmt(f);
     if needs_flush {
         hard_line_break().fmt(f);
     }
@@ -343,7 +343,7 @@ pub fn format_continuation_keyword(
             AfterClosingBrace::NewLine => hard_line_break().fmt(f),
         }
     }
-    token(keyword).fmt(f);
+    keyword.fmt(f);
 }
 
 /// The separator between a construct's head and its `{`-delimited body.
@@ -372,9 +372,9 @@ pub fn format_braced_body<'ast>(
     body: impl FnOnce(&mut JavaFormatter<'_, 'ast>),
 ) {
     if is_empty {
-        write!(f, [token("{"), format_dangling_comments(span).with_block_indent(), token("}")]);
+        write!(f, ["{", format_dangling_comments(span).with_block_indent(), "}"]);
     } else {
-        write!(f, [token("{"), block_indent(&format_once(body)), token("}")]);
+        write!(f, ["{", block_indent(&format_once(body)), "}"]);
     }
 }
 

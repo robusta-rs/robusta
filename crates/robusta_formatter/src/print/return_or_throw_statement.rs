@@ -29,7 +29,7 @@ pub fn format_keyword_expression_statement<'ast>(
 ) {
     let span = statement.span();
     let content = format_with(|f| {
-        token(keyword).fmt(f);
+        keyword.fmt(f);
         if let Some(value) = value {
             space().fmt(f);
             value.fmt(f);

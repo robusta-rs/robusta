@@ -77,7 +77,7 @@ fn format_new_keyword<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     constructor_type_args: Option<AstNode<'_, 'a, TypeArguments<'a>>>,
 ) {
-    token("new").fmt(f);
+    "new".fmt(f);
     if let Some(constructor_type_args) = constructor_type_args {
         write_comments_between_blocks(
             f.comments().comments_before(constructor_type_args.span.start),

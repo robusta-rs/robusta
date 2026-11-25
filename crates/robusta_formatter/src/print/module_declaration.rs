@@ -16,9 +16,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ModuleDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         format_annotations_stacked(f, &self.annotations());
         if self.is_open {
-            write!(f, [token("open"), space()]);
+            write!(f, ["open", space()]);
         }
-        write!(f, [token("module"), space()]);
+        write!(f, ["module", space()]);
         let name_end = self.name.span().end;
         format_content_without_comments_after(&self.name(), name_end, f);
         format_attached_braced_body(f, name_end, self.directives.is_empty(), self.span, |f| {
@@ -30,7 +30,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ModuleDeclaration<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RequiresDirective<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let content = format_with(|f| {
-            write!(f, [token("requires"), space()]);
+            write!(f, ["requires", space()]);
             format_inline_nodes(f, self.modifiers().iter());
             self.name().fmt(f);
         });
@@ -42,14 +42,14 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RequiresDirective<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RequiresModifier> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        token(self.kind.as_str()).fmt(f);
+        self.kind.as_str().fmt(f);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PackageDirective<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let content = format_with(|f| {
-            write!(f, [token(self.kind.as_str()), space()]);
+            write!(f, [self.kind.as_str(), space()]);
             if self.targets.is_empty() {
                 self.name().fmt(f);
             } else {
@@ -66,7 +66,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PackageDirective<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UsesDirective<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let content = format_with(|f| write!(f, [token("uses"), space(), self.name()]));
+        let content = format_with(|f| write!(f, ["uses", space(), self.name()]));
         FormatContentWithSemicolon::new(&content, self.name.span().end, self.span.end)
             .moving_documentation_comments()
             .fmt(f);
@@ -76,7 +76,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UsesDirective<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ProvidesDirective<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let content = format_with(|f| {
-            write!(f, [token("provides"), space()]);
+            write!(f, ["provides", space()]);
             format_content_without_comments_after(&self.name(), self.name.span().end, f);
             format_module_targets(f, &self.with(), self.name.span().end, "with");
         });
@@ -97,11 +97,11 @@ fn format_module_targets<'parent, 'a, T: AstNodeListElement>(
 {
     let comments = f.comments().comments_before_character(name_end, keyword.as_bytes()[0]);
     write_comments_between_blocks(comments, f);
-    write!(f, [space(), token(keyword), space()]);
+    write!(f, [space(), keyword, space()]);
     for (index, target) in targets.iter().enumerate() {
         target.fmt(f);
         if index + 1 < targets.len() {
-            write!(f, [token(","), line_suffix_boundary(), space()]);
+            write!(f, [",", line_suffix_boundary(), space()]);
         }
     }
 }

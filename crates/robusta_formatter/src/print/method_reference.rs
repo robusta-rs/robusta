@@ -38,7 +38,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodReference<'a>> {
                         f.comments().position_after_character(type_args.span.end, b'n') - 1;
                     format_node_leading_comments(&self.as_ast_nodes(), new_start, f);
                 }
-                token("new").fmt(f);
+                "new".fmt(f);
             }
         });
         let layout =

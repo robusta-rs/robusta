@@ -89,7 +89,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, Vec<'a, VariableD
                 super::write_type_name_separator(first_declarator.span.start, f);
                 first_declarator.fmt(f);
                 for declarator in declarators {
-                    write!(f, [token(","), format_separator, declarator]);
+                    write!(f, [",", format_separator, declarator]);
                 }
             }))
         );
