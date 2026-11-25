@@ -788,10 +788,15 @@ fn spaces_after_the_last_line_of_markdown_code_are_kept() {
     ] {
         assert_eq!(format_stable_with_options(source, &Options::default()), source);
     }
-    assert_eq!(
-        format_stable_with_options("/// a\n///\n/// \tcode  \nclass A {}\n", &javadoc),
-        "/// a\n///\n/// \tcode  \nclass A {}\n"
-    );
+    for indent in ["    ", "\t"] {
+        assert_eq!(
+            format_stable_with_options(
+                &format!("/// a\n///\n/// {indent}code  \nclass A {{}}\n"),
+                &javadoc
+            ),
+            "/// a\n///\n/// ```\n/// code  \n/// ```\nclass A {}\n"
+        );
+    }
     // Each block tag ends its own Markdown, wherever it moves.
     assert_eq!(
         format_stable_with_options(
@@ -806,7 +811,7 @@ fn spaces_after_the_last_line_of_markdown_code_are_kept() {
         concat!(
             "class A {\n",
             "  /// a\n  ///\n  /// @param x d\n  ///\n  /// # h\n",
-            "  /// @return r\n  ///\n  /// \tcode  \n",
+            "  /// @return r\n  ///\n  /// ```\n  /// code  \n  /// ```\n",
             "  int f(int x) {}\n}\n",
         )
     );
