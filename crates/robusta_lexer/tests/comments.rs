@@ -28,7 +28,7 @@ fn documentation_content_follows_the_opening_delimiter() {
             ("/** a */", Documentation),
             ("/*** b */", Documentation),
             ("/** */", Documentation),
-            ("/**/", None),
+            ("/**/", Documentation),
             ("/* c */", None),
             ("/// d", Documentation),
             ("///", Documentation),
@@ -38,10 +38,11 @@ fn documentation_content_follows_the_opening_delimiter() {
     );
     // Delimiters are judged after Unicode escapes are translated.
     assert_eq!(
-        contents(r"\u002f** a */ /\u002a b */ \u002f\u002f/ c"),
+        contents(r"\u002f** a */ /\u002a b */ /\u002a*/ \u002f\u002f/ c"),
         [
             (r"\u002f** a */", Documentation),
             (r"/\u002a b */", None),
+            (r"/\u002a*/", Documentation),
             (r"\u002f\u002f/ c", Documentation)
         ]
     );
@@ -258,8 +259,12 @@ fn documentation_comments_stay_leading() {
     );
     assert_eq!(attachments("x /** a */ + y"), [("/** a */", Leading, "+ y")]);
     assert_eq!(attachments("int x; /** a */"), [("/** a */", Leading, "")]);
+    // The empty `/**/` is documentation too, as javac reads it.
+    assert_eq!(attachments("int x; /**/\nint y;"), [("/**/", Leading, "int y;")]);
+    assert_eq!(attachments("x /**/ + y"), [("/**/", Leading, "+ y")]);
     // Delimiters are judged after Unicode escapes are translated.
     assert_eq!(attachments("int x; \\u002f** a */\ny"), [(r"\u002f** a */", Leading, "y")]);
+    assert_eq!(attachments("int x; /\\u002a*/\ny"), [(r"/\u002a*/", Leading, "y")]);
 }
 
 #[test]
@@ -291,6 +296,14 @@ fn comments_before_a_documentation_comment_on_a_line() {
     assert_eq!(
         attachments("int x; /* a */ /** b */\nint y;"),
         [("/* a */", Leading, "int y;"), ("/** b */", Leading, "int y;")]
+    );
+    assert_eq!(
+        attachments("int x; /* a */ /**/ /* c */\nint y;"),
+        [
+            ("/* a */", Trailing, "int x;"),
+            ("/**/", Leading, "int y;"),
+            ("/* c */", Leading, "int y;")
+        ]
     );
     assert_eq!(
         attachments("int x; /* a */ /** b */ // c\nint y;"),

@@ -278,6 +278,7 @@ fn documentation_comments_stay_before_a_terminator_a_declaration_could_follow() 
             "enum E { A, /** Stray. */\n; void m() {} }",
             "enum E {\n  A, /** Stray. */;\n\n  void m() {}\n}\n",
         ),
+        ("enum E { A,\n/**/;\nE() {} }", "enum E {\n  A,\n  /**/;\n\n  E() {}\n}\n"),
         ("enum E { A /// e\n, B }", "enum E {\n  A /// e\n  ,\n  B,\n}\n"),
         // After the `,`, it documents the next constant, so the `,` stays first.
         ("enum E { A(1), /// b\nB }", "enum E {\n  A(1), /// b\n  B,\n}\n"),

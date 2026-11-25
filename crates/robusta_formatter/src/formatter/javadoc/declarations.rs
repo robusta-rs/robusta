@@ -58,10 +58,9 @@ impl<'a> JavadocDeclarations<'a> {
     pub(crate) fn parameters(
         &self,
         document: Javadoc<'_>,
-        source: &str,
         comments: &[Comment],
     ) -> Option<DeclaredParameters<'_>> {
-        let start = document.documented_offset(source, comments)?;
+        let start = document.documented_offset(comments)?;
         let index = self.parameters.binary_search_by_key(&start, |list| list.start).ok()?;
         let list = &self.parameters[index];
         let (type_parameters, parameters) =

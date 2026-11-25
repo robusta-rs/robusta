@@ -112,7 +112,7 @@ class Example {
             source,
             concat!(
                 "/** @deprecated */ ; class A { /** d */ /* c */ ;  void f() { /// d\n",
-                "; class L {} } } /**/  //// c\n; /*** b */ ; ",
+                "; class L {} } } /**/ ; //// c\n; /*** b */ ; ",
                 r"\u002f** e */ ;",
             ),
         );
@@ -121,7 +121,6 @@ class Example {
         1:21: warning[redundant-semicolons]: redundant semicolon (";")
         1:52: warning[redundant-semicolons]: redundant semicolon (";")
         2:2: warning[redundant-semicolons]: redundant semicolon (";")
-        2:24: warning[redundant-semicolons]: redundant semicolon (";")
         "#);
     }
 

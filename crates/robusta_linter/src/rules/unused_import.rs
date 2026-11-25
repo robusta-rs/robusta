@@ -459,6 +459,8 @@ class Names {
         let tester = Tester::new(&UNUSED_IMPORT);
         tester.reports_without_fix("/** @deprecated Old */\nimport java.util.Map;\nclass A {}\n");
         tester.reports_without_fix("/// Old.\n// Note.\nimport java.util.Map;\nclass A {}\n");
+        tester.reports_without_fix("/**/\nimport java.util.Map;\nclass A {}\n");
+        tester.reports_without_fix("/\\u002a*/\nimport java.util.Map;\nclass A {}\n");
         tester.fixes_only(
             FixKind::SAFE_FIX,
             "import java.util.List;\n/** @deprecated Old */\nimport java.util.Map;\n\

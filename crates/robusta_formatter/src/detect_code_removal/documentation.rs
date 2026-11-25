@@ -45,7 +45,7 @@ pub(super) fn documented_declarations(
             continue;
         };
         if let Ok(declaration) = starts.binary_search(&comments[index].attached_to) {
-            let superseded = document.documented_offset(source, comments).is_none();
+            let superseded = document.documented_offset(comments).is_none();
             documented.push(Documented { declaration, superseded });
         }
         index += consumed;
