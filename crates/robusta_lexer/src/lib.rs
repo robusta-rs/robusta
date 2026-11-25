@@ -11,6 +11,7 @@ mod diagnostics;
 mod identifier;
 mod number;
 mod punctuation;
+mod search;
 mod string;
 mod token;
 mod trivia_builder;
