@@ -6,6 +6,7 @@ use robusta_span::{GetSpan, Span};
 use robusta_syntax::{
     identifier::is_horizontal_whitespace,
     line_terminator::{contains_line_terminator, line_content_end, line_start, terminator_len},
+    unicode_escape::skip_whitespace,
 };
 
 use crate::Fix;
@@ -179,7 +180,8 @@ fn prune_annotation(
     }
 }
 
-/// Whether a documentation comment directly follows `annotation`.
+/// Whether a documentation comment directly follows `annotation`, past
+/// whitespace, escaped or not, and other comments.
 ///
 /// Deleting the annotation can make the comment's token start the declaration,
 /// and javac then gives the comment to the declaration.
@@ -188,7 +190,7 @@ fn precedes_documentation(semantic: &Semantic<'_>, annotation: Span) -> bool {
     let comments = semantic.comments();
     let mut end = annotation.end;
     for comment in &comments[comments.partition_point(|comment| comment.span.start < end)..] {
-        if !source[end as usize..comment.span.start as usize].trim_ascii().is_empty() {
+        if skip_whitespace(source, end, |byte| byte.is_ascii_whitespace()) != comment.span.start {
             return false;
         }
         if comment.is_documentation() {

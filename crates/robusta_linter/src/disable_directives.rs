@@ -983,6 +983,8 @@ mod tests {
             "class A { @SuppressWarnings(\"robusta:modifier-order\") /** @deprecated Old. */ void m() {} }",
             "class A { @SuppressWarnings(value = {\"robusta:modifier-order\"}) /* x */\n/** B */ void m() {} }",
             "class A { /** A */ @SuppressWarnings(\"robusta:modifier-order\") /** B */ void m() {} }",
+            "class A { @SuppressWarnings(\"robusta:modifier-order\")\\u000a/** B */ void m() {} }",
+            "class A { @SuppressWarnings(\"robusta:modifier-order\")\\u0020/* x */\\uu000d/** B */ void m() {} }",
         ] {
             let diagnostics = audit(source, &RULES);
             assert_eq!(messages(&diagnostics), ["unused suppression for rule `modifier-order`"]);
@@ -1000,6 +1002,7 @@ mod tests {
             "    void m() {}\n",
             "    @SuppressWarnings({\"unchecked\", \"robusta:modifier-order\"}) /** B */ void n() {}\n",
             "    @SuppressWarnings(\"robusta:modifier-order\") void o() {} /** C */ void p() {}\n",
+            "    @SuppressWarnings(\"robusta:modifier-order\")\\u0020void q() {} /** D */ void r() {}\n",
             "}\n",
         );
 
@@ -1011,6 +1014,7 @@ mod tests {
                 "    void m() {}\n",
                 "    @SuppressWarnings({\"unchecked\"}) /** B */ void n() {}\n",
                 "    void o() {} /** C */ void p() {}\n",
+                "    \\u0020void q() {} /** D */ void r() {}\n",
                 "}\n",
             )
         );
