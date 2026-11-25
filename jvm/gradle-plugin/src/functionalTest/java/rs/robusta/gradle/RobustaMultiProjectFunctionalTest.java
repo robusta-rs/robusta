@@ -15,6 +15,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 
 import org.gradle.testkit.runner.BuildResult;
@@ -156,16 +157,24 @@ class RobustaMultiProjectFunctionalTest {
             project, ":app:robustaConfigShow", ":app:robustaConfigInit"
         ).build();
 
-        assertEquals(List.of(
+        List<Invocation> inApp = List.of(
             new Invocation(real(project.resolve("app")), List.of("config")),
             new Invocation(real(project.resolve("app")), List.of("init"))
-        ), readInvocations(record));
+        );
+        assertEquals(inApp, invocationsByArguments(record));
 
         Files.delete(record);
         String[] arguments = {
             ":app:nested:robustaConfigInit", "robustaConfigShow", "robustaConfigInit", CONFIGURATION_CACHE
         };
+        List<Invocation> inRoot = List.of(
+            new Invocation(real(project), List.of("config")),
+            new Invocation(real(project), List.of("init"))
+        );
         runner(project, arguments).build();
+        assertEquals(inRoot, invocationsByArguments(record));
+
+        Files.delete(record);
         BuildResult reused = runner(project, arguments).build();
 
         assertTrue(reused.getOutput().contains("Configuration cache entry reused"));
@@ -173,12 +182,7 @@ class RobustaMultiProjectFunctionalTest {
             assertEquals(TaskOutcome.SKIPPED, reused.task(":" + child + ":robustaConfigShow").getOutcome());
             assertEquals(TaskOutcome.SKIPPED, reused.task(":" + child + ":robustaConfigInit").getOutcome());
         }
-        assertEquals(List.of(
-            new Invocation(real(project), List.of("config")),
-            new Invocation(real(project), List.of("init")),
-            new Invocation(real(project), List.of("config")),
-            new Invocation(real(project), List.of("init"))
-        ), readInvocations(record));
+        assertEquals(inRoot, invocationsByArguments(record));
     }
 
     @Test
@@ -408,6 +412,13 @@ class RobustaMultiProjectFunctionalTest {
             """ + extraSettings);
         Files.writeString(project.resolve("build.gradle.kts"), "");
         return project;
+    }
+
+    /** Gradle may run independent tasks in either order, so compare their runs sorted by arguments. */
+    private static List<Invocation> invocationsByArguments(Path record) throws IOException {
+        return readInvocations(record).stream()
+            .sorted(Comparator.comparing(run -> String.join(" ", run.arguments())))
+            .toList();
     }
 
     private static Path real(Path path) {
