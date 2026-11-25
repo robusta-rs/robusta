@@ -107,8 +107,8 @@ impl<'a> Format<'a, crate::JavaFormatContext<'a>> for FormatLeadingComments<'_> 
                     0 if comment.is_block() => maybe_space(!nestle).fmt(f),
                     // A comment ending a line it shares with code may join what follows.
                     1 if comment.is_block() && after_code => soft_line_break_or_space().fmt(f),
-                    0 | 1 => format_comment_line_end(comment, next, f),
-                    _ => empty_line().fmt(f),
+                    0 | 1 => format_comment_line_end(comment, next, hard_line_break(), f),
+                    _ => format_comment_line_end(comment, next, empty_line(), f),
                 }
             }
         }
@@ -411,14 +411,19 @@ fn format_run_comment(
 ) {
     format_comment_text(comment, own_line).fmt(f);
     if ends_line {
-        format_comment_line_end(comment, next, f);
+        format_comment_line_end(comment, next, hard_line_break(), f);
     }
 }
 
-/// End `comment`'s line, with `next` printed on the line after it.
-fn format_comment_line_end(comment: Comment, next: Option<Comment>, f: &mut JavaFormatter<'_, '_>) {
+/// End `comment`'s line with `line`, with `next` printed after it.
+fn format_comment_line_end(
+    comment: Comment,
+    next: Option<Comment>,
+    line: Line,
+    f: &mut JavaFormatter<'_, '_>,
+) {
     format_comment_trailing_whitespace(comment, next, f);
-    hard_line_break().fmt(f);
+    line.fmt(f);
 }
 
 /// Trailing spaces make a Markdown hard break when another line of the `///`
