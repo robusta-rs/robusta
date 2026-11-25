@@ -5,7 +5,7 @@ use std::ops::Range;
 use markdown::mdast::{AlignKind, Heading, Node, Table, TableCell};
 
 use robusta_formatter_core::IndentWidth;
-use robusta_javadoc::markdown::{code_gap, indented_range, parse, quote_content, span};
+use robusta_javadoc::markdown::{code_gap, columns, indented_range, parse, quote_content, span};
 use robusta_javadoc::{Structure, TagForm};
 
 use super::normalize::capitalize_first;
@@ -80,9 +80,9 @@ fn has_markup(content: &str) -> bool {
     let mut block_start = true;
     content.split('\n').any(|line| {
         let line = quote_content(line);
-        let text = line.trim_start_matches(' ');
+        let text = line.trim_start_matches([' ', '\t']);
         // Indented code cannot interrupt a paragraph, but can follow a heading.
-        let code = block_start && line.len() - text.len() >= 4;
+        let code = block_start && columns(&line[..line.len() - text.len()]) >= 4;
         let number = text.trim_start_matches(|ch: char| ch.is_ascii_digit());
         let marker = text.starts_with(['-', '+', '=', '`', '~'])
             || (number.len() < text.len() && number.starts_with(['.', ')']));

@@ -148,6 +148,11 @@ fn code_blocks_are_fenced_with_more_backticks_than_any_run_inside() {
     assert_eq!(normalized("    has ``` inside"), "````\nhas ``` inside\n````");
     assert_eq!(normalized("    a\n      \n    b"), "```\na\n  \nb\n```");
     assert_eq!(normalized("# Title\n    code"), "# Title\n```\ncode\n```");
+    for indent in ["    ", "\t", "  \t"] {
+        assert_eq!(normalized(&format!("a\n\n{indent}code")), "a\n\n```\ncode\n```");
+    }
+    assert_eq!(normalized("a\n\t\n\tcode"), "a\n\t\n```\ncode\n```");
+    assert_eq!(normalized(">\t\tcode"), "> ```\n>   code\n> ```");
     assert_eq!(normalized("~~~ java  title\nint x;\n~~~~"), "``` java  title\nint x;\n```");
     assert_eq!(normalized("````\nx\n````"), "```\nx\n```");
     assert_eq!(normalized("```java\nunclosed"), "```java\nunclosed\n```");
