@@ -252,6 +252,24 @@ fn unterminated_string_literal() {
         assert_eq!(messages(source), ["unterminated string literal"], "{source:?}");
         assert_eq!(kinds(source), [StringLiteral, Class, Identifier, LBrace, RBrace], "{source:?}");
     }
+    // A line break ends the string, also when the search for it starts after an escape and
+    // passes more than 16 bytes, and also when a quote follows on the next line.
+    let tail = "x".repeat(40);
+    for terminator in ["\r", "\n", "\r\n"] {
+        for escape in ["", "\\t"] {
+            let literal = format!("\"{escape}{tail}");
+            let source = format!("{literal}{terminator}\";");
+            assert_eq!(
+                messages(&source),
+                ["unterminated string literal", "unterminated string literal"],
+                "{source:?}"
+            );
+            assert_eq!(spellings(&source), [literal.as_str(), "\";"], "{source:?}");
+        }
+    }
+    let source = "\"\\t\\n";
+    assert_eq!(messages(source), ["unterminated string literal"]);
+    assert_eq!(spellings(source), [source]);
     // `\u000a` becomes a line terminator before the string scanner runs.
     assert_eq!(
         messages(r#"String s = "\u000a";"#),
@@ -272,6 +290,19 @@ fn string_literals_never_flagged() {
     assert_eq!(messages(source), NONE);
     assert_eq!(kinds(source), [Identifier, Identifier, Assign, StringLiteral, Semicolon]);
 
+    // Quotes and escapes before, at, and after the 16-byte batches the search reads.
+    for literal in [
+        format!(r#""{}""#, "a".repeat(15)),
+        format!(r#""{}""#, "a".repeat(16)),
+        format!(r#""{}""#, "a".repeat(40)),
+        format!(r#""{}\"{}""#, "é".repeat(10), "b".repeat(20)),
+        format!(r#""\t{}\n{}\"{}""#, "a".repeat(20), "b".repeat(16), "c".repeat(30)),
+    ] {
+        let source = format!("String s = {literal};");
+        assert_eq!(messages(&source), NONE, "{source}");
+        assert_eq!(spellings(&source), ["String", "s", "=", literal.as_str(), ";"], "{source}");
+    }
+
     // `\\u2126` is an escaped backslash then literal `u2126`, never U+2126.
     let source = r#"String s = "\\u2126";"#;
     assert_eq!(messages(source), NONE);
@@ -281,6 +312,10 @@ fn string_literals_never_flagged() {
 #[test]
 fn unterminated_text_block() {
     assert_eq!(messages("String s = \"\"\"\nmissing"), ["unterminated text block"]);
+
+    let source = "String s = \"\"\"\nnot \"\" closed\\\"\"\"\n";
+    assert_eq!(messages(source), ["unterminated text block"]);
+    assert_eq!(spellings(source), ["String", "s", "=", &source[11..]]);
 }
 
 #[test]
@@ -302,6 +337,13 @@ fn text_blocks_never_flagged() {
 \"""
 \
 """;"#;
+    assert_eq!(messages(source), NONE);
+    assert_eq!(kinds(source), [Identifier, Identifier, Assign, StringLiteral, Semicolon]);
+    assert_eq!(spellings(source)[3], &source[11..source.len() - 1]);
+
+    let source = r#"String s = """
+  Grüße, «"quoted"» ""\t€ 😀 \"""
+  """;"#;
     assert_eq!(messages(source), NONE);
     assert_eq!(kinds(source), [Identifier, Identifier, Assign, StringLiteral, Semicolon]);
     assert_eq!(spellings(source)[3], &source[11..source.len() - 1]);

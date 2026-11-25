@@ -1,9 +1,42 @@
+// Adapted from https://github.com/oxc-project/oxc/blob/777d2d1b5cb7845740dd734bf85f420bc5c3e3a5/crates/oxc_parser/src/lexer/string.rs
 use robusta_syntax::{
     identifier::is_horizontal_whitespace,
     line_terminator::{is_line_terminator, terminator_len},
 };
 
-use crate::{Lexer, TokenKind, diagnostics, span32};
+use crate::{
+    Lexer, TokenKind, diagnostics,
+    search::{SafeByteMatchTable, safe_byte_match_table},
+    span32,
+};
+
+static STRING_END_TABLE: SafeByteMatchTable =
+    safe_byte_match_table!(|b| matches!(b, b'"' | b'\r' | b'\n' | b'\\'));
+
+static TEXT_BLOCK_END_TABLE: SafeByteMatchTable =
+    safe_byte_match_table!(|b| matches!(b, b'"' | b'\\'));
+
+/// Find the next quote, escape, or line break after an escape sequence.
+#[inline(always)]
+fn find_string_chunk_end(bytes: &[u8]) -> Option<usize> {
+    const PREFIX_LEN: usize = 16;
+    // Handle short chunks inline before paying for the two bulk searches.
+    let Some(prefix) = bytes.get(..PREFIX_LEN) else {
+        return bytes.iter().position(|&byte| STRING_END_TABLE.matches(byte));
+    };
+    for (index, &byte) in prefix.iter().enumerate() {
+        if STRING_END_TABLE.matches(byte) {
+            return Some(index);
+        }
+    }
+
+    let remaining = &bytes[PREFIX_LEN..];
+    let end = memchr::memchr3(b'"', b'\\', b'\n', remaining);
+    // A carriage return before the other delimiters ends the chunk first.
+    memchr::memchr(b'\r', &remaining[..end.unwrap_or(remaining.len())])
+        .or(end)
+        .map(|index| PREFIX_LEN + index)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EscapeScan {
@@ -144,38 +177,44 @@ impl Lexer<'_> {
             return self.scan_text_block(start, content_start);
         }
         self.pos += 1; // opening quote
+        let mut next_byte = self.byte_search(&STRING_END_TABLE);
         loop {
-            match self.peek() {
-                None => {
-                    self.errors
-                        .push(diagnostics::unterminated_string_literal(span32(start, self.pos)));
-                    break;
-                }
-                Some(b) if is_line_terminator(b) => {
-                    self.errors
-                        .push(diagnostics::unterminated_string_literal(span32(start, self.pos)));
-                    break;
-                }
-                Some(b'\\') => match self.scan_escape_sequence() {
-                    EscapeScan::Valid => {}
-                    EscapeScan::Invalid => {
-                        self.errors.push(diagnostics::invalid_escape_sequence(
-                            "string literal",
-                            span32(start, self.pos),
-                        ));
-                    }
-                    EscapeScan::Unterminated => {
-                        self.errors.push(diagnostics::unterminated_string_literal(span32(
-                            start, self.pos,
-                        )));
-                        break;
-                    }
-                },
+            match next_byte {
                 Some(b'"') => {
                     self.pos += 1;
                     break;
                 }
-                Some(_) => self.pos += 1,
+                Some(b'\\') => {
+                    match self.scan_escape_sequence() {
+                        EscapeScan::Valid => {}
+                        EscapeScan::Invalid => {
+                            self.errors.push(diagnostics::invalid_escape_sequence(
+                                "string literal",
+                                span32(start, self.pos),
+                            ));
+                        }
+                        EscapeScan::Unterminated => {
+                            self.errors.push(diagnostics::unterminated_string_literal(span32(
+                                start, self.pos,
+                            )));
+                            break;
+                        }
+                    }
+                    let remaining = &self.src[self.pos..];
+                    next_byte = if let Some(end) = find_string_chunk_end(remaining) {
+                        self.pos += end;
+                        Some(remaining[end])
+                    } else {
+                        self.pos = self.src.len();
+                        None
+                    };
+                }
+                // The end of the source, or a line break
+                _ => {
+                    self.errors
+                        .push(diagnostics::unterminated_string_literal(span32(start, self.pos)));
+                    break;
+                }
             }
         }
         TokenKind::StringLiteral
@@ -199,30 +238,37 @@ impl Lexer<'_> {
     fn scan_text_block(&mut self, start: usize, content_start: usize) -> TokenKind {
         self.pos = content_start;
         loop {
-            match self.peek() {
+            match self.byte_search(&TEXT_BLOCK_END_TABLE) {
                 None => {
                     self.errors.push(diagnostics::unterminated_text_block(span32(start, self.pos)));
                     break;
                 }
-                Some(b'"') if self.src.get(self.pos..self.pos + 3) == Some(b"\"\"\"") => {
-                    self.pos += 3;
-                    break;
-                }
-                Some(b'\\') => match self.scan_text_block_escape_sequence() {
-                    EscapeScan::Valid => {}
-                    EscapeScan::Invalid => {
-                        self.errors.push(diagnostics::invalid_escape_sequence(
-                            "text block",
-                            span32(start, self.pos),
-                        ));
-                    }
-                    EscapeScan::Unterminated => {
-                        self.errors
-                            .push(diagnostics::unterminated_text_block(span32(start, self.pos)));
+                Some(b'"') => {
+                    if self.src[self.pos..].starts_with(b"\"\"\"") {
+                        self.pos += 3;
                         break;
                     }
-                },
-                Some(_) => self.bump_char(),
+                    self.pos += 1;
+                }
+                Some(next_byte) => {
+                    // `TEXT_BLOCK_END_TABLE` only matches `"` and `\`
+                    debug_assert_eq!(next_byte, b'\\');
+                    match self.scan_text_block_escape_sequence() {
+                        EscapeScan::Valid => {}
+                        EscapeScan::Invalid => {
+                            self.errors.push(diagnostics::invalid_escape_sequence(
+                                "text block",
+                                span32(start, self.pos),
+                            ));
+                        }
+                        EscapeScan::Unterminated => {
+                            self.errors.push(diagnostics::unterminated_text_block(span32(
+                                start, self.pos,
+                            )));
+                            break;
+                        }
+                    }
+                }
             }
         }
         TokenKind::StringLiteral
