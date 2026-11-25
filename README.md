@@ -15,13 +15,16 @@ Robusta is a DX toolchain, not a correctness analyzer — comprehensive semantic
 
 Robusta is based on [Oxc](https://oxc.rs). It follows Oxc's project structure, architecture, and command line, and ports parts of Oxc's code, including the formatter core that Oxc based on the [Biome](https://biomejs.dev) formatter. Thank you to the Oxc and Biome teams.
 
-<sub>\* Early development. The formatter covers the finalized Java grammar through Java 25, excluding preview features. No binaries or build-tool plugins are published yet, and interfaces may still change.</sub>
+For more information, check out our website at [robusta.rs](https://robusta.rs).
+
+<sub>\* Early development. The formatter covers the finalized Java grammar through Java 25, excluding preview features. Interfaces may still change.</sub>
 
 ## 🔧 Lint or Format a Codebase
 
-- **Format**: `robusta format --fix <path>...`
-- **Lint**: `robusta lint --fix <path>...`
+- **Lint**: [Linter](https://robusta.rs/docs/guide/usage/linter) — `robusta lint --fix <path>...`
+- **Format**: [Formatter](https://robusta.rs/docs/guide/usage/formatter) — `robusta format --fix <path>...`
 - **Both, in CI**: `robusta check <path>...`
+- **Gradle and Maven**: [Gradle](https://robusta.rs/docs/guide/usage/gradle) and [Maven](https://robusta.rs/docs/guide/usage/maven) plugins — `./gradlew robustaCheck` or `mvn robusta:check`
 
 ## ✍️ Contribute
 
