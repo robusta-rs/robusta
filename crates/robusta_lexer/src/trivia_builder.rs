@@ -175,17 +175,14 @@ impl TriviaBuilder {
         }
     }
 
-    /// A comment is documentation when it opens with `///`, or with `/**` but
-    /// not `/**/`, judged on the translated text, so escaped delimiters count.
-    /// No source level is checked: before Java 23, javac reads `///` as an
-    /// ordinary comment.
+    /// A comment is documentation when it opens with `///` or `/**`, the
+    /// empty `/**/` included as javac reads it, judged on the translated text,
+    /// so escaped delimiters count. No source level is checked: before Java
+    /// 23, javac reads `///` as an ordinary comment.
     fn parse_content(comment: &mut Comment, source_text: &str) {
         let text = comment.span.source_text(source_text);
-        let documentation = if comment.is_line() {
-            text.starts_with("///")
-        } else {
-            text.starts_with("/**") && !text.starts_with("/**/")
-        };
+        let documentation =
+            if comment.is_line() { text.starts_with("///") } else { text.starts_with("/**") };
         if documentation {
             comment.content = CommentContent::Documentation;
         }

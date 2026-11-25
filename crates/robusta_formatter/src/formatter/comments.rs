@@ -79,9 +79,11 @@ impl<'a, 'c> Comments<'a, 'c> {
         let continues = document.kind() == JavadocKind::Markdown
             && first > 0
             && self.is_next_markdown_line(self.lexed[first - 1], self.lexed[first]);
+        // The compact `/**/` shares its star between delimiters, so it is kept as written.
         !continues
+            && document.text() != "/**/"
             && document.has_literal_delimiters()
-            && document.is_attached(self.source.as_str(), self.lexed, self.declarations.starts())
+            && document.is_attached(self.lexed, self.declarations.starts())
     }
 
     /// The Markdown Javadoc run beginning at the front of `comments`, if it
@@ -112,7 +114,7 @@ impl<'a, 'c> Comments<'a, 'c> {
         &self,
         document: Javadoc<'_>,
     ) -> Option<DeclaredParameters<'_>> {
-        self.declarations.parameters(document, self.source.as_str(), self.lexed)
+        self.declarations.parameters(document, self.lexed)
     }
 
     /// Whether the source lines `span` touches hold only whitespace and comments.

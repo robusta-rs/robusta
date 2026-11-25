@@ -87,30 +87,19 @@ impl<'a> Javadoc<'a> {
     /// `comments` is the file's comment side-table. A comment followed by a
     /// statement, the end of a body, or another documentation comment is
     /// ordinary, since javadoc reads only the last before a declaration.
-    pub fn is_attached(
-        self,
-        source: &str,
-        comments: &[Comment],
-        declaration_starts: &[u32],
-    ) -> bool {
-        self.documented_offset(source, comments)
+    pub fn is_attached(self, comments: &[Comment], declaration_starts: &[u32]) -> bool {
+        self.documented_offset(comments)
             .is_some_and(|next| declaration_starts.binary_search(&next).is_ok())
     }
 
     /// Where the declaration this comment documents would start: the token it
     /// attaches to. `None` when another documentation comment comes first.
-    pub fn documented_offset(self, source: &str, comments: &[Comment]) -> Option<u32> {
+    pub fn documented_offset(self, comments: &[Comment]) -> Option<u32> {
         let first = comments.partition_point(|comment| comment.span.start < self.span.end);
         let superseded = comments[first..]
             .iter()
             .take_while(|comment| comment.attached_to == self.attached_to)
-            // The empty `/**/` takes precedence without being reformatted.
-            .any(|comment| {
-                comment.is_documentation()
-                    || (comment.is_block()
-                        && robusta_lexer::translate(comment.span.source_text(source)).cooked
-                            == "/**/")
-            });
+            .any(Comment::is_documentation);
         (!superseded).then_some(self.attached_to)
     }
 
@@ -165,7 +154,7 @@ mod tests {
             let starts = declaration.map(|needle| {
                 u32::try_from(source.find(needle).expect("declaration in source")).expect("fits")
             });
-            document.is_attached(source, &comments, starts.as_slice())
+            document.is_attached(&comments, starts.as_slice())
         };
 
         assert!(attached("/// one\n/// two\n  @Deprecated class A {}", Some("@Deprecated")));
@@ -184,6 +173,8 @@ mod tests {
         assert!(attached(r"/// one\u000a\u0040Deprecated class A {}", Some(r"\u0040Deprecated")));
         assert!(attached(r"class A { int x; /** one */\u000a\u0020int y; }", Some("int y")));
         assert!(attached("/*** banner */\nclass A {}", Some("class")));
+        assert!(attached("/**/\nclass A {}", Some("class")));
+        assert!(attached("/* note */ /**/ class A {}", Some("class")));
         assert!(!attached("/// note one\n/// note two\ndoThing();", None));
         assert!(!attached("/** note */ doThing();", None));
         assert!(!attached("/// trailing\n}", None));
@@ -204,7 +195,7 @@ mod tests {
         let document = Javadoc::from_comment(source, &comments[0]).expect("Javadoc");
 
         assert_eq!(
-            document.documented_offset(source, &comments),
+            document.documented_offset(&comments),
             source.find("class").map(|start| u32::try_from(start).expect("fits"))
         );
     }
