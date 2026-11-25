@@ -27,7 +27,8 @@ impl Default for ConfigStoreBuilder {
             rules: rules::builtin_rules()
                 .iter()
                 .filter_map(|rule| {
-                    rule_severity(default_category_severity(rule.meta().category))
+                    default_category_severity(rule.meta().category)
+                        .severity()
                         .map(|severity| (RuleConfiguration::new(*rule, severity), true))
                 })
                 .collect(),
@@ -97,7 +98,7 @@ impl ConfigStoreBuilder {
             builtin.iter().map(|rule| rule_entry(&self.rules, *rule).cloned()).collect::<Vec<_>>();
 
         for filter in filters {
-            let severity = rule_severity(filter.severity());
+            let severity = filter.severity().severity();
             for (rule, entry) in builtin.iter().zip(&mut entries) {
                 if filter.kind().matches(*rule) {
                     let configured = entry.take();
@@ -161,7 +162,9 @@ impl ConfigStoreBuilder {
             options: OptionsConfig {
                 deny_warnings: Some(deny_warnings),
                 max_warnings,
-                report_unused_suppressions: Some(severity_config(report_unused_suppressions)),
+                report_unused_suppressions: Some(RuleSeverityConfig::from_severity(
+                    report_unused_suppressions,
+                )),
             },
             ..LintConfigFile::default()
         }
@@ -204,7 +207,7 @@ fn configure_rule(
     let value = settings.map_or(serde_json::Value::Null, serde_json::Value::Object);
     let configured = RuleConfiguration::configured(rule, value, Severity::Warning)
         .map_err(|error| ConfigBuilderError::InvalidSettings { rule: rule.id(), error })?;
-    Ok(match rule_severity(severity) {
+    Ok(match severity.severity() {
         Some(severity) => (configured.with_severity(severity), true),
         None => (configured, false),
     })
@@ -213,7 +216,7 @@ fn configure_rule(
 /// A rule's value as `lint.rules` writes it, at `allow` when the rule does not run.
 fn rule_config(entry: Option<(&RuleConfiguration, bool)>) -> RuleConfig {
     let severity = entry.and_then(|(configured, enabled)| enabled.then(|| configured.severity()));
-    let severity = severity_config(severity);
+    let severity = RuleSeverityConfig::from_severity(severity);
     match entry.and_then(|(configured, _)| configured.rule().to_configuration()) {
         Some(serde_json::Value::Object(settings)) => RuleConfig::WithSettings(severity, settings),
         _ => RuleConfig::Severity(severity),
@@ -224,23 +227,6 @@ const fn default_category_severity(category: RuleCategory) -> RuleSeverityConfig
     match category {
         RuleCategory::Correctness => RuleSeverityConfig::Warn,
         _ => RuleSeverityConfig::Allow,
-    }
-}
-
-fn severity_config(severity: Option<Severity>) -> RuleSeverityConfig {
-    match severity {
-        None => RuleSeverityConfig::Allow,
-        Some(Severity::Warning) => RuleSeverityConfig::Warn,
-        Some(Severity::Error) => RuleSeverityConfig::Deny,
-        Some(Severity::Advice) => unreachable!("lint severity must be warning or error"),
-    }
-}
-
-pub(super) const fn rule_severity(config: RuleSeverityConfig) -> Option<Severity> {
-    match config {
-        RuleSeverityConfig::Allow => None,
-        RuleSeverityConfig::Warn => Some(Severity::Warning),
-        RuleSeverityConfig::Deny => Some(Severity::Error),
     }
 }
 
