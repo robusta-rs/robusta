@@ -2271,6 +2271,32 @@ fn members_after_a_chains_last_call_follow_the_chain() {
 }
 
 #[test]
+fn method_references_on_a_field_chain_break_after_the_operator() {
+    let source = "class C {
+        void f() {
+            Object o = registry.regions.forRegions.poll::method;
+            Object p = this.registry.regions.forRegions.poll::method;
+        }
+    }";
+    let options =
+        Options { line_width: line_width(30), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class C {
+      void f() {
+        Object o =
+          registry.regions
+            .forRegions.poll
+            ::method;
+        Object p =
+          this.registry.regions
+            .forRegions.poll
+            ::method;
+      }
+    }
+    ");
+}
+
+#[test]
 fn fields_break_after_a_parenthesized_object_but_not_in_a_chain_head() {
     let source = "class C {
         void f() {
