@@ -11,10 +11,11 @@ declare_robusta_lint! {
     /// Reports a single type or single static import whose imported simple name
     /// is referenced nowhere in the compilation unit and offers a safe deletion.
     ///
-    /// A name used only by a Javadoc reference (`{@link C}`, `@see`, `@throws`,
-    /// …) counts as used, so its import is neither reported nor removed. On-demand
-    /// and module imports need class-path or module-graph resolution to decide,
-    /// so this file-local rule deliberately leaves them alone.
+    /// A name used only in Javadoc, the documentation comment of a declaration
+    /// (`{@link C}`, `@see`, `@throws`, …), counts as used, so its import is
+    /// neither reported nor removed. On-demand and module imports need
+    /// class-path or module-graph resolution to decide, so this file-local rule
+    /// deliberately leaves them alone.
     UnusedImport {
         id: UNUSED_IMPORT_ID = "unused-import",
         rule: UNUSED_IMPORT,
@@ -339,6 +340,30 @@ class Names {
             "import java.util.List;\n//// A [List] of things.\nclass A {}",
         ] {
             Tester::new(&UNUSED_IMPORT).passes(source);
+        }
+    }
+
+    #[test]
+    fn javadoc_after_code_keeps_the_import() {
+        for source in [
+            "import java.util.Map;\nclass A { int x; /** See {@link Map}. */ int y; }",
+            "import java.util.Map;\nclass A { int x; /// See [Map].\n/// More.\nint y; }",
+        ] {
+            Tester::new(&UNUSED_IMPORT).passes(source);
+        }
+    }
+
+    #[test]
+    fn documentation_comment_that_documents_no_declaration_is_not_a_use() {
+        for source in [
+            "import java.util.Map;\nclass A { int f() { /** See {@link Map}. */ return 0; } }\n",
+            "import java.util.Map;\nclass A { int f() { /// See [Map].\nreturn 0; } }\n",
+            "import java.util.Map;\nclass A { /// See [Map].\n}\n",
+            "import java.util.Map;\n/** See {@link Map}. */\n/** Documentation. */\nclass A {}\n",
+            "import java.util.Map;\n/// See [Map].\n\n/// Documentation.\nclass A {}\n",
+        ] {
+            let fixed = source.strip_prefix("import java.util.Map;\n").expect("import");
+            Tester::new(&UNUSED_IMPORT).fixes(source, fixed);
         }
     }
 

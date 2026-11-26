@@ -1,11 +1,8 @@
 use std::ops::Range;
 
-use robusta_ast::{
-    AstKind, Comment, CompilationUnit, FormalParameter, TypeDeclaration, TypeParameters,
-};
+use robusta_ast::{AstKind, Comment, CompilationUnit, FormalParameter, TypeParameters};
 use robusta_ast_visit::Visit;
-use robusta_javadoc::Javadoc;
-use robusta_span::GetSpan;
+use robusta_javadoc::{Javadoc, declaration_start};
 
 use super::DeclaredParameters;
 
@@ -93,30 +90,8 @@ struct DeclarationCollector<'a> {
 
 impl<'a> Visit<'a> for DeclarationCollector<'a> {
     fn enter_node(&mut self, kind: AstKind<'a>) {
-        let start = match kind {
-            // javac attaches a package's Javadoc only in a unit declaring no
-            // types, as package-info.java is.
-            AstKind::OrdinaryCompilationUnit(unit) => match &unit.package {
-                Some(package)
-                    if unit.types.iter().all(|ty| matches!(ty, TypeDeclaration::Empty(_))) =>
-                {
-                    package.span.start
-                }
-                _ => return,
-            },
-            AstKind::ModuleDeclaration(_)
-            | AstKind::ClassDeclaration(_)
-            | AstKind::InterfaceDeclaration(_)
-            | AstKind::EnumDeclaration(_)
-            | AstKind::EnumConstant(_)
-            | AstKind::RecordDeclaration(_)
-            | AstKind::AnnotationInterfaceDeclaration(_)
-            | AstKind::AnnotationInterfaceElementDeclaration(_)
-            | AstKind::FieldDeclaration(_)
-            | AstKind::MethodDeclaration(_)
-            | AstKind::ConstructorDeclaration(_)
-            | AstKind::CompactConstructorDeclaration(_) => kind.span().start,
-            _ => return,
+        let Some(start) = declaration_start(kind) else {
+            return;
         };
         let declarations = &mut self.declarations;
         declarations.starts.push(start);
