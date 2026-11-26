@@ -254,9 +254,10 @@ without running anything it skips:
 `void f() { if (ready) { g(); return; } }` is `void f() { if (ready) { g(); } }`.
 
 The walk outward stops at a following statement, at a statement group
-that falls into the next one, at a loop, whose condition or update
-falling through would run, and at a `finally` block, where a return
-discards a pending exception. A return that a `break` follows is kept.
+that falls into a later group's statements, at a loop, whose condition
+or update falling through would run, and at a `finally` block, where a
+return discards a pending exception. A return that a `break` follows is
+kept.
 
 The removal is target-preserving. JLS §14.17 makes the return's target
 the enclosing declaration or lambda, so the return transfers control
@@ -265,7 +266,7 @@ exactly where falling off the end of the body does. For a lambda, JLS
 not value-compatible, with or without the return. Only a `finally`
 block that cannot complete normally could stop the body completing
 once the return is gone, so in a lambda the walk also stops at a `try`
-statement with a `finally` block.
+statement whose `finally` block is not known to complete normally.
 
 ## How to use
 <RuleHowToUse />

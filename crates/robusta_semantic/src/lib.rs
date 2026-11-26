@@ -12,6 +12,7 @@ use std::cell::OnceCell;
 pub use ast_types_bitset::AstTypesBitset;
 pub use builder::SemanticBuilder;
 pub use node::{AstNode, AstNodes};
+pub use pattern_scope::{Unresolved, block_can_complete_normally};
 pub use robusta_syntax::{node::NodeId, reference::ReferenceId, scope::ScopeId, symbol::SymbolId};
 pub use scoping::{Redeclaration, Reference, ReferenceKind, Scope, Scoping, Symbol, SymbolKind};
 

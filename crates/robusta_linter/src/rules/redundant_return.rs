@@ -1,7 +1,7 @@
-use robusta_ast::{AstKind, MethodResult};
+use robusta_ast::{AstKind, MethodResult, SwitchCase};
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
-use robusta_semantic::{AstNode, AstNodes, NodeId};
+use robusta_semantic::{AstNode, AstNodes, NodeId, Unresolved, block_can_complete_normally};
 use robusta_span::{GetSpan, Span};
 
 use crate::fixer::{RuleFix, RuleFixer};
@@ -16,9 +16,10 @@ declare_robusta_lint! {
     /// `void f() { if (ready) { g(); return; } }` is `void f() { if (ready) { g(); } }`.
     ///
     /// The walk outward stops at a following statement, at a statement group
-    /// that falls into the next one, at a loop, whose condition or update
-    /// falling through would run, and at a `finally` block, where a return
-    /// discards a pending exception. A return that a `break` follows is kept.
+    /// that falls into a later group's statements, at a loop, whose condition
+    /// or update falling through would run, and at a `finally` block, where a
+    /// return discards a pending exception. A return that a `break` follows is
+    /// kept.
     ///
     /// The removal is target-preserving. JLS §14.17 makes the return's target
     /// the enclosing declaration or lambda, so the return transfers control
@@ -27,7 +28,7 @@ declare_robusta_lint! {
     /// not value-compatible, with or without the return. Only a `finally`
     /// block that cannot complete normally could stop the body completing
     /// once the return is gone, so in a lambda the walk also stops at a `try`
-    /// statement with a `finally` block.
+    /// statement whose `finally` block is not known to complete normally.
     RedundantReturn {
         id: REDUNDANT_RETURN_ID = "redundant-return",
         rule: REDUNDANT_RETURN,
@@ -68,7 +69,7 @@ impl Rule for RedundantReturn {
 /// lambda, without running anything.
 fn ends_body(nodes: &AstNodes<'_>, id: NodeId, span: Span) -> bool {
     let mut child = span;
-    let mut through_finally = false;
+    let mut finally_completes = true;
     for (ancestor_id, ancestor) in nodes.ancestors_enumerated(id) {
         let ends_with = |statements: &[_]| statements.last().map(GetSpan::span) == Some(child);
         match ancestor.kind() {
@@ -87,14 +88,22 @@ fn ends_body(nodes: &AstNodes<'_>, id: NodeId, span: Span) -> bool {
                 let AstKind::SwitchStatement(switch) = nodes.parent_kind(ancestor_id) else {
                     return false;
                 };
-                if !ends_with(&group.statements)
-                    || switch.cases.last().map(GetSpan::span) != Some(group.span)
-                {
+                // Falling through may pass only labels (JLS §14.11.3).
+                let falls_out = switch
+                    .cases
+                    .iter()
+                    .skip_while(|case| case.span() != group.span)
+                    .skip(1)
+                    .all(|case| matches!(case, SwitchCase::Group(next) if next.statements.is_empty()));
+                if !ends_with(&group.statements) || !falls_out {
                     return false;
                 }
             }
             AstKind::TryStatement(statement) => {
-                through_finally |= statement.finally_block.is_some();
+                finally_completes = finally_completes
+                    && statement.finally_block.as_ref().is_none_or(|block| {
+                        block_can_complete_normally(&block.statements, &Unresolved)
+                    });
             }
             AstKind::IfStatement(_)
             | AstKind::LabeledStatement(_)
@@ -108,7 +117,7 @@ fn ends_body(nodes: &AstNodes<'_>, id: NodeId, span: Span) -> bool {
                 return matches!(method.return_type, MethodResult::Void(_));
             }
             AstKind::ConstructorDeclaration(_) => return true,
-            AstKind::LambdaExpression(_) => return !through_finally,
+            AstKind::LambdaExpression(_) => return finally_completes,
             _ => return false,
         }
         child = ancestor.kind().span();
@@ -175,10 +184,12 @@ mod tests {
              void branch(boolean dirty) { if (dirty) { flush(); return; } } \
              void otherwise(boolean dirty) { if (dirty) { flush(); } else { return; } } \
              void group(int mode) { switch (mode) { case 1: flush(); break; default: reload(); return; } } \
+             void labels(int mode) { switch (mode) { case 1: flush(); return; case 2: default: } } \
              void rule(int mode) { switch (mode) { case 1 -> { return; } default -> flush(); } } \
              void attempt() { try { flush(); return; } catch (Exception e) { log(e); } } \
              void caught() { try { flush(); } catch (Exception e) { log(e); return; } } \
              void cleanup() { try (Lock lock = lock()) { flush(); return; } finally { unlock(); } } \
+             void lambda() { run(() -> { try { flush(); return; } finally { if (ready()) { unlock(); } } }); } \
              void guarded() { synchronized (this) { flush(); return; } } \
              void labeled() { done: { flush(); return; } } \
              void nested() { { { return; } } } \
@@ -190,10 +201,12 @@ mod tests {
              void branch(boolean dirty) { if (dirty) { flush(); } } \
              void otherwise(boolean dirty) { if (dirty) { flush(); } else { } } \
              void group(int mode) { switch (mode) { case 1: flush(); break; default: reload(); } } \
+             void labels(int mode) { switch (mode) { case 1: flush(); case 2: default: } } \
              void rule(int mode) { switch (mode) { case 1 -> { } default -> flush(); } } \
              void attempt() { try { flush(); } catch (Exception e) { log(e); } } \
              void caught() { try { flush(); } catch (Exception e) { log(e); } } \
              void cleanup() { try (Lock lock = lock()) { flush(); } finally { unlock(); } } \
+             void lambda() { run(() -> { try { flush(); } finally { if (ready()) { unlock(); } } }); } \
              void guarded() { synchronized (this) { flush(); } } \
              void labeled() { done: { flush(); } } \
              void nested() { { { } } } \
@@ -294,7 +307,7 @@ void refresh(int mode, boolean ready, boolean dirty) {
              void declared(boolean ready) { if (!ready) { return; } int attempts; } \
              void breaks(int mode, boolean ready) { switch (mode) { case 1: if (ready) { flush(); return; } break; } } \
              void falls(int mode) { switch (mode) { case 1: return; default: g(); } } \
-             void trailing(int mode) { switch (mode) { case 1: return; default: } } \
+             void reached(int mode) { switch (mode) { case 1: return; case 2: default: g(); } } \
              void forever(boolean ready) { while (true) { if (ready) { return; } break; } } \
              void next(boolean ready) { while (next()) { if (ready) { return; } break; } } \
              void loop(boolean ready) { do { return; } while (ready); } \
@@ -303,7 +316,8 @@ void refresh(int mode, boolean ready, boolean dirty) {
              void deeper() { try { g(); } finally { if (ready()) { return; } } } \
              void inner(boolean ready) { class B { void f() { if (ready) { return; } g(); } } g(); } \
              void lambda(boolean ready) { run(() -> { if (ready) { return; } g(); }); } \
-             void finished() { run(() -> { try { g(); return; } finally { h(); } }); } \
+             void thrown() { run(() -> { try { g(); return; } finally { throw new Error(); } }); } \
+             void endless() { run(() -> { try { g(); return; } finally { while (RUNNING) { h(); } } }); } \
              }",
         );
     }
