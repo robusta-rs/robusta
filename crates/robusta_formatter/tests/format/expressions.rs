@@ -1756,23 +1756,69 @@ fn unary_sign_before_an_increment_keeps_its_space() {
     ");
 }
 
-/// A comment on its own line after a prefix operator joins the operator's
-/// line, the operand starts the next line without its indent, and the second
-/// pass joins the line.
 #[test]
-fn own_line_comment_after_a_prefix_operator_unindents_the_operand() {
-    let source = "class A { void f() { x = -\n/* c */\ny; } }";
+fn comments_ending_their_line_after_a_prefix_operator_stay_and_indent_the_operand() {
+    let source = "class A { void m() {
+        boolean due = !
+            // a paid order is never due
+            paid;
+        String name = (String) // checked above
+            value;
+        x = - // c
+        y;
+        x = -
+        /** a */ /* b */
+        y;
+        f(~
+        /* c */
+        y);
+        x = -/* c */ y;
+    } }";
     assert_snapshot!(fmt(source), @"
     class A {
-      void f() {
-        x = -/* c */
-        y;
+      void m() {
+        boolean due = !
+          // a paid order is never due
+          paid;
+        String name = (String) // checked above
+          value;
+        x = - // c
+          y;
+        x = -
+          /** a */ /* b */
+          y;
+        f(
+          ~
+            /* c */
+            y
+        );
+        x = -/* c */ y;
       }
     }
-    ---------- Not idempotent (second pass) ----------
+    ");
+}
+
+#[test]
+fn operand_after_a_prefix_operator_comment_in_a_header_takes_its_wrapped_indent() {
+    let source = "class A { void m() {
+        if (! // c
+        ready) { go(); }
+        while ((boolean)
+        // c
+        ready) { go(); }
+    } }";
+    assert_snapshot!(fmt(source), @"
     class A {
-      void f() {
-        x = -/* c */ y;
+      void m() {
+        if (! // c
+            ready) {
+          go();
+        }
+        while ((boolean)
+            // c
+            ready) {
+          go();
+        }
       }
     }
     ");
@@ -1988,8 +2034,8 @@ fn line_comments_around_operator_tokens_end_their_lines() {
       }
 
       int unary(int a) {
-        return /* Lpre */ -// Rpre
-        a++; // Lpost
+        return /* Lpre */ - // Rpre
+          a++; // Lpost
       }
 
       int postfix(int[] a) {

@@ -28,6 +28,7 @@ pub mod try_statement;
 pub mod type_parameters;
 pub mod variable_declaration;
 
+use crate::formatter::comments::stays_on_operator_line;
 use crate::formatter::prelude::*;
 use crate::formatter::separated::argument_list_end;
 use crate::formatter::trivia::{
@@ -60,7 +61,7 @@ use crate::utils::statement_body::{
 };
 use crate::utils::{is_header_condition, keyword_end};
 use robusta_ast::*;
-use robusta_formatter_core::{FormatElement, FormatElements, write};
+use robusta_formatter_core::{FormatElement, FormatElements, format_args, write};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::operator::UnaryOp;
 
@@ -166,6 +167,15 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UnaryExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         self.op.as_str().fmt(f);
         let operand = self.operand();
+        let (glued, layout) = comments_after_prefix_operator(operand.span().start, false, f);
+        // A comment ending its line keeps it, and the operand is indented
+        // below it as a wrapped line.
+        if matches!(layout, OperandLayout::HardBreak) {
+            FormatTrailingComments::Comments(glued).fmt(f);
+            let in_header = is_header_condition(self.parent(), self.span);
+            wrapped_indent(in_header, &format_args!(hard_line_break(), operand)).fmt(f);
+            return;
+        }
         // `- -x` must keep its space: fused to `--x` it would tokenize as
         // a decrement and change meaning (same for `+ +x`, `- --x`, and
         // `+ ++x`).
@@ -183,6 +193,65 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UnaryExpression<'a>> {
         }
         operand.fmt(f);
     }
+}
+
+/// Where the operand of a prefix operator starts after the comments between
+/// them.
+pub enum OperandLayout {
+    Inline,
+    SoftBreak,
+    HardBreak,
+}
+
+/// Splits the comments after a prefix operator, such as `!` or a cast's `)`,
+/// into those that stay on its line and those that lead the operand, and
+/// chooses the operand's layout. `has_deferred_comment` says a comment before
+/// the cast's `)` prints after it.
+pub fn comments_after_prefix_operator<'a>(
+    operand_start: u32,
+    has_deferred_comment: bool,
+    f: &JavaFormatter<'_, 'a>,
+) -> (&'a [Comment], OperandLayout) {
+    let comments = f.comments();
+    let pending = comments.comments_before(operand_start);
+    let glued_count = if has_deferred_comment {
+        0
+    } else {
+        let stays = pending.iter().take_while(|comment| stays_on_operator_line(comment)).count();
+        if stays == pending.len() {
+            stays
+        } else {
+            pending[..stays]
+                .iter()
+                .rposition(|comment| !comment.is_multiline_block())
+                .map_or(0, |last| last + 1)
+        }
+    };
+    let (glued, leading) = pending.split_at(glued_count);
+    let starts_after_break = glued.iter().any(Comment::is_line)
+        || leading.iter().any(|comment| {
+            comment.is_line()
+                || comment.followed_by_newline()
+                    && (comment.preceded_by_newline() || comment.is_multiline_block())
+        })
+        || has_deferred_comment && leading.iter().skip(1).any(Comment::preceded_by_newline)
+        || !has_deferred_comment
+            && leading.first().is_some_and(Comment::preceded_by_newline)
+            && leading.iter().any(Comment::followed_by_newline);
+    let layout = if starts_after_break {
+        OperandLayout::HardBreak
+    } else if has_deferred_comment
+        && leading.last().is_some_and(|comment| {
+            f.source_text().lines_after_skipping_terminators(comment.span.end, Some(operand_start))
+                > 0
+        })
+    {
+        // Break before a moved block run whenever its end also breaks.
+        OperandLayout::SoftBreak
+    } else {
+        OperandLayout::Inline
+    };
+    (glued, layout)
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PostfixExpression<'a>> {
