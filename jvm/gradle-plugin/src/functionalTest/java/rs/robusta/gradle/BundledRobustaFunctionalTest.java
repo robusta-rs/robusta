@@ -1,5 +1,6 @@
 package rs.robusta.gradle;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rs.robusta.gradle.FunctionalTestSupport.createPluginProject;
@@ -28,7 +29,7 @@ class BundledRobustaFunctionalTest {
     @TempDir Path temporaryDirectory;
 
     @Test
-    void executesBundledBinaryWithNoConfigurationAndReusesVerifiedExtraction()
+    void executesBundledBinaryWithNoConfigurationAndReusesOnlyVerifiedExtraction()
             throws Exception {
         Path project = createPluginProject(temporaryDirectory, "bundled");
         Path testKitDirectory = newTestKitDirectory("bundled");
@@ -55,17 +56,13 @@ class BundledRobustaFunctionalTest {
         assertTrue(second.getOutput().contains("Configuration cache entry reused"));
         assertEquals(sentinel, Files.getLastModifiedTime(extracted));
 
+        byte[] verified = Files.readAllBytes(extracted);
         Files.writeString(extracted, "corrupted cache", StandardCharsets.UTF_8);
-        BuildResult corruptedCache = runner(
-                        project, resources, testKitDirectory, bundledArguments(true))
-                .buildAndFail();
-        String corruptedCacheOutput = normalizePathSeparators(corruptedCache.getOutput());
-        assertTrue(corruptedCacheOutput.contains("Bundled Robusta checksum mismatch"));
-        assertTrue(
-                corruptedCacheOutput.contains(normalizePathSeparators(
-                        testKitDirectory.relativize(extracted).toString())),
-                corruptedCache.getOutput());
-        assertTrue(corruptedCacheOutput.contains("Configuration cache entry reused"));
+        BuildResult corruptedCache =
+                runner(project, resources, testKitDirectory, bundledArguments(true)).build();
+        assertTrue(corruptedCache.getOutput().contains("fake robusta stdout"));
+        assertTrue(corruptedCache.getOutput().contains("Configuration cache entry reused"));
+        assertArrayEquals(verified, Files.readAllBytes(extracted));
     }
 
     @Test
@@ -133,9 +130,5 @@ class BundledRobustaFunctionalTest {
             arguments.add("--configuration-cache");
         }
         return arguments.toArray(String[]::new);
-    }
-
-    private static String normalizePathSeparators(String value) {
-        return value.replace('\\', '/');
     }
 }
