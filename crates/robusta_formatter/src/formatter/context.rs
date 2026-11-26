@@ -24,9 +24,10 @@ pub struct JavaFormatContext<'a> {
     /// whose comments can only be printed once.
     pub cached_elements: FxHashMap<Span, FormatElement<'a>>,
     /// One-shot handoff of the assignment layout to the lambda on the right side of an assignment-like,
-    /// keyed by the lambda's span so no other node can consume it.
+    /// keyed by the lambda's span so no other node can consume it, with the group that breaks
+    /// before the comments the assignment-like keeps on its operator's line.
     /// Set by the assignment-like before formatting the lambda, taken by the lambda's `write`.
-    lambda_assignment_layout: Option<(Span, AssignmentLikeLayout)>,
+    lambda_assignment_layout: Option<(Span, AssignmentLikeLayout, Option<GroupId>)>,
     /// While a record's clause formats, the group of the record's components.
     /// The clause's type argument lists wrap differently once it breaks, and
     /// they sit behind generated node passes that take no arguments.
@@ -84,23 +85,24 @@ impl<'a> JavaFormatContext<'a> {
         &mut self,
         span: Span,
         layout: AssignmentLikeLayout,
+        comment_break: Option<GroupId>,
     ) {
         debug_assert!(
             self.lambda_assignment_layout.is_none(),
             "a previous lambda assignment layout was not taken"
         );
-        self.lambda_assignment_layout = Some((span, layout));
+        self.lambda_assignment_layout = Some((span, layout, comment_break));
     }
 
     /// See the [`Self::lambda_assignment_layout`] field.
     pub(crate) fn take_lambda_assignment_layout(
         &mut self,
         span: Span,
-    ) -> Option<AssignmentLikeLayout> {
+    ) -> Option<(AssignmentLikeLayout, Option<GroupId>)> {
         match self.lambda_assignment_layout {
-            Some((key, layout)) if key == span => {
+            Some((key, layout, comment_break)) if key == span => {
                 self.lambda_assignment_layout = None;
-                Some(layout)
+                Some((layout, comment_break))
             }
             _ => None,
         }

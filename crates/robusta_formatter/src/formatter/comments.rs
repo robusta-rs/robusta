@@ -462,18 +462,31 @@ impl<'a, 'c> Comments<'a, 'c> {
 
     /// The pending comments from `pos` on its line, up to the first that ends
     /// the line, or none when no comment does.
-    pub(crate) fn end_of_line_comments_after(&self, mut pos: u32) -> &'c [Comment] {
+    pub(crate) fn end_of_line_comments_after(&self, pos: u32) -> &'c [Comment] {
+        let run = self.same_line_comments_after(pos);
+        if run.last().is_some_and(|comment| comment.is_line() || comment.followed_by_newline()) {
+            run
+        } else {
+            &[]
+        }
+    }
+
+    /// The pending comments from `pos` on its line, up to the first that ends
+    /// the line, or else up to the code after them.
+    pub(crate) fn same_line_comments_after(&self, mut pos: u32) -> &'c [Comment] {
         let comments = self.comments_after(pos);
-        for (index, &comment) in comments.iter().enumerate() {
+        let mut count = 0;
+        for &comment in comments {
             if !self.source.all_characters_match(pos, comment.span.start, is_end_of_line_gap_byte) {
                 break;
             }
+            count += 1;
             if comment.is_line() || comment.followed_by_newline() {
-                return &comments[..=index];
+                break;
             }
             pos = comment.span.end;
         }
-        &[]
+        &comments[..count]
     }
 
     /// The pending comments after `start` and before the first `character`

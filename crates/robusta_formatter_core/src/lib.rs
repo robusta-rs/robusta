@@ -41,6 +41,7 @@ pub use printer::{PrintResult, PrintWidth, Printed, PrinterOptions};
 pub use source::SourceText;
 pub use write::Format;
 pub use write::arguments::{Argument, Arguments};
+pub use write::extensions::{MemoizeFormat, Memoized};
 pub use write::formatter::{Formatter, arena_cow_str};
 pub use write::state::FormatState;
 

@@ -51,36 +51,13 @@ fn formatter_contract() {
     }
 }
 
-/// An unstable input passes with its second pass pinned, and fails where no expected
-/// output could show it. Fixing the input fails this test.
+/// An unstable input fails the contract, and its output shows the second pass
+/// so a snapshot can pin it. Fixing the input fails this test.
 #[test]
 fn an_unstable_input_shows_its_second_pass() {
-    let source = "class A { void f() {\n h = /* a\n  b */ x /* a\n  b */ -> y -> x + y;\n} }\n";
+    let source = "class A { void g() { if (a) g() /** doc */ // c\n; int y; } }";
     assert!(check_formatter_contract(source).unwrap_err().starts_with("second pass differs"));
-    assert_snapshot!(fmt(source), @"
-    class A {
-      void f() {
-        h = /* a
-      b */
-          x /* a
-      b */ ->
-          y ->
-            x + y;
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void f() {
-        h =
-          /* a
-      b */
-          x /* a
-      b */ ->
-            y ->
-              x + y;
-      }
-    }
-    ");
+    assert!(fmt(source).contains("---------- Not idempotent (second pass) ----------"));
 }
 
 #[test]

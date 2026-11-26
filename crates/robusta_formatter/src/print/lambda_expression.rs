@@ -9,15 +9,17 @@ use crate::print::FormatWrite;
 use crate::utils::assignment_like::AssignmentLikeLayout;
 use crate::utils::statement_body::format_head_body;
 use robusta_ast::{Comment, Expression, LambdaBody, LambdaExpression, match_expression};
-use robusta_formatter_core::{format_args, write};
+use robusta_formatter_core::{GroupId, format_args, write};
 use robusta_span::{GetSpan, Span};
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, LambdaExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        // Handed over by the assignment-like whose right side this lambda is.
+        // The span key ensures only this lambda can consume it.
+        let assignment = f.context_mut().take_lambda_assignment_layout(self.span);
         let options = FormatLambdaExpressionOptions {
-            // Handed over by the assignment-like whose right side this lambda is.
-            // The span key ensures only this lambda can consume it.
-            assignment_layout: f.context_mut().take_lambda_assignment_layout(self.span),
+            assignment_layout: assignment.map(|(layout, _)| layout),
+            comment_break: assignment.and_then(|(_, comment_break)| comment_break),
             ..FormatLambdaExpressionOptions::default()
         };
         FormatLambdaExpression::new_with_options(self, options).fmt(f);
@@ -33,6 +35,9 @@ pub struct FormatLambdaExpression<'a, 'b> {
 #[derive(Default, Clone, Copy)]
 pub struct FormatLambdaExpressionOptions {
     pub assignment_layout: Option<AssignmentLikeLayout>,
+    /// The group that breaks before the comments the assignment-like keeps on its operator's
+    /// line; once it breaks, the chain starts on the comments' line.
+    pub comment_break: Option<GroupId>,
     pub call_argument_layout: Option<GroupedCallArgumentLayout>,
     // Determine whether the signature and body should be cached.
     pub cache_mode: FunctionCacheMode,
@@ -366,8 +371,30 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
 
         let group_id = f.state().group_id("lambda-chain");
 
+        let comment_break = self.options.comment_break.filter(|_| has_initial_indent);
         let format_inner = format_with(|f| {
-            if has_initial_indent {
+            if let Some(comment_break) = comment_break {
+                // Once the assignment-like breaks before its comments, the chain starts on
+                // their line.
+                let signatures = (&format_lambda_signatures).memoized();
+                write!(
+                    f,
+                    [
+                        if_group_fits_on_line(
+                            &group(&indent(&format_args!(soft_line_break(), signatures)))
+                                .with_group_id(Some(group_id))
+                                .should_expand(break_signatures)
+                        )
+                        .with_group_id(Some(comment_break)),
+                        if_group_breaks(
+                            &group(&signatures)
+                                .with_group_id(Some(group_id))
+                                .should_expand(break_signatures)
+                        )
+                        .with_group_id(Some(comment_break))
+                    ]
+                );
+            } else if has_initial_indent {
                 write!(
                     f,
                     [group(&indent(&format_args!(soft_line_break(), format_lambda_signatures)))
@@ -401,6 +428,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
                 } else {
                     write!(f, [group(&format_tail_body)]);
                 }
+            } else if let Some(comment_break) = comment_break {
+                let tail_body = (&format_tail_body).memoized();
+                write!(
+                    f,
+                    [
+                        if_group_fits_on_line(&indent_if_group_breaks(&tail_body, group_id))
+                            .with_group_id(Some(comment_break)),
+                        if_group_breaks(&tail_body).with_group_id(Some(comment_break))
+                    ]
+                );
             } else {
                 write!(f, [indent_if_group_breaks(&format_tail_body, group_id)]);
             }
