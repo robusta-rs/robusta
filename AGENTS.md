@@ -51,7 +51,7 @@ Prerequisites: Rust (MSRV: 1.97), JDK 17, CMake and a C/C++ toolchain, just, car
 
 **Setup Notes:**
 
-- `just init` installs `watchexec`, `typos`, `cargo-deny`, `cargo-insta`, and `cargo-shear`
+- `just init` installs `watchexec`, `cargo-insta`, `typos`, `cargo-deny`, and `cargo-shear`
 - Use Conventional Commits for commit messages, like `fix(parser): recover after a malformed member`
 - Choose verification from the changed code; reserve `just ready` for an optional broad checkpoint as described below
 
@@ -60,7 +60,7 @@ Prerequisites: Rust (MSRV: 1.97), JDK 17, CMake and a C/C++ toolchain, just, car
 ```bash
 just fmt             # Format code (run after modifications)
 just test            # Run unit/integration tests
-just conformance     # Run conformance tests
+just conformance     # Run coverage tests (alias: cargo coverage)
 just ready           # Optional broad checkpoint (see below)
 just ast             # Update generated files (robusta_ast changes)
 just config-schema   # Update robusta.schema.json (config or rule changes)
@@ -114,13 +114,6 @@ cargo run --locked --bin robusta -- lint --rules
 
 ## Common Tasks
 
-### Adding Linting Rule
-
-1. Add `crates/robusta_linter/src/rules/<rule_name>.rs` starting with `declare_robusta_lint!`
-2. Implement `Rule::run` for the node types the declaration lists
-3. Add tests in same module with `Tester`
-4. Register in `rules/mod.rs`; a fixable rule also needs a fixture in `tasks/conformance/fixtures/`
-
 ### Parser Changes
 
 1. Research and test grammar changes against the Java Language Specification
@@ -162,13 +155,13 @@ just maven-test    # Maven plugin unit and functional suites
 
 ### Where to Add Tests
 
-| Crate                | Location                                                   |
-| -------------------- | ---------------------------------------------------------- |
-| Parser               | `tasks/coverage/misc/pass/` or `fail/`                     |
-| Linter               | Inline in rule files; fix fixtures in `tasks/conformance/` |
-| Formatter            | Inline snapshots, or `tests/fixtures/java/`                |
-| CLI                  | `apps/robusta/tests/cli/`                                  |
-| Gradle/Maven plugins | `src/test` and `src/functionalTest`                        |
+| Crate                | Location                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| Parser               | `tasks/coverage/misc/pass/` or `fail/`                                                  |
+| Linter               | Inline in rule files; fix fixtures in `tasks/conformance/`; see the crate's `AGENTS.md` |
+| Formatter            | Inline snapshots, or `tests/fixtures/java/`                                             |
+| CLI                  | `apps/robusta/tests/cli/`                                                               |
+| Gradle/Maven plugins | `src/test` and `src/functionalTest`                                                     |
 
 ## Notes
 
@@ -176,3 +169,7 @@ just maven-test    # Maven plugin unit and functional suites
 - Performance is critical for all changes
 - Maintain Java language compatibility through Java 25
 - Fixes never raise the source language level
+
+---
+
+For human contributors see `CONTRIBUTING.md`
