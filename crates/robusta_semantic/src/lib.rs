@@ -47,9 +47,16 @@ impl<'a> Semantic<'a> {
         robusta_ast::has_comments_between(self.comments, span)
     }
 
-    /// The unit's Javadoc documents with lazily cached structure.
+    /// The unit's Javadoc, the documentation comments that document a
+    /// declaration, with lazily cached structure.
     pub fn javadocs(&self) -> &JavadocFinder<'a> {
-        self.javadocs.get_or_init(|| JavadocFinder::new(self.source_text, self.comments))
+        self.javadocs.get_or_init(|| {
+            JavadocFinder::new(
+                self.source_text,
+                self.comments,
+                self.nodes.iter().map(AstNode::kind),
+            )
+        })
     }
 
     pub const fn nodes(&self) -> &AstNodes<'a> {

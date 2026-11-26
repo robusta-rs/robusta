@@ -1,6 +1,7 @@
 use std::cell::OnceCell;
 
-use robusta_ast::Comment;
+use robusta_ast::{AstKind, Comment, TypeDeclaration};
+use robusta_span::GetSpan;
 
 use crate::{Javadoc, Structure};
 
@@ -35,7 +36,8 @@ impl<'a> Iterator for Javadocs<'a, '_> {
     }
 }
 
-/// File-local Javadoc documents with lazily cached structure.
+/// File-local Javadoc, the documentation comments that document a
+/// declaration, with lazily cached structure.
 ///
 /// Recognition happens once when the finder is built. Each document's prose,
 /// tags, and literal regions are then parsed at most once, even when several
@@ -46,9 +48,25 @@ pub struct JavadocFinder<'a> {
 }
 
 impl<'a> JavadocFinder<'a> {
-    /// Recognize every documentation comment in a file.
-    pub fn new(source: &'a str, comments: &[Comment]) -> Self {
-        Self { documents: Javadocs::new(source, comments).map(CachedJavadoc::new).collect() }
+    /// Recognize the documentation comments in a file that document one of
+    /// `nodes`, the file's AST nodes.
+    pub fn new<'n>(
+        source: &'a str,
+        comments: &[Comment],
+        nodes: impl IntoIterator<Item = AstKind<'n>>,
+    ) -> Self {
+        let mut documents = Javadocs::new(source, comments).peekable();
+        if documents.peek().is_none() {
+            return Self { documents: Vec::new() };
+        }
+        let mut starts = nodes.into_iter().filter_map(declaration_start).collect::<Vec<_>>();
+        starts.sort_unstable();
+        starts.dedup();
+        let documents = documents
+            .filter(|document| document.is_attached(comments, &starts))
+            .map(CachedJavadoc::new)
+            .collect();
+        Self { documents }
     }
 
     /// Iterate over each document's [translated
@@ -57,6 +75,36 @@ impl<'a> JavadocFinder<'a> {
     /// A structure is created on first access and reused thereafter.
     pub fn structures(&self) -> impl Iterator<Item = &Structure> {
         self.documents.iter().map(CachedJavadoc::structure)
+    }
+}
+
+/// Where `kind` starts, annotations and modifiers included, when it is a
+/// declaration javadoc reads a documentation comment for.
+pub fn declaration_start(kind: AstKind<'_>) -> Option<u32> {
+    match kind {
+        // javac attaches a package's Javadoc only in a unit declaring no
+        // types, as package-info.java is.
+        AstKind::OrdinaryCompilationUnit(unit) => match &unit.package {
+            Some(package)
+                if unit.types.iter().all(|ty| matches!(ty, TypeDeclaration::Empty(_))) =>
+            {
+                Some(package.span.start)
+            }
+            _ => None,
+        },
+        AstKind::ModuleDeclaration(_)
+        | AstKind::ClassDeclaration(_)
+        | AstKind::InterfaceDeclaration(_)
+        | AstKind::EnumDeclaration(_)
+        | AstKind::EnumConstant(_)
+        | AstKind::RecordDeclaration(_)
+        | AstKind::AnnotationInterfaceDeclaration(_)
+        | AstKind::AnnotationInterfaceElementDeclaration(_)
+        | AstKind::FieldDeclaration(_)
+        | AstKind::MethodDeclaration(_)
+        | AstKind::ConstructorDeclaration(_)
+        | AstKind::CompactConstructorDeclaration(_) => Some(kind.span().start),
+        _ => None,
     }
 }
 
@@ -78,7 +126,7 @@ impl<'a> CachedJavadoc<'a> {
 
 #[cfg(test)]
 mod tests {
-    use robusta_ast::{Comment, CommentContent, CommentKind};
+    use robusta_ast::{Comment, CommentContent};
     use robusta_span::Span;
 
     use crate::parser::tests::line;
@@ -118,23 +166,5 @@ mod tests {
         assert!(structure.mentions("List"));
         assert!(structure.mentions("Map"));
         assert!(structure.mentions("Entry"));
-    }
-
-    #[test]
-    fn finder_groups_documents_and_reuses_parsed_structure() {
-        let source = "/** First List. */\n/// Second Map.\nclass A {}";
-        let comments = [
-            Comment { kind: CommentKind::SingleLineBlock, ..line(Span::new(0, 18)) },
-            line(Span::new(19, 34)),
-        ];
-        let finder = JavadocFinder::new(source, &comments);
-
-        let structures = finder.structures().collect::<Vec<_>>();
-        assert_eq!(structures.len(), 2);
-        assert!(structures[0].mentions("List"));
-        assert!(structures[1].mentions("Map"));
-
-        let first_again = finder.structures().next().expect("first Javadoc structure");
-        assert!(std::ptr::eq(structures[0], first_again));
     }
 }

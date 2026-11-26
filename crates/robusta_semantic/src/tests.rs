@@ -2191,3 +2191,34 @@ fn flattened_nodes_follow_source_order() {
         }
     }
 }
+
+#[test]
+fn javadocs_are_the_documentation_comments_that_document_a_declaration() {
+    let mentioned = |source: &str| {
+        let allocator = Allocator::new();
+        let parsed = parse(&allocator, source);
+        assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
+        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        ["List", "Map"]
+            .map(|name| semantic.javadocs().structures().any(|structure| structure.mentions(name)))
+    };
+
+    assert_eq!(mentioned("/** First List. */\nclass A {}\n/// Second Map.\nclass B {}"), [true; 2]);
+    assert_eq!(mentioned("class A { int x; /// [List]\n/// [Map]\nint y; }"), [true; 2]);
+    assert_eq!(mentioned("/** List */\n/** Map */\nclass A {}"), [false, true]);
+    assert_eq!(mentioned("class A { int f() { /** List */ return 0; } /// Map\n}"), [false; 2]);
+    assert_eq!(mentioned("/** List */\npackage p;\nclass A {}"), [false; 2]);
+    assert_eq!(mentioned("/** List */\npackage p;\n"), [true, false]);
+}
+
+#[test]
+fn javadoc_structure_is_parsed_once() {
+    let source = "/** First List. */\nclass A {}";
+    let allocator = Allocator::new();
+    let parsed = parse(&allocator, source);
+    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+
+    let first = semantic.javadocs().structures().next().expect("Javadoc structure");
+    let again = semantic.javadocs().structures().next().expect("Javadoc structure");
+    assert!(std::ptr::eq(first, again));
+}

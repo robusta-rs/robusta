@@ -90,10 +90,11 @@ source: "crates/robusta_linter/src/rules/unused_import.rs"
 Reports a single type or single static import whose imported simple name
 is referenced nowhere in the compilation unit and offers a safe deletion.
 
-A name used only by a Javadoc reference (`{@link C}`, `@see`, `@throws`,
-…) counts as used, so its import is neither reported nor removed. On-demand
-and module imports need class-path or module-graph resolution to decide,
-so this file-local rule deliberately leaves them alone.
+A name used only in Javadoc, the documentation comment of a declaration
+(`{@link C}`, `@see`, `@throws`, …), counts as used, so its import is
+neither reported nor removed. On-demand and module imports need
+class-path or module-graph resolution to decide, so this file-local rule
+deliberately leaves them alone.
 
 ## How to use
 <RuleHowToUse />
