@@ -6,6 +6,7 @@
 //! per-node allocation or reference counting, and good cache locality.
 
 mod accessor;
+mod address;
 mod allocator;
 mod allocator_api2;
 #[cfg(not(feature = "testing"))]
@@ -24,6 +25,7 @@ mod tracking;
 mod vec;
 mod vec2;
 
+pub use self::address::{Address, GetAddress, UnstableAddress};
 pub use self::allocator::Allocator;
 pub use self::hash_map::HashMap;
 #[cfg(feature = "pool")]

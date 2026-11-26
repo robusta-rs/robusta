@@ -2,7 +2,7 @@ use super::*;
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Expression<'a> {
     IntLiteral(Box<'a, IntLiteral<'a>>) = 0,
     FloatLiteral(Box<'a, FloatLiteral<'a>>) = 1,
@@ -44,7 +44,7 @@ pub enum Expression<'a> {
 /// holds `a.b` and `c`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct FieldAccess<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -54,7 +54,7 @@ pub struct FieldAccess<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct MethodCall<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -65,7 +65,7 @@ pub struct MethodCall<'a> {
 /// The method a [`MethodCall`] invokes: `f` in `f()`, or `a.f` in `a.f()`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Callee<'a> {
     Identifier(Box<'a, IdentifierReference<'a>>) = 0,
     Member(Box<'a, MethodMember<'a>>) = 1,
@@ -74,7 +74,7 @@ pub enum Callee<'a> {
 /// `target.<T>method`, the callee of `target.<T>method()`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct MethodMember<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -86,7 +86,7 @@ pub struct MethodMember<'a> {
 /// `Type.class` or `void.class` (JLS §15.8.2).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ClassLiteral<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -96,7 +96,7 @@ pub struct ClassLiteral<'a> {
 /// `this` (JLS §15.8.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ThisExpression {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -105,7 +105,7 @@ pub struct ThisExpression {
 /// `super`, the target of a superclass member access or method reference.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct Super {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -114,7 +114,7 @@ pub struct Super {
 /// `ClassName.this` with a plain, non-generic qualifier (JLS §15.8.4).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedThis<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -124,7 +124,7 @@ pub struct QualifiedThis<'a> {
 /// `ClassName.super` with a plain, non-generic qualifier.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedSuper<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -134,7 +134,7 @@ pub struct QualifiedSuper<'a> {
 /// `new <T> Foo<…>(…)` with an optional anonymous body (JLS §15.9).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ClassInstanceCreation<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -154,7 +154,7 @@ pub struct ClassInstanceCreation<'a> {
 /// and this node holds the class's annotations, name, and type arguments.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedClassInstanceCreation<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -174,7 +174,7 @@ pub struct QualifiedClassInstanceCreation<'a> {
 /// The element type excludes dimensions.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayCreation<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -186,7 +186,7 @@ pub struct ArrayCreation<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayDimension<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -199,7 +199,7 @@ pub struct ArrayDimension<'a> {
 /// `array[index]` (JLS §15.10.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayAccess<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -210,7 +210,7 @@ pub struct ArrayAccess<'a> {
 /// A prefix expression (JLS §15.15), excluding postfix `++`/`--`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct UnaryExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -221,7 +221,7 @@ pub struct UnaryExpression<'a> {
 /// `x++` or `x--` with a variable operand (JLS §15.14.2–3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct PostfixExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -233,7 +233,7 @@ pub struct PostfixExpression<'a> {
 /// `(long) x * y` casts only `x`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CastExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -246,7 +246,7 @@ pub struct CastExpression<'a> {
 /// `operand instanceof Type` or `operand instanceof Pattern` (JLS §15.20.2).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct InstanceofExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -256,7 +256,7 @@ pub struct InstanceofExpression<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum InstanceofRhs<'a> {
     INHERIT(Type<'a>),
     INHERIT(Pattern<'a>),
@@ -264,7 +264,7 @@ pub enum InstanceofRhs<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Pattern<'a> {
     TypePattern(Box<'a, TypePattern<'a>>) = 72,
     RecordPattern(Box<'a, RecordPattern<'a>>) = 73,
@@ -273,7 +273,7 @@ pub enum Pattern<'a> {
 /// `String s`, `final var value`, or `Foo _` in pattern positions.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct TypePattern<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -285,7 +285,7 @@ pub struct TypePattern<'a> {
 /// `Point(int x, int y)` with nested patterns or `_` components.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RecordPattern<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -295,7 +295,7 @@ pub struct RecordPattern<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ComponentPattern<'a> {
     MatchAll(Box<'a, MatchAllPattern>) = 0,
     INHERIT(Pattern<'a>),
@@ -303,7 +303,7 @@ pub enum ComponentPattern<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct MatchAllPattern {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -311,7 +311,7 @@ pub struct MatchAllPattern {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct BinaryExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -322,7 +322,7 @@ pub struct BinaryExpression<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct AssignmentExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -334,7 +334,7 @@ pub struct AssignmentExpression<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ConditionalExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -348,7 +348,7 @@ pub struct ConditionalExpression<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SwitchExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -360,7 +360,7 @@ pub struct SwitchExpression<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ParenthesizedExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -371,7 +371,7 @@ pub struct ParenthesizedExpression<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct LambdaExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -382,7 +382,7 @@ pub struct LambdaExpression<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq)]
+#[generate_derive(ContentEq, GetAddress)]
 pub enum LambdaBody<'a> {
     Block(Box<'a, Block<'a>>) = 64,
     INHERIT(Expression<'a>),
@@ -391,7 +391,7 @@ pub enum LambdaBody<'a> {
 /// `target::method` or `Type::new` (JLS §15.13).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct MethodReference<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -408,7 +408,7 @@ pub struct MethodReference<'a> {
 /// (JLS 6.5). Type arguments or array suffixes require `Type`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum MethodReferenceTarget<'a> {
     INHERIT(Expression<'a>),
     INHERIT(Type<'a>),

@@ -10,7 +10,7 @@ pub enum Modifier<'a> {
 
 #[ast(visit)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct KeywordModifier {
     pub span: Span,
     pub kind: ModifierKind,
@@ -19,7 +19,7 @@ pub struct KeywordModifier {
 /// Marker, single-element, or normal annotation (JLS §9.7).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct Annotation<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -31,7 +31,7 @@ pub struct Annotation<'a> {
 /// `x = 1` or `1` in `@Foo(...)`. A single-element annotation holds one value.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum AnnotationArgument<'a> {
     Pair(Box<'a, ElementValuePair<'a>>) = 66,
     INHERIT(ElementValue<'a>),
@@ -39,7 +39,7 @@ pub enum AnnotationArgument<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ElementValuePair<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -50,7 +50,7 @@ pub struct ElementValuePair<'a> {
 /// A conditional expression, nested annotation, or array initializer (JLS §9.7.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ElementValue<'a> {
     Annotation(Box<'a, Annotation<'a>>) = 64,
     Array(Box<'a, ElementValueArrayInitializer<'a>>) = 65,
@@ -60,7 +60,7 @@ pub enum ElementValue<'a> {
 /// `{v, …}` with its optional trailing comma.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ElementValueArrayInitializer<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,

@@ -5,6 +5,7 @@ use std::{
     cmp::Reverse,
 };
 
+use robusta_allocator::{Address, GetAddress, UnstableAddress};
 use robusta_ast::{
     AnnotationInterfaceDeclaration, AnnotationInterfaceElementDeclaration, AstKind,
     BindingIdentifier, CatchClause, ClassDeclaration, ClassType, CompactConstructorDeclaration,
@@ -187,7 +188,8 @@ impl<'a> SemanticBuilder<'a> {
         let reference_id = self.scoping.create_reference(Reference {
             name: Ident::from(name.name),
             span: name.span,
-            kind: self.reference_kind(name.span),
+            // The builder borrows the AST, so the name stays in place.
+            kind: self.reference_kind(name.unstable_address()),
             scope_id: self.current_scope_id,
             node_id: self.current_node_id,
             symbol_id: None,
@@ -195,8 +197,8 @@ impl<'a> SemanticBuilder<'a> {
         name.reference_id.set(Some(reference_id));
     }
 
-    /// What the context of the name at `span` expects it to be (JLS 6.5).
-    fn reference_kind(&self, span: Span) -> ReferenceKind {
+    /// What the context of the name at `address` expects it to be (JLS 6.5).
+    fn reference_kind(&self, address: Address) -> ReferenceKind {
         match self.parent_kind() {
             AstKind::SimpleClassType(_)
             | AstKind::QualifiedTypeName(_)
@@ -207,19 +209,19 @@ impl<'a> SemanticBuilder<'a> {
             | AstKind::ClassDeclaration(_)
             | AstKind::InterfaceDeclaration(_) => ReferenceKind::Type,
             // The other name directly in an annotation is an element value.
-            AstKind::Annotation(annotation) if annotation.name.span() == span => {
+            AstKind::Annotation(annotation) if annotation.name.address() == address => {
                 ReferenceKind::Type
             }
-            AstKind::MethodCall(call) if call.callee.span() == span => ReferenceKind::Method,
-            _ => self.expression_reference_kind(span),
+            AstKind::MethodCall(call) if call.callee.address() == address => ReferenceKind::Method,
+            _ => self.expression_reference_kind(address),
         }
     }
 
-    fn expression_reference_kind(&self, expression_span: Span) -> ReferenceKind {
+    fn expression_reference_kind(&self, address: Address) -> ReferenceKind {
         for ancestor in self.nodes.ancestor_kinds(self.current_node_id) {
             match ancestor {
                 AstKind::AssignmentExpression(assignment)
-                    if assignment.target.span() == expression_span =>
+                    if assignment.target.address() == address =>
                 {
                     return if assignment.op == AssignOp::Assign {
                         ReferenceKind::Write
@@ -229,13 +231,11 @@ impl<'a> SemanticBuilder<'a> {
                 }
                 AstKind::UnaryExpression(unary)
                     if matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-                        && unary.operand.span() == expression_span =>
+                        && unary.operand.address() == address =>
                 {
                     return ReferenceKind::ReadWrite;
                 }
-                AstKind::PostfixExpression(postfix)
-                    if postfix.operand.span() == expression_span =>
-                {
+                AstKind::PostfixExpression(postfix) if postfix.operand.address() == address => {
                     return ReferenceKind::ReadWrite;
                 }
                 _ => {}

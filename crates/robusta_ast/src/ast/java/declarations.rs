@@ -3,7 +3,7 @@ use super::*;
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(Dummy, ContentEq, GetSpan)]
+#[generate_derive(Dummy, ContentEq, GetSpan, UnstableAddress)]
 pub struct CompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -30,7 +30,7 @@ pub enum CompilationUnitContent<'a> {
 /// Only this form admits a package declaration.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(Dummy, ContentEq, GetSpan)]
+#[generate_derive(Dummy, ContentEq, GetSpan, UnstableAddress)]
 pub struct OrdinaryCompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -44,7 +44,7 @@ pub struct OrdinaryCompilationUnit<'a> {
 /// Imports belong to the unit, directives to the module declaration.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ModularCompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -54,7 +54,7 @@ pub struct ModularCompilationUnit<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct PackageDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -65,7 +65,7 @@ pub struct PackageDeclaration<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ImportDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -95,7 +95,7 @@ pub enum ImportKind {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CompactCompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -110,7 +110,7 @@ pub struct CompactCompilationUnit<'a> {
 /// Module keywords remain usable as names where the grammar permits.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ModuleDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -139,7 +139,7 @@ pub enum ModuleDirective<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RequiresDirective<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -150,7 +150,7 @@ pub struct RequiresDirective<'a> {
 
 #[ast(visit)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RequiresModifier {
     pub span: Span,
     pub kind: RequiresModifierKind,
@@ -167,7 +167,7 @@ pub enum RequiresModifierKind {
 /// An `exports` or `opens` directive. Empty `targets` means unqualified.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct PackageDirective<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -186,7 +186,7 @@ pub enum PackageDirectiveKind {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct UsesDirective<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -195,7 +195,7 @@ pub struct UsesDirective<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ProvidesDirective<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -206,7 +206,7 @@ pub struct ProvidesDirective<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum TypeDeclaration<'a> {
     /// A preserved `;` among declarations (JLS §7.6, §8.1.7, §9.1.4, §9.6).
     Empty(Box<'a, EmptyDeclaration>) = 36,
@@ -217,7 +217,7 @@ pub enum TypeDeclaration<'a> {
 /// The declarations a block can hold (JLS §14.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum LocalClassOrInterfaceDeclaration<'a> {
     Class(Box<'a, ClassDeclaration<'a>>) = 32,
     Interface(Box<'a, InterfaceDeclaration<'a>>) = 33,
@@ -227,7 +227,7 @@ pub enum LocalClassOrInterfaceDeclaration<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EmptyDeclaration {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -236,7 +236,7 @@ pub struct EmptyDeclaration {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ClassDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -256,7 +256,7 @@ pub struct ClassDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ClassBody<'a> {
     pub node_id: Cell<NodeId>,
     /// Covers the opening `{` through the closing `}`.
@@ -271,7 +271,7 @@ pub struct ClassBody<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct InterfaceDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -290,7 +290,7 @@ pub struct InterfaceDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct InterfaceBody<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -300,7 +300,7 @@ pub struct InterfaceBody<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EnumDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -314,7 +314,7 @@ pub struct EnumDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EnumBody<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -327,7 +327,7 @@ pub struct EnumBody<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EnumConstant<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -344,7 +344,7 @@ pub struct EnumConstant<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RecordDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -361,7 +361,7 @@ pub struct RecordDeclaration<'a> {
 /// The parenthesized component list of a record (JLS §8.10.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RecordHeader<'a> {
     pub node_id: Cell<NodeId>,
     /// From `(` to `)`.
@@ -372,7 +372,7 @@ pub struct RecordHeader<'a> {
 /// A record header component. Only annotations are permitted as modifiers.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct RecordComponent<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -386,7 +386,7 @@ pub struct RecordComponent<'a> {
 /// `@interface` declaration (JLS §9.6).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct AnnotationInterfaceDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -398,7 +398,7 @@ pub struct AnnotationInterfaceDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct AnnotationInterfaceBody<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -408,7 +408,7 @@ pub struct AnnotationInterfaceBody<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum AnnotationInterfaceMemberDeclaration<'a> {
     Element(Box<'a, AnnotationInterfaceElementDeclaration<'a>>) = 0,
     Field(Box<'a, FieldDeclaration<'a>>) = 1,
@@ -420,7 +420,7 @@ pub enum AnnotationInterfaceMemberDeclaration<'a> {
 /// Post-parenthesis dimensions stay separate to preserve their source placement.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct AnnotationInterfaceElementDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -433,7 +433,7 @@ pub struct AnnotationInterfaceElementDeclaration<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ClassMember<'a> {
     Field(Box<'a, FieldDeclaration<'a>>) = 0,
     Method(Box<'a, MethodDeclaration<'a>>) = 1,
@@ -448,7 +448,7 @@ pub enum ClassMember<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum InterfaceMember<'a> {
     /// An interface constant using the shared field payload (JLS §9.3).
     Constant(Box<'a, FieldDeclaration<'a>>) = 0,
@@ -461,7 +461,7 @@ pub enum InterfaceMember<'a> {
 /// `{ … }` or `static { … }` (JLS §8.6, §8.7).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct InitializerBlock<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -472,7 +472,7 @@ pub struct InitializerBlock<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct FieldDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -484,7 +484,7 @@ pub struct FieldDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct MethodDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -505,7 +505,7 @@ pub struct MethodDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ConstructorDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -522,7 +522,7 @@ pub struct ConstructorDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CompactConstructorDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -537,7 +537,7 @@ pub struct CompactConstructorDeclaration<'a> {
 /// Carries type-use annotations without declaring a variable.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ReceiverParameter<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -550,7 +550,7 @@ pub struct ReceiverParameter<'a> {
 /// The parameter list of a method, constructor, or lambda (JLS §8.4.1, §15.27.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct FormalParameters<'a> {
     pub node_id: Cell<NodeId>,
     /// From `(` to `)`, or the parameter of a concise lambda `x -> …`.
@@ -562,7 +562,7 @@ pub struct FormalParameters<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 // Pluralize as `FormalParameterList` to avoid naming clash with `FormalParameters`.
 #[plural(FormalParameterList)]
 pub struct FormalParameter<'a> {

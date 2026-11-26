@@ -1,3 +1,4 @@
+use robusta_allocator::GetAddress;
 use robusta_ast::{
     AstKind, DoStatement, Expression, IdentifierReference, LabeledStatement, Statement, SwitchCase,
     SwitchLabel, SwitchRuleBody, SwitchStatement, match_expression,
@@ -39,11 +40,12 @@ pub fn pattern_scope<'a>(
     let mut parts = Vec::new();
     let mut unmatched = None;
     let mut introduced = Introduced::WhenTrue;
-    let mut child = nodes.kind(pattern_id).span();
+    let mut child = nodes.kind(pattern_id);
     for (id, node) in nodes.ancestors_enumerated(pattern_id) {
         match node.kind() {
             AstKind::RecordPattern(_) | AstKind::ParenthesizedExpression(_) => {}
-            AstKind::InstanceofExpression(instanceof) if instanceof.operand.span() != child => {}
+            AstKind::InstanceofExpression(instanceof)
+                if instanceof.operand.address() != child.address() => {}
             AstKind::UnaryExpression(unary) if unary.op == UnaryOp::Not => {
                 introduced = match introduced {
                     Introduced::WhenTrue => Introduced::WhenFalse,
@@ -62,12 +64,12 @@ pub fn pattern_scope<'a>(
                 if introduced != kept {
                     break;
                 }
-                if binary.lhs.span() == child {
+                if binary.lhs.address() == child.address() {
                     parts.push(binary.rhs.span());
                 }
             }
             AstKind::ConditionalExpression(conditional)
-                if conditional.condition.span() == child =>
+                if conditional.condition.address() == child.address() =>
             {
                 let branch = if introduced == Introduced::WhenTrue {
                     &conditional.when_true
@@ -80,13 +82,14 @@ pub fn pattern_scope<'a>(
             AstKind::CasePatternLabel(label) => {
                 // The label's patterns, and its guard when true, reach the rest of
                 // its rule or group.
-                let is_guard = label.guard.as_ref().is_some_and(|guard| guard.span() == child);
+                let is_guard =
+                    label.guard.as_ref().is_some_and(|guard| guard.address() == child.address());
                 if !is_guard || introduced == Introduced::WhenTrue {
-                    parts.push(Span::new(child.end, nodes.parent_kind(id).span().end));
+                    parts.push(Span::new(child.span().end, nodes.parent_kind(id).span().end));
                 }
                 break;
             }
-            AstKind::IfStatement(statement) if statement.condition.span() == child => {
+            AstKind::IfStatement(statement) if statement.condition.address() == child.address() => {
                 // Code after an abrupt `if` is unreachable, so the unmatched branch decides.
                 let branch = match (&statement.else_branch, introduced) {
                     (None, Introduced::WhenTrue) => {
@@ -106,7 +109,9 @@ pub fn pattern_scope<'a>(
                 unmatched = Some((branch, parts.len()));
                 introduced = Introduced::ByStatement;
             }
-            AstKind::WhileStatement(statement) if statement.condition.span() == child => {
+            AstKind::WhileStatement(statement)
+                if statement.condition.address() == child.address() =>
+            {
                 if introduced == Introduced::WhenTrue {
                     parts.push(statement.body.span());
                     break;
@@ -116,7 +121,7 @@ pub fn pattern_scope<'a>(
                 }
                 introduced = Introduced::ByStatement;
             }
-            AstKind::DoStatement(statement) if statement.condition.span() == child => {
+            AstKind::DoStatement(statement) if statement.condition.address() == child.address() => {
                 if introduced == Introduced::WhenTrue
                     || has_jump(&statement.body, JumpTarget::BREAK, &Unresolved)
                 {
@@ -128,7 +133,7 @@ pub fn pattern_scope<'a>(
                 if statement
                     .condition
                     .as_ref()
-                    .is_some_and(|condition| condition.span() == child) =>
+                    .is_some_and(|condition| condition.address() == child.address()) =>
             {
                 if introduced == Introduced::WhenTrue {
                     let start =
@@ -150,16 +155,16 @@ pub fn pattern_scope<'a>(
                 }
             }
             AstKind::Block(block) if introduced == Introduced::ByStatement => {
-                parts.push(Span::new(child.end, block.span.end));
+                parts.push(Span::new(child.span().end, block.span.end));
                 break;
             }
             AstKind::SwitchBlockStatementGroup(group) if introduced == Introduced::ByStatement => {
-                parts.push(Span::new(child.end, group.span.end));
+                parts.push(Span::new(child.span().end, group.span.end));
                 break;
             }
             _ => break,
         }
-        child = node.kind().span();
+        child = node.kind();
     }
     // Only a part after the `if` waits on its unmatched branch.
     let unmatched = unmatched.and_then(|(branch, len)| (parts.len() > len).then_some(branch));

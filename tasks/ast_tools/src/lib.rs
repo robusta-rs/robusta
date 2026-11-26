@@ -41,8 +41,13 @@ const AST_MACROS_CRATE_PATH: &str = "crates/robusta_ast_macros";
 const AST_VISIT_CRATE_PATH: &str = "crates/robusta_ast_visit";
 
 /// Derives (for use with `#[generate_derive]`).
-const DERIVES: &[&(dyn Derive + Sync)] =
-    &[&derives::DeriveDummy, &derives::DeriveContentEq, &derives::DeriveGetSpan];
+const DERIVES: &[&(dyn Derive + Sync)] = &[
+    &derives::DeriveDummy,
+    &derives::DeriveGetAddress,
+    &derives::DeriveUnstableAddress,
+    &derives::DeriveContentEq,
+    &derives::DeriveGetSpan,
+];
 
 /// Attributes on structs and enums (not including those defined by derives/generators).
 const ATTRIBUTES: [&str; 2] = ["generate_derive", "plural"];

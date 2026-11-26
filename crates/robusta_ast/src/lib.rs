@@ -20,7 +20,9 @@ mod generated {
     mod ast_builder;
     mod derive_content_eq;
     mod derive_dummy;
+    mod derive_get_address;
     mod derive_get_span;
+    mod derive_unstable_address;
     mod get_id;
     mod inherit_variants;
 }

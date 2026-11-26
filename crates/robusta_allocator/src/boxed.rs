@@ -41,6 +41,22 @@ impl<'alloc, T> Box<'alloc, T> {
     }
 }
 
+impl<T: ?Sized> Box<'_, T> {
+    /// Get a [`NonNull`] pointer pointing to the [`Box`]'s contents.
+    ///
+    /// The pointer is not valid for writes.
+    ///
+    /// The caller must ensure that the `Box` outlives the pointer this
+    /// function returns, or else it will end up dangling.
+    //
+    // `#[inline(always)]` because this is a no-op
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
+    pub fn as_non_null(boxed: &Self) -> NonNull<T> {
+        boxed.0
+    }
+}
+
 impl<T: ?Sized> Deref for Box<'_, T> {
     type Target = T;
 

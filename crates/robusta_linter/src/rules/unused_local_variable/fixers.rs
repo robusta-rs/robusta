@@ -1,3 +1,4 @@
+use robusta_allocator::GetAddress;
 use robusta_ast::{AstKind, Expression, LocalVariableDeclaration};
 use robusta_semantic::{AstNodes, NodeId};
 use robusta_span::{GetSpan, Span};
@@ -288,34 +289,39 @@ impl Local<'_, '_> {
 /// Whether `value` needs the parentheses `id` to keep its place in the
 /// expression around them.
 fn needs_parentheses(nodes: &AstNodes<'_>, id: NodeId, value: &Expression<'_>) -> bool {
-    let span = nodes.kind(id).span();
+    let node = nodes.kind(id);
     let precedence = value.precedence();
     let parent = nodes.parent_kind(id);
     match parent {
         AstKind::BinaryExpression(binary) => {
             let operator = binary.op.precedence();
-            if binary.lhs.span() == span { precedence < operator } else { precedence <= operator }
+            if binary.lhs.address() == node.address() {
+                precedence < operator
+            } else {
+                precedence <= operator
+            }
         }
         AstKind::InstanceofExpression(_) => precedence < Precedence::Compare,
         AstKind::UnaryExpression(_) => precedence < Precedence::Prefix,
         // A reference type cast reads a following `+` or `-` as a binary operator.
         AstKind::CastExpression(_) => precedence < Precedence::Postfix,
         AstKind::ConditionalExpression(conditional) => {
-            if conditional.condition.span() == span {
+            if conditional.condition.address() == node.address() {
                 precedence <= Precedence::Conditional
             } else {
-                conditional.when_false.span() == span && precedence < Precedence::Conditional
+                conditional.when_false.address() == node.address()
+                    && precedence < Precedence::Conditional
             }
         }
         AstKind::ArrayAccess(access) => {
-            access.array.span() == span && precedence < Precedence::Member
+            access.array.address() == node.address() && precedence < Precedence::Member
         }
         AstKind::FieldAccess(_)
         | AstKind::MethodMember(_)
         | AstKind::MethodReference(_)
         | AstKind::QualifiedClassInstanceCreation(_) => {
             // A number keeps them: `1.` reads as a floating-point literal.
-            parent.span().start == span.start
+            parent.span().start == node.span().start
                 && (precedence < Precedence::New
                     || matches!(value, Expression::IntLiteral(_) | Expression::FloatLiteral(_)))
         }

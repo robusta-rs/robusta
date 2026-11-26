@@ -25,6 +25,7 @@
 //! decides alone, or the other operand is a literal, a primitive-valued
 //! operator, or a variable declared with a primitive or wrapper type.
 
+use robusta_allocator::GetAddress;
 use robusta_ast::{AstKind, BinaryExpression, ClassType, Expression, IdentifierReference, Type};
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
@@ -225,28 +226,34 @@ fn references_within<'a>(
 /// dereference, or `None` when the name merely stands for its own value.
 fn dereference_at(node_id: NodeId, context: &LintContext<'_, '_, '_>) -> Option<Span> {
     let nodes = context.nodes();
-    let AstKind::IdentifierReference(name) = nodes.kind(node_id) else { return None };
+    let name = nodes.kind(node_id);
+    let AstKind::IdentifierReference(_) = name else { return None };
     let parent_id = nodes.parent_id(node_id);
-    match nodes.kind(parent_id) {
-        AstKind::MethodMember(member) if member.target.span() == name.span => {
+    let parent = nodes.kind(parent_id);
+    match parent {
+        AstKind::MethodMember(member) if member.target.address() == name.address() => {
             Some(nodes.parent_kind(parent_id).span())
         }
         // The access is the whole dotted name.
-        AstKind::FieldAccess(access) if access.target.span() == name.span => {
-            let mut outermost = access.span;
+        AstKind::FieldAccess(access) if access.target.address() == name.address() => {
+            let mut outermost = parent;
             for ancestor in nodes.ancestor_kinds(parent_id) {
                 match ancestor {
-                    AstKind::FieldAccess(access) if access.target.span() == outermost => {
-                        outermost = access.span;
+                    AstKind::FieldAccess(access)
+                        if access.target.address() == outermost.address() =>
+                    {
+                        outermost = ancestor;
                     }
                     _ => break,
                 }
             }
-            Some(outermost)
+            Some(outermost.span())
         }
-        AstKind::ArrayAccess(access) if access.array.span() == name.span => Some(access.span),
+        AstKind::ArrayAccess(access) if access.array.address() == name.address() => {
+            Some(access.span)
+        }
         // Evaluating `x::m` throws when `x` is null (JLS §15.13.3).
-        AstKind::MethodReference(reference) if reference.target.span() == name.span => {
+        AstKind::MethodReference(reference) if reference.target.address() == name.address() => {
             Some(reference.span)
         }
         _ => None,
@@ -257,15 +264,20 @@ fn dereference_at(node_id: NodeId, context: &LintContext<'_, '_, '_>) -> Option<
 /// operand of unboxes it (JLS 5.1.8).
 fn unboxing_at(node_id: NodeId, context: &LintContext<'_, '_, '_>) -> Option<Span> {
     let nodes = context.nodes();
-    let AstKind::IdentifierReference(name) = nodes.kind(node_id) else { return None };
-    let mut operand = name.span;
+    let kind = nodes.kind(node_id);
+    let AstKind::IdentifierReference(name) = kind else { return None };
+    let mut operand = kind;
     for ancestor in nodes.ancestor_kinds(node_id) {
         match ancestor {
-            AstKind::ParenthesizedExpression(parenthesized) => operand = parenthesized.span,
+            AstKind::ParenthesizedExpression(_) => operand = ancestor,
             // Every unary operator takes a primitive operand (JLS 15.15).
             AstKind::UnaryExpression(_) => return Some(name.span),
             AstKind::BinaryExpression(binary) => {
-                let other = if binary.lhs.span() == operand { &binary.rhs } else { &binary.lhs };
+                let other = if binary.lhs.address() == operand.address() {
+                    &binary.rhs
+                } else {
+                    &binary.lhs
+                };
                 let unboxes = match binary.op {
                     // Two wrappers compare by reference (JLS 15.21.3).
                     BinaryOp::Eq | BinaryOp::NotEq => {
