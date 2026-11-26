@@ -15,7 +15,14 @@ import java.util.StringJoiner;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
 import org.junit.jupiter.api.Assumptions;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 final class FunctionalTestSupport {
     private static final String REAL_BUNDLED_PROPERTY = "robusta.real.bundled";
@@ -26,9 +33,50 @@ final class FunctionalTestSupport {
         return System.getProperty("robusta.functionalTest.pluginVersion");
     }
 
+    static String cliVersion() {
+        return System.getProperty("robusta.functionalTest.cliVersion");
+    }
+
     static String pluginRepositoryUrl() {
         Path repository = Path.of(System.getProperty("robusta.functionalTest.repository"));
         return repository.toUri().toString();
+    }
+
+    /**
+     * The plugin's file with this extension in the functional-test repository. A snapshot is
+     * published under its timestamp and build number, which the version's metadata records.
+     */
+    static Path publishedPlugin(String extension) throws IOException {
+        String version = pluginVersion();
+        Path directory = Path.of(System.getProperty("robusta.functionalTest.repository"))
+                .resolve("rs/robusta/robusta-maven-plugin")
+                .resolve(version);
+        String fileVersion = version;
+        if (version.endsWith("-SNAPSHOT")) {
+            Document metadata = readXml(directory.resolve("maven-metadata.xml"));
+            String timestamp = xpath(metadata, "/metadata/versioning/snapshot/timestamp");
+            String buildNumber = xpath(metadata, "/metadata/versioning/snapshot/buildNumber");
+            fileVersion = version.replace("SNAPSHOT", timestamp + "-" + buildNumber);
+        }
+        return directory.resolve("robusta-maven-plugin-" + fileVersion + "." + extension);
+    }
+
+    private static Document readXml(Path path) throws IOException {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            return factory.newDocumentBuilder().parse(path.toFile());
+        } catch (ParserConfigurationException | SAXException error) {
+            throw new IOException("Cannot read " + path, error);
+        }
+    }
+
+    private static String xpath(Document document, String expression) throws IOException {
+        try {
+            return XPathFactory.newInstance().newXPath().evaluate(expression, document);
+        } catch (XPathExpressionException error) {
+            throw new IOException("Cannot evaluate " + expression, error);
+        }
     }
 
     /** Creates a consumer Maven project with a copy of this module's Maven Wrapper. */
@@ -108,16 +156,15 @@ final class FunctionalTestSupport {
     }
 
     // Maven resolves a local artifact with no recorded origin as installed, ahead of the published jar.
+    // A snapshot resolves to its published timestamp, so the fake takes the published file name.
     private static void installFakePlugin(Path localRepository) throws IOException {
-        String version = pluginVersion();
-        String name = "robusta-maven-plugin-" + version;
-        Path coordinate = Path.of("rs/robusta/robusta-maven-plugin", version);
-        Path directory = Files.createDirectories(localRepository.resolve(coordinate));
-        Path published = Path.of(System.getProperty("robusta.functionalTest.repository")).resolve(coordinate);
-        Files.copy(published.resolve(name + ".pom"), directory.resolve(name + ".pom"), StandardCopyOption.REPLACE_EXISTING);
+        Path directory = Files.createDirectories(
+                localRepository.resolve("rs/robusta/robusta-maven-plugin").resolve(pluginVersion()));
+        Path pom = publishedPlugin("pom");
+        Files.copy(pom, directory.resolve(pom.getFileName()), StandardCopyOption.REPLACE_EXISTING);
         Files.copy(
                 Path.of(System.getProperty("robusta.functionalTest.fakePlugin")),
-                directory.resolve(name + ".jar"),
+                directory.resolve(publishedPlugin("jar").getFileName()),
                 StandardCopyOption.REPLACE_EXISTING);
     }
 

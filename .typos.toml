@@ -17,3 +17,7 @@ extend-ignore-re = [
   "(?Rm)^\\s*(#|//)\\s*spellchecker:disable-next-line\\s*\\n.*",
   "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on",
 ]
+
+[default.extend-words]
+# Gradle's `-P` flag joined to the `release` property.
+prelease = "prelease"
