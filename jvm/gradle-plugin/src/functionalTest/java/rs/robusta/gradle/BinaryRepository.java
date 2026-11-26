@@ -46,19 +46,16 @@ final class BinaryRepository {
     }
 
     /**
-     * Writes an init script that adds {@code repository} to the settings script's and every build
-     * script's repositories, where the plugin resolves its binary jar from. TestKit injects the
-     * plugin under test without resolving it from a repository.
+     * Writes an init script that makes {@code repository} the build's only plugin repository,
+     * where the plugin resolves its binary jar from, in place of the Gradle Plugin Portal. TestKit
+     * injects the plugin under test without resolving it from a repository.
      */
     static Path initScript(Path directory, Path repository) throws IOException {
         Files.createDirectories(directory);
         String url = repository.toUri().toString();
         return Files.writeString(directory.resolve("robusta-binary-repository.gradle"), """
                 beforeSettings { settings ->
-                    settings.buildscript.repositories.maven { url = '%1$s' }
-                }
-                allprojects {
-                    buildscript.repositories.maven { url = '%1$s' }
+                    settings.pluginManagement.repositories.maven { url = '%s' }
                 }
                 """.formatted(url), StandardCharsets.UTF_8);
     }
