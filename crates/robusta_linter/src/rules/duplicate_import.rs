@@ -18,7 +18,7 @@ declare_robusta_lint! {
         id: DUPLICATE_IMPORT_ID = "duplicate-import",
         rule: DUPLICATE_IMPORT,
         summary: "Reports imports repeated later in the file.",
-        category: Style,
+        category: Correctness,
         fix: RuleFixMeta::Fixable(FixKind::SAFE_FIX),
         node_types: [CompilationUnit],
     }

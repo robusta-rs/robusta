@@ -149,8 +149,11 @@ mod tests {
         assert_eq!(
             enabled,
             [
+                ("redundant-semicolons", Severity::Warning),
                 ("uppercase-long-suffix", Severity::Error),
-                ("unused-local-variable", Severity::Warning)
+                ("unused-local-variable", Severity::Warning),
+                ("broken-null-check", Severity::Warning),
+                ("duplicate-import", Severity::Warning),
             ]
         );
     }

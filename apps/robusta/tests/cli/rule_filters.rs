@@ -183,12 +183,9 @@ fn category_configuration_rejects_unknown_names_and_noncanonical_severities() {
 #[test]
 fn other_categories_keep_their_remaining_members() {
     let temp = TempProject::new();
-    temp.write(
-        "Example.java",
-        "class Example { long n = 1l; boolean f(String x) { return x == null && x.isEmpty(); } }\n",
-    );
+    temp.write("Example.java", "class Example { long n = 1l; void f() { return; } }\n");
     for (category, expected) in
-        [("style", "uppercase-long-suffix"), ("suspicious", "broken-null-check")]
+        [("style", "uppercase-long-suffix"), ("pedantic", "redundant-return")]
     {
         temp.write("robusta.yaml", &format!("lint: {{categories: {{{category}: warn}}}}\n"));
         let output = robusta_in_dir(&["lint", "Example.java"], &temp.dir);

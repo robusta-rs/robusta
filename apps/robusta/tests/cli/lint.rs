@@ -275,33 +275,33 @@ fn lint_rules_lists_registered_metadata_without_analyzing_files() {
     let output = robusta_in_dir(&["lint", "--rules", "Broken.java"], &temp.dir);
     assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
     insta::assert_snapshot!(stdout(&output), @"
-    ## Correctness (2)
-    Code that is wrong or useless.
+    ## Correctness (5)
+    Code that is wrong, or a variable, declaration, or statement that does nothing and does not write out what Java does implicitly.
     | Rule name             | Default | Enabled? | Fixable? |
     | --------------------- | ------- | -------- | -------- |
+    | broken-null-check     | ✅      | ✅       |          |
+    | duplicate-import      | ✅      | ✅       | 🛠️        |
+    | redundant-semicolons  | ✅      | ✅       | 🛠️        |
     | unused-import         | ✅      | ✅       | 🛠️        |
     | unused-local-variable | ✅      | ✅       | 🛠️⚠️🛠️️      |
 
-    ## Suspicious (1)
-    Constructs that commonly indicate stale or misleading code.
-    | Rule name         | Default | Enabled? | Fixable? |
-    | ----------------- | ------- | -------- | -------- |
-    | broken-null-check |         |          |          |
+    ## Pedantic (2)
+    A declaration or statement that writes out what Java does implicitly.
+    | Rule name            | Default | Enabled? | Fixable? |
+    | -------------------- | ------- | -------- | -------- |
+    | redundant-return     |         |          | 🛠️        |
+    | redundant-super-call |         |          | 🛠️        |
 
-    ## Style (8)
-    Consistency and readability concerns with no behavioral risk.
+    ## Style (4)
+    Code that Java can write in a shorter or more conventional form.
     | Rule name                              | Default | Enabled? | Fixable? |
     | -------------------------------------- | ------- | -------- | -------- |
-    | duplicate-import                       |         |          | 🛠️        |
     | modifier-order                         |         |          | 🛠️        |
     | prefer-expression-lambda               |         |          | 🛠️⚠️🛠️️      |
     | redundant-lambda-parameter-parentheses |         |          | 🛠️        |
-    | redundant-return                       |         |          | 🛠️        |
-    | redundant-semicolons                   |         |          | 🛠️        |
-    | redundant-super-call                   |         |          | 🛠️        |
     | uppercase-long-suffix                  |         |          | 🛠️        |
 
-    Default: 2
+    Default: 5
     Total: 11
     ");
     assert_eq!(output.stderr.len(), 0);
@@ -320,7 +320,7 @@ fn lint_rules_resolves_configuration_and_ordered_filters() {
         ),
         (
             vec!["-A", "all", "-D", "correctness", "-A", "unused-import"],
-            vec!["unused-local-variable"],
+            vec!["unused-local-variable", "broken-null-check"],
         ),
         (vec!["-A", "all", "-W", "uppercase-long-suffix"], vec!["uppercase-long-suffix"]),
     ] {
@@ -336,7 +336,7 @@ fn lint_rules_resolves_configuration_and_ordered_filters() {
             let row = text.lines().find(|line| line.starts_with(&format!("| {name} "))).unwrap();
             let cells = row.split('|').map(str::trim).collect::<Vec<_>>();
             assert_eq!(cells[3] == "✅", enabled.contains(&name), "{args:?}: {row}");
-            assert_eq!(cells[2] == "✅", matches!(name, "unused-import" | "unused-local-variable"));
+            assert_eq!(cells[2] == "✅", name != "uppercase-long-suffix", "{row}");
         }
     }
 }

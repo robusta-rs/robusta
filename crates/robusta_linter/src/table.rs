@@ -67,14 +67,19 @@ impl RuleTable {
                 map
             },
         );
-        let sections = [RuleCategory::Correctness, RuleCategory::Suspicious, RuleCategory::Style]
-            .into_iter()
-            .filter_map(|category| {
-                let rows = rows_by_category.remove(&category)?;
-                let rule_column_width = rows.iter().map(|r| r.name.len()).max()?.max(9);
-                Some(RuleTableSection { rows, category, rule_column_width })
-            })
-            .collect();
+        let sections = [
+            RuleCategory::Correctness,
+            RuleCategory::Suspicious,
+            RuleCategory::Pedantic,
+            RuleCategory::Style,
+        ]
+        .into_iter()
+        .filter_map(|category| {
+            let rows = rows_by_category.remove(&category)?;
+            let rule_column_width = rows.iter().map(|r| r.name.len()).max()?.max(9);
+            Some(RuleTableSection { rows, category, rule_column_width })
+        })
+        .collect();
         Self { sections, total, turned_on_by_default_count, rules_with_fixes }
     }
 

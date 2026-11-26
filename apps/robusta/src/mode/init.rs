@@ -42,7 +42,7 @@ lint:
   rules: {}
   # Example:
   # rules:
-  #   redundant-semicolons: warn
+  #   redundant-return: warn
   #   uppercase-long-suffix: deny
 "#
 );

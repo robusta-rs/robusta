@@ -430,31 +430,40 @@
       "type": "object",
       "properties": {
         "correctness": {
-          "description": "Code that is wrong or useless.",
+          "description": "Code that is wrong, or a variable, declaration, or statement that does nothing and does not write out what Java does implicitly.",
           "allOf": [
             {
               "$ref": "#/definitions/RuleSeverityConfig"
             }
           ],
-          "markdownDescription": "Code that is wrong or useless."
+          "markdownDescription": "Code that is wrong, or a variable, declaration, or statement that does nothing and does not write out what Java does implicitly."
+        },
+        "pedantic": {
+          "description": "A declaration or statement that writes out what Java does implicitly.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverityConfig"
+            }
+          ],
+          "markdownDescription": "A declaration or statement that writes out what Java does implicitly."
         },
         "style": {
-          "description": "Consistency and readability concerns with no behavioral risk.",
+          "description": "Code that Java can write in a shorter or more conventional form.",
           "allOf": [
             {
               "$ref": "#/definitions/RuleSeverityConfig"
             }
           ],
-          "markdownDescription": "Consistency and readability concerns with no behavioral risk."
+          "markdownDescription": "Code that Java can write in a shorter or more conventional form."
         },
         "suspicious": {
-          "description": "Constructs that commonly indicate stale or misleading code.",
+          "description": "Code that is probably wrong but can be intended.",
           "allOf": [
             {
               "$ref": "#/definitions/RuleSeverityConfig"
             }
           ],
-          "markdownDescription": "Constructs that commonly indicate stale or misleading code."
+          "markdownDescription": "Code that is probably wrong but can be intended."
         }
       },
       "additionalProperties": false

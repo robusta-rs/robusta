@@ -71,7 +71,17 @@ Category severities: correctness defaults to `warn`, other categories to `allow`
 type: `"allow" | "warn" | "deny"`
 
 
-Code that is wrong or useless.
+Code that is wrong, or a variable, declaration, or statement that does nothing and does not write out what Java does implicitly.
+
+Configured severity for lint findings.
+
+
+#### lint.categories.pedantic
+
+type: `"allow" | "warn" | "deny"`
+
+
+A declaration or statement that writes out what Java does implicitly.
 
 Configured severity for lint findings.
 
@@ -81,7 +91,7 @@ Configured severity for lint findings.
 type: `"allow" | "warn" | "deny"`
 
 
-Consistency and readability concerns with no behavioral risk.
+Code that Java can write in a shorter or more conventional form.
 
 Configured severity for lint findings.
 
@@ -91,7 +101,7 @@ Configured severity for lint findings.
 type: `"allow" | "warn" | "deny"`
 
 
-Constructs that commonly indicate stale or misleading code.
+Code that is probably wrong but can be intended.
 
 Configured severity for lint findings.
 

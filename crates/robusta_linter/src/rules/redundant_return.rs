@@ -32,7 +32,7 @@ declare_robusta_lint! {
         id: REDUNDANT_RETURN_ID = "redundant-return",
         rule: REDUNDANT_RETURN,
         summary: "Reports a no-value return that ends a void method, constructor, or void-compatible lambda block.",
-        category: Style,
+        category: Pedantic,
         fix: RuleFixMeta::Fixable(FixKind::SAFE_FIX),
         node_types: [ReturnStatement],
     }
