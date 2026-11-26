@@ -1311,6 +1311,24 @@ fn a_shared_method_binding_is_private_only_while_every_method_is() {
 }
 
 #[test]
+fn a_member_type_binding_is_private_when_declared_private() {
+    for (source, expected) in [
+        ("class A { class B {} }", false),
+        ("class A { private class B {} }", true),
+        ("class A { private static interface B {} }", true),
+        ("class A { protected enum B {} }", false),
+    ] {
+        let allocator = Allocator::new();
+        let result = parse(&allocator, source);
+        assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
+        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let symbol =
+            semantic.scoping().symbols().iter().find(|symbol| symbol.name() == "B").unwrap();
+        assert_eq!(symbol.is_private(), expected, "{source}");
+    }
+}
+
+#[test]
 fn resolve_binds_a_reused_pattern_variable_to_its_latest_declaration() {
     // Java lets one block introduce a pattern-variable name again once the
     // earlier binding is not definitely matched. Each use must bind to the

@@ -27,17 +27,18 @@ impl<'a> Binder<'a> for ImportDeclaration<'a> {
 
 impl<'a> Binder<'a> for TypeDeclarationKind<'a> {
     fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        match builder.parent_kind() {
-            parent @ (AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)) => {
-                // A local type is in scope from its own declaration to the end
-                // of its block or group (JLS 6.3).
-                let start = builder.nodes.kind(builder.current_node_id).span().start;
-                let window = Span::new(start, parent.span().end);
-                builder.declare_symbol_within(self.name(), SymbolKind::Type, window);
-            }
-            _ => {
-                builder.declare_symbol(self.name(), SymbolKind::Type);
-            }
+        if let parent @ (AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)) =
+            builder.parent_kind()
+        {
+            // A local type is in scope from its own declaration to the end
+            // of its block or group (JLS 6.3).
+            let start = builder.nodes.kind(builder.current_node_id).span().start;
+            let window = Span::new(start, parent.span().end);
+            builder.declare_symbol_within(self.name(), SymbolKind::Type, window);
+        } else if let Some(symbol_id) = builder.declare_symbol(self.name(), SymbolKind::Type)
+            && has_modifier(self.modifiers(), ModifierKind::Private)
+        {
+            builder.scoping.symbols[symbol_id].is_private = true;
         }
     }
 }

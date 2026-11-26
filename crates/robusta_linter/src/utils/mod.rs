@@ -2,6 +2,7 @@ mod comment;
 mod deletion;
 mod delimiter;
 mod import;
+mod java_lang;
 
 use robusta_span::Span;
 use robusta_syntax::{identifier::identifier_part, unicode_escape::unicode_escape};
@@ -10,6 +11,7 @@ pub use self::comment::follows_documentation;
 pub use self::deletion::{normalize_deletions, removal_span};
 pub use self::delimiter::{keep_interior, replace_delimiters, strip_suffix};
 pub use self::import::{delete_import, imports_java_lang_type};
+pub use self::java_lang::names_java_lang_type;
 
 // Adapted from https://github.com/oxc-project/oxc/blob/050d1328112e3546635fe7352b726995fa2524ef/crates/oxc_linter/src/utils/mod.rs
 /// Pads replacement text with spaces when needed to preserve token boundaries

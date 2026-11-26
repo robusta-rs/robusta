@@ -3,11 +3,11 @@ use std::{borrow::Cow, cell::Cell};
 use rust_lapper::{Interval, Lapper};
 
 use robusta_ast::{
-    Annotation, AstKind, Comment, CommentKind, ElementValue, ImportKind, StringLiteral, TypeName,
+    Annotation, AstKind, Comment, CommentKind, ElementValue, StringLiteral, TypeName,
     parse_lint_disable_directive,
 };
 use robusta_diagnostics::{RobustaDiagnostic, Severity};
-use robusta_semantic::{AstNode, Semantic, SymbolKind};
+use robusta_semantic::{AstNode, Semantic};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::{
     identifier::is_horizontal_whitespace,
@@ -16,7 +16,7 @@ use robusta_syntax::{
 
 use crate::{
     FixKind, LintDiagnostic, RuleId, suppression_pruner,
-    utils::{imports_java_lang_type, removal_span},
+    utils::{names_java_lang_type, removal_span},
 };
 
 const SUPPRESS_WARNINGS: &str = "SuppressWarnings";
@@ -40,22 +40,12 @@ impl<'source> Suppressions<'source> {
             .iter()
             .flat_map(|comment| parse_comment_suppression(source, *comment))
             .collect::<Vec<_>>();
-        let mut annotations = semantic
-            .nodes()
-            .iter()
-            .filter_map(|node| match node.kind() {
-                AstKind::Annotation(annotation) if annotation.name.last() == SUPPRESS_WARNINGS => {
-                    Some((node, annotation))
-                }
-                _ => None,
-            })
-            .peekable();
-        if annotations.peek().is_some() {
-            let simple_name_is_jdk = !declares_type(semantic, SUPPRESS_WARNINGS);
-            entries.extend(annotations.flat_map(|(node, annotation)| {
-                parse_annotation_suppression(semantic, node, annotation, simple_name_is_jdk)
-            }));
-        }
+        entries.extend(semantic.nodes().iter().flat_map(|node| match node.kind() {
+            AstKind::Annotation(annotation) => {
+                parse_annotation_suppression(semantic, node, annotation)
+            }
+            _ => Vec::new(),
+        }));
         Self::from_entries(entries)
     }
 
@@ -288,9 +278,8 @@ fn parse_annotation_suppression<'source>(
     semantic: &Semantic<'source>,
     node: &AstNode<'source>,
     annotation: &'source Annotation<'source>,
-    simple_name_is_jdk: bool,
 ) -> Vec<Suppression<'source>> {
-    if !names_jdk_annotation(semantic, &annotation.name, simple_name_is_jdk) {
+    if !names_jdk_annotation(semantic, &annotation.name) {
         return Vec::new();
     }
 
@@ -309,15 +298,13 @@ fn parse_annotation_suppression<'source>(
         .collect()
 }
 
-/// Whether `name` names `java.lang.SuppressWarnings`, given whether its simple
-/// name does in this file.
-fn names_jdk_annotation(
-    semantic: &Semantic<'_>,
-    name: &TypeName<'_>,
-    simple_name_is_jdk: bool,
-) -> bool {
+/// Whether `name` names `java.lang.SuppressWarnings`.
+fn names_jdk_annotation<'source>(semantic: &Semantic<'source>, name: &TypeName<'source>) -> bool {
+    if name.last() != SUPPRESS_WARNINGS {
+        return false;
+    }
     let TypeName::Qualified(name) = name else {
-        return simple_name_is_jdk;
+        return matches!(name, TypeName::Identifier(name) if names_java_lang_type(semantic, name));
     };
     let TypeName::Qualified(lang) = &name.qualifier else {
         return false;
@@ -327,25 +314,6 @@ fn names_jdk_annotation(
         if lang.name.name == "lang"
             && java.name == "java"
             && semantic.scoping().reference(java.reference_id()).symbol_id().is_none())
-}
-
-/// Whether the file declares a type named `name`, or imports one other than
-/// `java.lang`'s.
-///
-/// A class can inherit a member type that its scopes do not show, so a simple
-/// name the file does not bind may still name one of these.
-fn declares_type(semantic: &Semantic<'_>, name: &str) -> bool {
-    semantic.scoping().symbols().iter().any(|symbol| {
-        symbol.name() == name
-            && match symbol.kind() {
-                SymbolKind::Type => true,
-                SymbolKind::Import(ImportKind::SingleType | ImportKind::SingleStatic) => !matches!(
-                    semantic.nodes().kind(symbol.declaration_node_id()),
-                    AstKind::ImportDeclaration(import) if imports_java_lang_type(import)
-                ),
-                _ => false,
-            }
-    })
 }
 
 fn suppressed_rules<'source>(
@@ -678,6 +646,25 @@ mod tests {
             format!("class A {{ {annotation} {member} }}"),
             format!("class A {{ class B {{ {member} }} {annotation} }}"),
             format!("class B {{ {annotation} }} class A extends B {{ {member} }}"),
+            format!("class B {{ {annotation} }} class A extends B {{ class C {{ {member} }} }}"),
+            format!(
+                "class C {{ {annotation} }} class B extends C {{}} class A extends B {{ {member} }}"
+            ),
+            format!("interface I {{ {annotation} }} class A implements I {{ {member} }}"),
+            format!("interface I {{ {annotation} }} enum A implements I {{ X; {member} }}"),
+            format!(
+                "class O {{ static class B {{ {annotation} }} }} class A extends O.B {{ {member} }}"
+            ),
+            format!("class B {{ {annotation} }} class A {{ Object o = new B() {{ {member} }}; }}"),
+            // The supertype is itself an inherited member type.
+            format!(
+                "class O {{ static class B {{ {annotation} }} }} \
+                class P extends O {{ class A extends B {{ {member} }} }}"
+            ),
+            format!(
+                "class B {{}} class O {{ static class B {{ {annotation} }} }} \
+                class P extends O {{ class A extends B {{ {member} }} }}"
+            ),
             format!("import a.SuppressWarnings; class A {{ {member} }}"),
             format!("import static a.B.SuppressWarnings; class A {{ {member} }}"),
             format!("class A {{ {} }}", member.cow_replace("@S", "@A.S")),
@@ -687,6 +674,38 @@ mod tests {
             assert_eq!(rule_ids(&lint(&source)), ["uppercase-long-suffix"], "{source}");
             assert!(audit(&source, &RULES).is_empty(), "{source}");
         }
+    }
+
+    #[test]
+    fn simple_jdk_annotation_suppresses_outside_the_scope_of_one_the_file_declares() {
+        let annotation = "@interface SuppressWarnings { String value(); }";
+        let suppression =
+            "@SuppressWarnings({\"robusta:uppercase-long-suffix\", \"robusta:modifier-order\"})";
+        let member = format!("{suppression} long value = 1l;");
+        for source in [
+            format!("class Other {{ {annotation} }} class A {{ {member} }}"),
+            format!("class B {{ private {annotation} }} class A extends B {{ {member} }}"),
+            // A class's own annotations are outside its body.
+            format!(
+                "class B {{ {annotation} }} {suppression} class A extends B {{ long value = 1l; }}"
+            ),
+            // Cyclic inheritance does not compile, but the lookup ends.
+            format!("class A extends B {{ {member} }} class B extends A {{}}"),
+        ] {
+            assert!(lint(&source).is_empty(), "{source}");
+            assert_eq!(
+                messages(&audit(&source, &RULES)),
+                ["unused suppression for rule `modifier-order`"],
+                "{source}"
+            );
+        }
+
+        // Each use of the name resolves where it is written.
+        let source = format!("class Other {{ {annotation} {member} }} class A {{ {member} }}");
+        assert_eq!(rule_ids(&lint(&source)), ["uppercase-long-suffix"]);
+        let unused = audit(&source, &RULES);
+        assert_eq!(messages(&unused), ["unused suppression for rule `modifier-order`"]);
+        assert!(source[..unused[0].span().start as usize].contains("class A"));
     }
 
     #[test]

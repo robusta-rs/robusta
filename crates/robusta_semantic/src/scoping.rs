@@ -294,6 +294,11 @@ impl<'a> Reference<'a> {
         self.name.as_str()
     }
 
+    /// The name with its precomputed hash, for [`Scoping::symbols_for_name`].
+    pub const fn ident(&self) -> Ident<'a> {
+        self.name
+    }
+
     pub const fn span(&self) -> Span {
         self.span
     }
@@ -451,7 +456,7 @@ impl<'a> Scoping<'a> {
     }
 
     /// The scope and its ancestors, innermost first.
-    pub(crate) fn scope_ancestors(&self, scope_id: ScopeId) -> impl Iterator<Item = ScopeId> + '_ {
+    pub fn scope_ancestors(&self, scope_id: ScopeId) -> impl Iterator<Item = ScopeId> + '_ {
         std::iter::successors(Some(scope_id), |&id| self.scope(id).parent_id)
     }
 
