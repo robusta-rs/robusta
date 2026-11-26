@@ -123,7 +123,6 @@ fn format_stdin_preserves_only_an_input_bom() {
 fn format_stdin_accepts_unicode_identifiers_and_rejects_hard_keyword_names() {
     let temp = TempProject::new();
 
-    // spellchecker:off
     let valid = robusta_with_stdin(
         &["format", "--fix", "--stdin-filepath", "Café.java"],
         &temp.dir,
@@ -137,7 +136,6 @@ fn format_stdin_accepts_unicode_identifiers_and_rejects_hard_keyword_names() {
       void méthode(int 变量٢) {}
     }
     ");
-    // spellchecker:on
     assert_eq!(stderr_without_summary(&valid), "");
 
     for (path, source) in

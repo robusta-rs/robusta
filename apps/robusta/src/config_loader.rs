@@ -408,7 +408,6 @@ format:
 
     #[test]
     fn parse_options_rejects_unknown_root_keys() {
-        // spellchecker:disable-next-line
         for key in ["foramt", "fmt", "options", "overrides"] {
             let error = parse_options(&format!("{key}:\n  line-width: 120\n"))
                 .expect_err("unknown root keys should fail");
@@ -793,7 +792,6 @@ lint:
 
     #[test]
     fn parse_options_rejects_unknown_format_keys() {
-        // spellchecker:off
         let error = parse_options(
             r"
 format:
@@ -803,7 +801,6 @@ format:
         .expect_err("unknown format keys should fail");
 
         assert!(error.to_string().contains("line_widht"));
-        // spellchecker:on
     }
 
     #[test]

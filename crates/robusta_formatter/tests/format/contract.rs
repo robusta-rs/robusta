@@ -92,7 +92,6 @@ fn every_literal_kind_keeps_its_unicode_escape_spelling() {
 
 #[test]
 fn unicode_identifiers_round_trip_while_hard_type_keywords_normalize() {
-    // spellchecker:off
     let src = r"class  Caf\u00e9 { \u0069nt 𝒂 ; \u0076oid méthode ( int 变量٢ ) { } }";
     assert_snapshot!(fmt(src), @r"
     class Caf\u00e9 {
@@ -101,7 +100,6 @@ fn unicode_identifiers_round_trip_while_hard_type_keywords_normalize() {
       void méthode(int 变量٢) {}
     }
     ");
-    // spellchecker:on
 }
 
 #[test]

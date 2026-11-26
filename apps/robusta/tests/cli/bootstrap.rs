@@ -55,10 +55,10 @@ fn missing_and_unknown_commands_are_argument_errors() {
     assert_eq!(help.stderr.len(), 0);
     assert_eq!(missing.stderr, help.stdout);
 
-    let unknown = robusta_in_dir(&["formt", "."], &temp.dir); // spellchecker:disable-line
+    let unknown = robusta_in_dir(&["formt", "."], &temp.dir);
     assert_eq!(unknown.status.code(), Some(2));
     assert_eq!(unknown.stdout.len(), 0);
-    assert!(stderr(&unknown).contains("no such command or positional: `formt`")); // spellchecker:disable-line
+    assert!(stderr(&unknown).contains("no such command or positional: `formt`"));
 }
 
 // Primary-platform-only: see `generated_help_defines_the_public_command_surface`.

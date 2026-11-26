@@ -12,7 +12,7 @@ lists the commands that update generated files and snapshots.
   plugin a change affects; `jvm/common` and CLI behavior the plugins invoke
   affect both.
 - **Cargo dependencies and licenses:** `just deny`.
-- **Prose:** `typos` only.
+- **Prose:** no checks.
 - **Rustdoc:** `just doc -p <crate>`; add
   `cargo test -p <crate> --all-features --doc` when executable examples change.
 

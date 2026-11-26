@@ -6,12 +6,10 @@ use crate::support::*;
 fn windows_paths_are_normalized_and_redacted_without_changing_source_escapes() {
     let path = std::path::Path::new(r"C:\temp\Example.java");
     assert_eq!(presentation_path(path), "C:/temp/Example.java");
-    // spellchecker:off
     assert_eq!(
         redact_dir(r"C:/temp/Example.java: class Caf\u00e9 {}", std::path::Path::new(r"C:\temp")),
         r"<temp>/Example.java: class Caf\u00e9 {}"
     );
-    // spellchecker:on
 }
 
 #[test]
@@ -879,7 +877,7 @@ fn the_gitlab_reporter_reports_paths_relative_to_the_repository_root() {
 #[test]
 fn the_sarif_reporter_encodes_artifact_paths_as_uri_references() {
     let temp = TempProject::new();
-    let names = ["Example #1.java", "Example%20.java", "Caf\u{e9}.java"]; // spellchecker:disable-line
+    let names = ["Example #1.java", "Example%20.java", "Caf\u{e9}.java"];
     for name in names {
         temp.write(name, "class Example { int value; }\n");
     }
@@ -908,7 +906,6 @@ fn the_sarif_reporter_encodes_artifact_paths_as_uri_references() {
 
     // A raw `%` is encoded as data, so the name holding `%20` stays distinct
     // from the name holding a real space.
-    // spellchecker:disable-next-line
     assert_eq!(uris, ["Caf%C3%A9.java", "Example%20%231.java", "Example%2520.java"], "{stdout}");
 
     // Each reference still names the file the run actually read.
