@@ -494,7 +494,7 @@ class RobustaWorkflowFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":robustaLintFix").getOutcome());
         assertEquals(
             "class Example {\n    int compute() {\n        return 1;\n    }\n\n"
-                + "    void run() {\n        compute();\n        \n    }\n}\n",
+                + "    void run() {\n        compute();\n    }\n}\n",
             Files.readString(source, StandardCharsets.UTF_8)
         );
         assertFalse(Files.readString(baseline, StandardCharsets.UTF_8).contains("unused-"));

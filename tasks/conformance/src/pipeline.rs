@@ -58,7 +58,7 @@ mod tests {
     fn safe_ceiling_deletes_an_uninitialized_unused_local() {
         let output = lint_and_fix("class A { void m() { int ignored; } }", FixKind::SAFE_FIX);
         assert_eq!(output.applied, 1);
-        assert_eq!(output.code, "class A { void m() {  } }");
+        assert_eq!(output.code, "class A { void m() { } }");
     }
 
     #[test]
@@ -72,7 +72,7 @@ mod tests {
     fn unsafe_ceiling_applies_an_unsafe_fix() {
         let output = lint_and_fix("class A { void m() { int ignored = 1 + 2; } }", FixKind::ALL);
         assert_eq!(output.applied, 1);
-        assert_eq!(output.code, "class A { void m() {  } }");
+        assert_eq!(output.code, "class A { void m() { } }");
     }
 
     #[test]

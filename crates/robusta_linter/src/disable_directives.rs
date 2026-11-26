@@ -14,7 +14,7 @@ use robusta_syntax::{
     line_terminator::{is_line_terminator, line_content_end, line_span, terminator_len},
 };
 
-use crate::{FixKind, LintDiagnostic, RuleId, suppression_pruner};
+use crate::{FixKind, LintDiagnostic, RuleId, suppression_pruner, utils::removal_span};
 
 const SUPPRESS_WARNINGS: &str = "SuppressWarnings";
 const ROBUSTA_RULE_PREFIX: &str = "robusta:";
@@ -216,7 +216,7 @@ fn parse_comment_suppression(source: &str, comment: Comment) -> Vec<Suppression<
         span: comment.span,
         rules: Span::new(rules_start, rules_start + names.len() as u32),
         removal: if explanation.is_empty() {
-            let span = suppression_pruner::removal_span(source, comment.span);
+            let span = removal_span(source, comment.span);
             // `long /* robusta-disable-line */value` keeps the comment that separates its tokens.
             (!joins_text(source, span)).then_some(CommentRemoval {
                 span,

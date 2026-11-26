@@ -2,7 +2,7 @@ use robusta_ast::AstKind;
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
 
-use crate::utils::follows_documentation;
+use crate::utils::{follows_documentation, removal_span};
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -44,7 +44,7 @@ impl Rule for RedundantSemicolons {
         context.diagnostic_with_fix(
             RobustaDiagnostic::warning("redundant semicolon", span)
                 .with_help("Remove this semicolon."),
-            |fixer| fixer.delete_range(span),
+            |fixer| fixer.delete_range(removal_span(fixer.source_text(), span)),
         );
     }
 }
@@ -61,7 +61,7 @@ mod tests {
 
         let report = Tester::new(&REDUNDANT_SEMICOLONS).fixes(
             source,
-            " class A {  void f() {  if (ready) ; else {  } while (ready) ; label: ; } } ",
+            "class A { void f() {if (ready) ; else { } while (ready) ; label: ; } }",
         );
 
         insta::assert_snapshot!(report, @r#"
@@ -101,6 +101,14 @@ class Example {
     }
 
     #[test]
+    fn deletes_the_lines_of_semicolons_alone_on_them() {
+        Tester::new(&REDUNDANT_SEMICOLONS).fixes(
+            "class A {\r\n    ;\r\n    void f() {\r\n\t;\r\n        work();\r\n    }\r\n}\r\n  ;",
+            "class A {\r\n    void f() {\r\n        work();\r\n    }\r\n}\r\n",
+        );
+    }
+
+    #[test]
     fn keeps_the_semicolon_after_a_documentation_comment() {
         let source = concat!(
             "/** @deprecated */ ;; class A { /** d */ /* c */ ; ; void f() { /// d\n",
@@ -111,8 +119,8 @@ class Example {
         let report = Tester::new(&REDUNDANT_SEMICOLONS).fixes(
             source,
             concat!(
-                "/** @deprecated */ ; class A { /** d */ /* c */ ;  void f() { /// d\n",
-                "; class L {} } } /**/ ; //// c\n; /*** b */ ; ",
+                "/** @deprecated */ ;class A { /** d */ /* c */ ; void f() { /// d\n",
+                ";class L {} } } /**/ ; //// c\n; /*** b */ ; ",
                 r"\u002f** e */ ;",
             ),
         );
@@ -135,7 +143,7 @@ class Example {
             source,
             concat!(
                 r"/** @deprecated */\u0020\u0009\u000c; class A { /** d */\uu000A/* c */\u000D\u003b",
-                r" /** d */ int x;\u0020 }",
+                r"/** d */ int x;\u0020}",
             ),
         );
 

@@ -4,7 +4,7 @@ use robusta_macros::declare_robusta_lint;
 use robusta_semantic::AstNode;
 use robusta_span::ContentEq;
 
-use crate::utils::delete_import_line;
+use crate::utils::{delete_import, normalize_deletions};
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -52,11 +52,14 @@ impl Rule for DuplicateImport {
                     .chain(repeats.iter().map(|repeat| unlabeled_span(repeat.span))),
             )
             .with_help("Remove the repeated imports.");
-            let fixes = repeats
+            let mut fixes = repeats
                 .iter()
-                .map(|repeat| delete_import_line(context, repeat.span))
-                .collect::<Option<Vec<_>>>();
-            context.diagnostic_with_fix(diagnostic, |_| fixes.unwrap_or_default());
+                .map(|repeat| delete_import(context, repeat.span))
+                .collect::<Option<Vec<_>>>()
+                .unwrap_or_default();
+            // Repeats on one line delete the whitespace between them twice.
+            normalize_deletions(context.source_text(), &mut fixes);
+            context.diagnostic_with_fix(diagnostic, |_| fixes);
         }
     }
 }
@@ -140,9 +143,15 @@ mod tests {
     }
 
     #[test]
-    fn reports_without_a_fix_when_a_repeat_shares_its_line() {
-        Tester::new(&DUPLICATE_IMPORT).reports_without_fix(
+    fn deletes_only_a_repeat_that_shares_its_line() {
+        let tester = Tester::new(&DUPLICATE_IMPORT);
+        tester.fixes(
             "import java.util.List;\nimport java.util.List; // keep\nclass A {}\n",
+            "import java.util.List;\n// keep\nclass A {}\n",
+        );
+        tester.fixes(
+            "import java.util.List;\n  import java.util.List;  import java.util.List;\nclass A {}\n",
+            "import java.util.List;\nclass A {}\n",
         );
     }
 

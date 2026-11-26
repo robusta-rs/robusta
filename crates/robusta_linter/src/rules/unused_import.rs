@@ -4,7 +4,7 @@ use robusta_macros::declare_robusta_lint;
 use robusta_semantic::{AstNode, ReferenceKind, Symbol, SymbolKind};
 use robusta_span::ContentEq;
 
-use crate::utils::delete_import_line;
+use crate::utils::delete_import;
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -61,7 +61,7 @@ impl Rule for UnusedImport {
         let message = format!("imported name `{name}` is never used");
         let diagnostic =
             RobustaDiagnostic::warning(message, name_span).with_help("Remove the unused import.");
-        let fix = delete_import_line(context, import.span);
+        let fix = delete_import(context, import.span);
         context.diagnostic_with_fix(diagnostic, |_| fix);
     }
 }
@@ -455,20 +455,29 @@ class Names {
         Tester::new(&UNUSED_IMPORT).fixes("import java.util.List;", "");
     }
 
-    // --- No fix: shapes without one obvious single edit -----------------
-
     #[test]
-    fn import_sharing_a_line_reports_without_a_fix() {
-        // Two imports on one physical line: deleting one cleanly is not obvious.
-        Tester::new(&UNUSED_IMPORT)
-            .reports_without_fix("import java.util.List; import java.util.Map; class A { Map m; }");
+    fn deletes_only_an_import_that_shares_its_line() {
+        let tester = Tester::new(&UNUSED_IMPORT);
+        tester.fixes(
+            "import java.util.List; import java.util.Map; class A { Map m; }",
+            "import java.util.Map; class A { Map m; }",
+        );
+        tester.fixes(
+            "import java.util.Map; import java.util.List; class A { Map m; }",
+            "import java.util.Map; class A { Map m; }",
+        );
+        tester.fixes("import java.util.List; // keep\nclass A {}\n", "// keep\nclass A {}\n");
     }
 
     #[test]
-    fn import_with_a_trailing_comment_reports_without_a_fix() {
-        Tester::new(&UNUSED_IMPORT)
-            .reports_without_fix("import java.util.List; // keep\nclass A {}\n");
+    fn deletes_the_lines_of_an_import_written_across_them() {
+        Tester::new(&UNUSED_IMPORT).fixes(
+            "import java.util.List;\r\n  import java.util\r\n    .Map;\r\nclass A { List<?> l; }",
+            "import java.util.List;\r\nclass A { List<?> l; }",
+        );
     }
+
+    // --- No fix: a deletion that would move a comment -------------------
 
     #[test]
     fn import_carrying_an_interior_comment_reports_without_a_fix() {

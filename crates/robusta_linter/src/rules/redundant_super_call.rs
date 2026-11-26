@@ -3,7 +3,7 @@ use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
 use robusta_semantic::AstNode;
 
-use crate::utils::follows_documentation;
+use crate::utils::{follows_documentation, removal_span};
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -61,7 +61,11 @@ impl Rule for RedundantSuperCall {
             || (follows_documentation(context.comments(), invocation.span)
                 && could_reach_local_type(&constructor.body.statements[1..]));
         context.diagnostic_with_fix(diagnostic, |fixer| {
-            if keep { fixer.noop() } else { fixer.delete_range(invocation.span) }
+            if keep {
+                fixer.noop()
+            } else {
+                fixer.delete_range(removal_span(fixer.source_text(), invocation.span))
+            }
         });
     }
 }
@@ -97,7 +101,7 @@ mod tests {
     fn removes_leading_no_argument_super_calls() {
         let report = tester().fixes(
             "class A { A() { super(); initialize(); } A(int value) { super(); } }",
-            "class A { A() {  initialize(); } A(int value) {  } }",
+            "class A { A() { initialize(); } A(int value) { } }",
         );
 
         insta::assert_snapshot!(report, @r#"
@@ -124,7 +128,6 @@ mod tests {
             concat!(
                 "class Child {\n",
                 "    Child() {\n",
-                "        \n",
                 "        start();\n",
                 "    }\n",
                 "\n",
@@ -209,16 +212,16 @@ mod tests {
         ] {
             tester.fixes(
                 &format!("class A {{ A() {{ /** @deprecated Old */ super(); {next} }} }}"),
-                &format!("class A {{ A() {{ /** @deprecated Old */  {next} }} }}"),
+                &format!("class A {{ A() {{ /** @deprecated Old */ {next} }} }}"),
             );
         }
         tester.fixes(
             "class A { A() { /// note\n /* c */ super(); } }",
-            "class A { A() { /// note\n /* c */  } }",
+            "class A { A() { /// note\n /* c */ } }",
         );
         tester.fixes(
             r"class A { A() { /** d */\u0020super(); } }",
-            r"class A { A() { /** d */\u0020 } }",
+            r"class A { A() { /** d */\u0020} }",
         );
     }
 
@@ -235,33 +238,25 @@ mod tests {
     #[test]
     fn keeps_the_comment_off_a_local_class_when_other_fixes_delete_what_separates_them() {
         // Each deletion alone would leave a statement before the class.
-        for (between, left) in [
-            (";", ""),
-            ("int unused = 1;", ""),
-            ("; int unused = 1;", " "),
-            ("int unused = 1; unused = 2;", " "),
-        ] {
+        for between in [";", "int unused = 1;", "; int unused = 1;", "int unused = 1; unused = 2;"]
+        {
             assert_eq!(
                 fix_with_statement_deleting_rules(&format!(
                     "class A {{ A() {{ /** @deprecated Old */ super(); {between} class L {{}} }} }}"
                 )),
-                format!(
-                    "class A {{ A() {{ /** @deprecated Old */ super(); {left} class L {{}} }} }}"
-                ),
+                "class A { A() { /** @deprecated Old */ super(); class L {} } }",
             );
         }
     }
 
     #[test]
     fn removes_a_detached_call_together_with_statements_other_fixes_delete() {
-        for (between, left) in
-            [(";", ""), ("int unused = 1;", ""), ("int unused = 1; unused = 2;", " ")]
-        {
+        for between in [";", "int unused = 1;", "int unused = 1; unused = 2;"] {
             assert_eq!(
                 fix_with_statement_deleting_rules(&format!(
                     "class A {{ A() {{ /** d */ super(); {between} initialize(); }} }}"
                 )),
-                format!("class A {{ A() {{ /** d */  {left} initialize(); }} }}"),
+                "class A { A() { /** d */ initialize(); } }",
             );
         }
     }
@@ -270,7 +265,7 @@ mod tests {
     fn removes_calls_between_the_constructor_comment_and_a_later_documentation_comment() {
         tester().fixes(
             "class A { /** Creates. */ A() { super(); /** d */ class L {} } }",
-            "class A { /** Creates. */ A() {  /** d */ class L {} } }",
+            "class A { /** Creates. */ A() { /** d */ class L {} } }",
         );
     }
 
@@ -287,7 +282,7 @@ mod tests {
         let expected = concat!(
             "class A {\r\n",
             "  A() {\r\n",
-            "    /* before */  // after\r\n",
+            "    /* before */ // after\r\n",
             "    initialize();\r\n",
             "  }\r\n",
             "}",
@@ -300,7 +295,7 @@ mod tests {
     fn removes_adjacent_calls_in_separate_constructors_without_a_final_newline() {
         tester().fixes(
             "class A { A() { super(); } A(int value) { super(); work(); } }",
-            "class A { A() {  } A(int value) {  work(); } }",
+            "class A { A() { } A(int value) { work(); } }",
         );
     }
 }

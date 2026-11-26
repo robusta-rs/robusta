@@ -5,7 +5,7 @@ use robusta_semantic::{AstNode, AstNodes, NodeId};
 use robusta_span::{GetSpan, Span};
 
 use crate::fixer::{RuleFix, RuleFixer};
-use crate::utils::replace_delimiters;
+use crate::utils::{removal_span, replace_delimiters};
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -55,8 +55,10 @@ impl Rule for RedundantReturn {
         let message = "the trailing return is redundant";
         let diagnostic = RobustaDiagnostic::warning(message, statement.span)
             .with_help("Remove the trailing `return` statement.");
-        context
-            .diagnostic_with_fix(diagnostic, |fixer| build_fix(fixer, statement.span, needs_block));
+        let comments = context.has_comments_between(statement.span);
+        context.diagnostic_with_fix(diagnostic, |fixer| {
+            build_fix(fixer, statement.span, needs_block, comments)
+        });
     }
 }
 
@@ -115,13 +117,18 @@ fn ends_body(nodes: &AstNodes<'_>, id: NodeId, span: Span) -> bool {
 }
 
 /// Drop the `return` and its `;`, keeping whatever was written between them,
-/// in a block when `needs_block`.
+/// in a block when `needs_block`. With no block needed and only whitespace
+/// between them, the whole statement goes, with its lines when nothing else is
+/// on them.
 ///
 /// A no-value return holds no expression, so its span runs from the keyword
 /// through the semicolon and deleting it whole would delete any comment inside
 /// it. Splicing the interior back instead keeps those bytes exactly as written
 /// — including the line terminator that ends a trailing `//` comment.
-fn build_fix(fixer: RuleFixer<'_>, statement: Span, needs_block: bool) -> RuleFix {
+fn build_fix(fixer: RuleFixer<'_>, statement: Span, needs_block: bool, comments: bool) -> RuleFix {
+    if !needs_block && !comments {
+        return fixer.delete_range(removal_span(fixer.source_text(), statement));
+    }
     let replacements = if needs_block { ["{", "}"] } else { ["", ""] };
     replace_delimiters(fixer, statement, ["return", ";"], replacements)
 }
@@ -147,10 +154,10 @@ mod tests {
         let report = tester().fixes(
             source,
             "class A { \
-             A() { init();  } \
-             void f() { g();  } \
-             void empty() {  } \
-             void lambda() { run(() -> { g();  }); } \
+             A() { init(); } \
+             void f() { g(); } \
+             void empty() { } \
+             void lambda() { run(() -> { g(); }); } \
              }",
         );
 
@@ -180,17 +187,25 @@ mod tests {
         tester().fixes(
             source,
             "class A { \
-             void branch(boolean dirty) { if (dirty) { flush();  } } \
-             void otherwise(boolean dirty) { if (dirty) { flush(); } else {  } } \
-             void group(int mode) { switch (mode) { case 1: flush(); break; default: reload();  } } \
-             void rule(int mode) { switch (mode) { case 1 -> {  } default -> flush(); } } \
-             void attempt() { try { flush();  } catch (Exception e) { log(e); } } \
-             void caught() { try { flush(); } catch (Exception e) { log(e);  } } \
-             void cleanup() { try (Lock lock = lock()) { flush();  } finally { unlock(); } } \
-             void guarded() { synchronized (this) { flush();  } } \
-             void labeled() { done: { flush();  } } \
-             void nested() { { {  } } } \
+             void branch(boolean dirty) { if (dirty) { flush(); } } \
+             void otherwise(boolean dirty) { if (dirty) { flush(); } else { } } \
+             void group(int mode) { switch (mode) { case 1: flush(); break; default: reload(); } } \
+             void rule(int mode) { switch (mode) { case 1 -> { } default -> flush(); } } \
+             void attempt() { try { flush(); } catch (Exception e) { log(e); } } \
+             void caught() { try { flush(); } catch (Exception e) { log(e); } } \
+             void cleanup() { try (Lock lock = lock()) { flush(); } finally { unlock(); } } \
+             void guarded() { synchronized (this) { flush(); } } \
+             void labeled() { done: { flush(); } } \
+             void nested() { { { } } } \
              }",
+        );
+    }
+
+    #[test]
+    fn deletes_the_line_of_a_return_alone_on_it() {
+        tester().fixes(
+            "class A {\r\n  void f() {\r\n    g();\r\n    return ;  \r\n  }\r\n}\r\n",
+            "class A {\r\n  void f() {\r\n    g();\r\n  }\r\n}\r\n",
         );
     }
 
@@ -244,10 +259,10 @@ void refresh(int mode, boolean ready, boolean dirty) {
     if (mode == 0) {
         pick(() -> {
             reload();
-             // Falling through still limits the lambda to void-returning targets.
+            // Falling through still limits the lambda to void-returning targets.
         });
         flush();
-         // Falling through skips the other branches and ends the method.
+        // Falling through skips the other branches and ends the method.
     } else if (dirty) {
         switch (mode) {
             case 1:
@@ -257,7 +272,7 @@ void refresh(int mode, boolean ready, boolean dirty) {
                 break;
             default:
                 reload();
-                 // Falling through leaves the switch and ends the method.
+                // Falling through leaves the switch and ends the method.
         }
     } else {
         if (!ready) {
@@ -347,7 +362,7 @@ void refresh(int mode, boolean ready, boolean dirty) {
 
     #[test]
     fn removes_a_return_whose_delimiters_are_unicode_escaped() {
-        let expected = "class A { void f() { g();  } }";
+        let expected = "class A { void f() { g(); } }";
         tester().fixes(r"class A { void f() { g(); \u0072eturn; } }", expected);
         tester().fixes(r"class A { void f() { g(); return\u003B } }", expected);
         tester().fixes(
@@ -360,12 +375,12 @@ void refresh(int mode, boolean ready, boolean dirty) {
     fn removes_adjacent_trailing_returns_in_separate_bodies() {
         tester().fixes(
             "class A { void f() { return; } void g() { return; } }",
-            "class A { void f() {  } void g() {  } }",
+            "class A { void f() { } void g() { } }",
         );
     }
 
     #[test]
     fn removes_a_trailing_return_without_a_final_newline() {
-        tester().fixes("class A { void f() { return; } }", "class A { void f() {  } }");
+        tester().fixes("class A { void f() { return; } }", "class A { void f() { } }");
     }
 }

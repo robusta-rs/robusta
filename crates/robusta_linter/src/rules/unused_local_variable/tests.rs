@@ -30,15 +30,15 @@ fn identifier_ignorable_characters_do_not_change_a_locals_identity() {
 #[test]
 fn fixes_identifier_ignorable_write_only_locals() {
     for (source, expected) in [
-        (r"class A { void f() { int coun\u200Ct; count = 1; } }", "class A { void f() {   } }"),
-        (r"class A { void f() { int count; coun\u0000t = 1; } }", "class A { void f() {   } }"),
+        (r"class A { void f() { int coun\u200Ct; count = 1; } }", "class A { void f() { } }"),
+        (r"class A { void f() { int count; coun\u0000t = 1; } }", "class A { void f() { } }"),
         (
             r"class A { void f() { int coun\u0085t = get(); count = 1; } }",
-            "class A { void f() { get();  } }",
+            "class A { void f() { get(); } }",
         ),
         (
             "class A { void f() { int count = get(); coun\u{200c}t = 1; } }",
-            "class A { void f() { get();  } }",
+            "class A { void f() { get(); } }",
         ),
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(source, expected);
@@ -173,7 +173,7 @@ fn honors_suppression_annotations() {
 #[test]
 fn safe_deletes_sole_uninitialized_declaration() {
     Tester::new(&UNUSED_LOCAL_VARIABLE)
-        .fixes("class A { void f() { int stale; } }", "class A { void f() {  } }");
+        .fixes("class A { void f() { int stale; } }", "class A { void f() { } }");
 }
 
 #[test]
@@ -231,15 +231,30 @@ fn safe_keeps_a_comment_before_a_for_separator() {
 #[test]
 fn safe_preserves_crlf_and_missing_final_newline() {
     Tester::new(&UNUSED_LOCAL_VARIABLE)
-        .fixes("class A {\r\n  void f() { int stale; }\r\n}", "class A {\r\n  void f() {  }\r\n}");
+        .fixes("class A {\r\n  void f() { int stale; }\r\n}", "class A {\r\n  void f() { }\r\n}");
+}
+
+#[test]
+fn deletes_the_lines_left_without_a_statement() {
+    let tester = Tester::new(&UNUSED_LOCAL_VARIABLE);
+    tester.fixes(
+        "class A {\n  void f() {\n    int stale =\n        1;\n    run();\n  }\n}\n",
+        "class A {\n  void f() {\n    run();\n  }\n}\n",
+    );
+    tester.fixes(
+        "class A {\n  void f() {\n    int stale; stale = 1;\n    run(); int other;\n  }\n}\n",
+        "class A {\n  void f() {\n    run();\n  }\n}\n",
+    );
+    tester.fixes(
+        "class A {\n  void f() {\n    int stale; // why\n  }\n}\n",
+        "class A {\n  void f() {\n    // why\n  }\n}\n",
+    );
 }
 
 #[test]
 fn fixes_write_only_local_and_its_assignments_together() {
-    Tester::new(&UNUSED_LOCAL_VARIABLE).fixes(
-        "class A { void f() { int assigned; assigned = 2; } }",
-        "class A { void f() {   } }",
-    );
+    Tester::new(&UNUSED_LOCAL_VARIABLE)
+        .fixes("class A { void f() { int assigned; assigned = 2; } }", "class A { void f() { } }");
 }
 
 #[test]
@@ -287,16 +302,14 @@ fn unsafe_fix_is_not_applied_with_safe_fixes_only() {
 fn unsafe_fix_deletes_a_nested_effect() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
         "class A { void f(int[] data) { int stale = compute() + 1; } }",
-        "class A { void f(int[] data) {  } }",
+        "class A { void f(int[] data) { } }",
     );
 }
 
 #[test]
 fn unsafe_fix_deletes_an_array_initializer() {
-    Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
-        "class A { void f() { int[] stale = {1, 2}; } }",
-        "class A { void f() {  } }",
-    );
+    Tester::new(&UNUSED_LOCAL_VARIABLE)
+        .fixes_unsafe("class A { void f() { int[] stale = {1, 2}; } }", "class A { void f() { } }");
 }
 
 #[test]
@@ -339,10 +352,6 @@ fn unsafe_fix_keeps_effects_and_deletes_other_values() {
         concat!(
             "void open() throws FileNotFoundException {\n",
             "    send();\n",
-            "    \n",
-            "    \n",
-            "    \n",
-            "    \n",
             "    failure(); // After the fix, failure() could throw IOException instead and break compilation.\n",
             "}\n",
         ),
@@ -364,11 +373,7 @@ fn unsafe_fix_deletes_effects_and_values_typed_by_the_variable() {
 ",
         concat!(
             "void read() {\n",
-            "    \n",
-            "    \n",
-            "    \n",
             "    if (reader.readLine() == null) return;\n",
-            "    \n",
             "    System.out.println('a'); // After the fix, this prints a instead of 97, since 'a' is a char.\n",
             "    for (int i = 0; i < n; i++) {}\n",
             "}\n",
@@ -408,7 +413,7 @@ fn splits_a_shared_declaration_around_a_kept_initializer() {
 fn safe_deletes_an_initializer_string_spelling_a_comment_lead() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes(
         "class A { void f() { String stale = \"http://example.com\"; } }",
-        "class A { void f() {  } }",
+        "class A { void f() { } }",
     );
 }
 
@@ -416,7 +421,7 @@ fn safe_deletes_an_initializer_string_spelling_a_comment_lead() {
 fn comments_do_not_block_the_documented_deletion() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes(
         r"class A { void f() { int stale = \u002f\u002ac\u002a\u002f 1; } }",
-        "class A { void f() {  } }",
+        "class A { void f() { } }",
     );
 }
 
@@ -431,9 +436,9 @@ fn leaves_a_semicolon_where_a_deletion_follows_a_documentation_comment() {
         ),
         concat!(
             "class A { void f(int i, boolean c) { /** @deprecated */ ; class L {}\n",
-            " /*** d */ /* c */ ; /// d\n;\n",
+            "/*** d */ /* c */ ; /// d\n;\n",
             r"/** d */\u0020; switch (i) { case 0: /** d */ ; }",
-            "\n/* c */   if (c) /** d */ {} for (/** d */ ; ;) break; } }",
+            "\n/* c */ if (c) /** d */ {} for (/** d */ ; ;) break; } }",
         ),
     );
 }
@@ -441,7 +446,7 @@ fn leaves_a_semicolon_where_a_deletion_follows_a_documentation_comment() {
 #[test]
 fn removes_comment_frames_without_suppressing_the_fix() {
     Tester::new(&UNUSED_LOCAL_VARIABLE)
-        .fixes("class A { void f() { int /* keep */ stale; } }", "class A { void f() {  } }");
+        .fixes("class A { void f() { int /* keep */ stale; } }", "class A { void f() { } }");
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
         "class A { void f() { int ignored = /* effect */ sendEmail(); } }",
         "class A { void f() { sendEmail(); } }",
@@ -467,9 +472,9 @@ fn safe_and_unsafe_arms_are_emitted_from_one_declaration() {
     tester.fixes_only(
         FixKind::SAFE_FIX,
         SOURCE,
-        "class A { void f(int[] data) {  int b = sendEmail(); int c = compute() + 1; } }",
+        "class A { void f(int[] data) { int b = sendEmail(); int c = compute() + 1; } }",
     );
-    tester.fixes_only(FixKind::ALL, SOURCE, "class A { void f(int[] data) {  sendEmail();  } }");
+    tester.fixes_only(FixKind::ALL, SOURCE, "class A { void f(int[] data) { sendEmail(); } }");
 }
 
 #[test]
@@ -479,7 +484,7 @@ fn overlapping_unused_declarators_apply_deterministically_and_converge() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_to_fixpoint(
         FixKind::SAFE_FIX,
         "class A { void f() { int stale, other; } }",
-        "class A { void f() {  } }",
+        "class A { void f() { } }",
     );
 }
 
@@ -488,7 +493,7 @@ fn discarded_updates_and_own_rhs_reads_are_not_usages() {
     for update in ["x++;", "++x;", "x += 2;", "x = x + 1;", "x = x == 0 ? 1 : 2;"] {
         let source = format!("class A {{ void f() {{ int x = 0; {update} }} }}");
         Tester::new(&UNUSED_LOCAL_VARIABLE).fix_leaves_unchanged(FixKind::SAFE_FIX, &source);
-        Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(&source, "class A { void f() {   } }");
+        Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(&source, "class A { void f() { } }");
     }
     for body in [
         "consume(x++);",
@@ -508,7 +513,7 @@ fn discarded_updates_and_own_rhs_reads_are_not_usages() {
     }
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
         "class A { void f() { A b = null; b = b.next; } }",
-        "class A { void f() {   } }",
+        "class A { void f() { } }",
     );
     Tester::new(&UNUSED_LOCAL_VARIABLE)
         .passes("class A { void f() { boolean x = false; for (; x = !x; ) {} } }");
@@ -522,7 +527,7 @@ fn removes_a_long_discarded_self_update() {
     let value = vec!["x"; 2_048].join(" + ");
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
         &format!("class A {{ void f() {{ int x = 0; x = {value}; }} }}"),
-        "class A { void f() {   } }",
+        "class A { void f() { } }",
     );
 }
 
@@ -531,10 +536,10 @@ fn aggregates_the_most_cautious_kind_across_all_writes() {
     let source = "class A { void f() { int x = 0; x = 2; x++; x = next() + 1; } }";
     let tester = Tester::new(&UNUSED_LOCAL_VARIABLE);
     tester.fix_leaves_unchanged(FixKind::SAFE_FIX, source);
-    tester.fixes_unsafe(source, "class A { void f() {     } }");
+    tester.fixes_unsafe(source, "class A { void f() { } }");
     tester.fixes_unsafe(
         "class A { void f() { int x = 0; x = next(); x += next(); } }",
-        "class A { void f() {  next(); next(); } }",
+        "class A { void f() { next(); next(); } }",
     );
 }
 
@@ -543,14 +548,14 @@ fn replaces_nested_assignments_with_their_values() {
     for (source, expected) in [
         ("int x; consume(x = 'a');", " consume('a');"),
         ("int x; if ((x = next()) == 0) return;", " if (next() == 0) return;"),
-        ("int x; x = x = 1;", " "),
+        ("int x; x = x = 1;", ""),
         ("int x = x = 1;", ""),
         ("int x; x = x = next();", " next();"),
         ("int x; int y = x = 1; consume(y);", " int y = 1; consume(y);"),
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
             &format!("class A {{ void f() {{ {source} }} }}"),
-            &format!("class A {{ void f() {{ {expected} }} }}"),
+            &format!("class A {{ void f() {{{expected} }} }}"),
         );
     }
 }
@@ -580,7 +585,7 @@ fn keeps_the_parentheses_a_replaced_value_needs() {
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
             &format!("class A {{ void f() {{ {source} }} }}"),
-            &format!("class A {{ void f() {{ {expected} }} }}"),
+            &format!("class A {{ void f() {{{expected} }} }}"),
         );
     }
 }
@@ -594,7 +599,7 @@ fn deletes_whole_statement_bodies_as_empty_blocks() {
         ("label: x = 1;", "label: {}"),
         (
             "switch (n) { case 0: x = 1; break; default: x = 2; }",
-            "switch (n) { case 0:  break; default:  }",
+            "switch (n) { case 0: break; default: }",
         ),
         (
             "switch (n) { case 0 -> x = 1; default -> x = 2; }",
@@ -603,7 +608,7 @@ fn deletes_whole_statement_bodies_as_empty_blocks() {
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes(
             &format!("class A {{ void f(int n) {{ int x; {statement} }} }}"),
-            &format!("class A {{ void f(int n) {{  {expected} }} }}"),
+            &format!("class A {{ void f(int n) {{ {expected} }} }}"),
         );
     }
 }
@@ -618,10 +623,10 @@ fn preserves_for_lists_and_shared_initializer_policy() {
             r"for (int i = 0\u003b i < 3; i++) {}",
         ),
         ("for (int i = 0, x = 0; i < 3; i++, x++) {}", "for (int i = 0; i < 3; i++) {}"),
-        ("int x = 0; for (x = 1, x = 2; ready(); x++, x++) {}", " for (; ready(); ) {}"),
+        ("int x = 0; for (x = 1, x = 2; ready(); x++, x++) {}", "for (; ready(); ) {}"),
         (
             "int x = 0; for (x = 1, next(); ready(); next(), x++, next()) {}",
-            " for (next(); ready(); next(), next()) {}",
+            "for (next(); ready(); next(), next()) {}",
         ),
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
@@ -651,7 +656,7 @@ fn removes_consecutive_for_expressions_as_one_group() {
     ] {
         Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
             &format!("class A {{ void f() {{ int x = 0; for ({expressions}; ready(); {expressions}) {{}} }} }}"),
-            &format!("class A {{ void f() {{  for ({expected}; ready(); {expected}) {{}} }} }}"),
+            &format!("class A {{ void f() {{ for ({expected}; ready(); {expected}) {{}} }} }}"),
         );
     }
 }
@@ -669,7 +674,7 @@ fn classifies_evaluated_effects_and_target_typing() {
     ] {
         let source = format!("class A {{ void f() {{ Object x = {value}; }} }}");
         tester.fix_leaves_unchanged(FixKind::SAFE_FIX, &source);
-        tester.fixes_unsafe(&source, "class A { void f() {  } }");
+        tester.fixes_unsafe(&source, "class A { void f() { } }");
     }
     for value in [
         "next() + 1",
@@ -683,12 +688,12 @@ fn classifies_evaluated_effects_and_target_typing() {
     ] {
         let source = format!("class A {{ void f() {{ Object x = {value}; }} }}");
         tester.fix_leaves_unchanged(FixKind::SAFE_FIX, &source);
-        tester.fixes_unsafe(&source, "class A { void f() {  } }");
+        tester.fixes_unsafe(&source, "class A { void f() { } }");
     }
     for value in ["0", "1.0", "'x'", "\"hi\"", "true", "null"] {
         tester.fixes(
             &format!("class A {{ void f() {{ Object x = {value}; }} }}"),
-            "class A { void f() {  } }",
+            "class A { void f() { } }",
         );
     }
 }

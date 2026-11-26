@@ -6,7 +6,9 @@ use robusta_syntax::precedence::{GetPrecedence, Precedence};
 use rustc_hash::FxHashSet;
 
 use super::{usage::Local, value::Value};
-use crate::utils::{follows_documentation, pad_fix_with_token_boundary};
+use crate::utils::{
+    follows_documentation, normalize_deletions, pad_fix_with_token_boundary, removal_span,
+};
 use crate::{Fix, FixKind};
 
 impl Local<'_, '_> {
@@ -54,20 +56,11 @@ impl Local<'_, '_> {
         edits.sort_by_key(|edit| (edit.span.start, std::cmp::Reverse(edit.span.end)));
         let mut combined: Vec<Fix> = Vec::new();
         for edit in edits {
-            if let Some(previous) = combined.last_mut() {
-                if previous.span.contains_inclusive(edit.span) {
-                    continue;
-                }
-                if edit.span.start < previous.span.end
-                    && edit.content.is_empty()
-                    && previous.content.is_empty()
-                {
-                    previous.span = previous.span.cover(edit.span);
-                    continue;
-                }
+            if combined.last().is_none_or(|previous| !previous.span.contains_inclusive(edit.span)) {
+                combined.push(edit);
             }
-            combined.push(edit);
         }
+        normalize_deletions(source, &mut combined);
         (fix_kind, combined)
     }
 
@@ -227,15 +220,15 @@ impl Local<'_, '_> {
         }
     }
 
-    /// Deletes a statement from a statement list. Directly after a
-    /// documentation comment it leaves `;`, so the comment cannot attach to
-    /// the next declaration.
+    /// Deletes a statement from a statement list, with its lines when nothing
+    /// else is on them. Directly after a documentation comment it leaves `;`,
+    /// so the comment cannot attach to the next declaration.
     fn delete_statement(&self, span: Span) -> Fix {
         let semantic = self.semantic;
         if follows_documentation(semantic.comments(), span) {
             Fix::new(";", span)
         } else {
-            Fix::delete(span)
+            Fix::delete(removal_span(semantic.source_text(), span))
         }
     }
 
