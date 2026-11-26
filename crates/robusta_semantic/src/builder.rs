@@ -217,11 +217,17 @@ impl<'a> SemanticBuilder<'a> {
         }
     }
 
+    /// Whether the name at `address` is read, written, or both: only the
+    /// target of an assignment or the operand of an update writes it. An
+    /// update's operand may be a parenthesized variable (JLS 15.8.5), so
+    /// parentheses are looked through.
     fn expression_reference_kind(&self, address: Address) -> ReferenceKind {
+        let mut operand = address;
         for ancestor in self.nodes.ancestor_kinds(self.current_node_id) {
             match ancestor {
+                AstKind::ParenthesizedExpression(_) => operand = ancestor.address(),
                 AstKind::AssignmentExpression(assignment)
-                    if assignment.target.address() == address =>
+                    if assignment.target.address() == operand =>
                 {
                     return if assignment.op == AssignOp::Assign {
                         ReferenceKind::Write
@@ -231,14 +237,14 @@ impl<'a> SemanticBuilder<'a> {
                 }
                 AstKind::UnaryExpression(unary)
                     if matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-                        && unary.operand.address() == address =>
+                        && unary.operand.address() == operand =>
                 {
                     return ReferenceKind::ReadWrite;
                 }
-                AstKind::PostfixExpression(postfix) if postfix.operand.address() == address => {
+                AstKind::PostfixExpression(postfix) if postfix.operand.address() == operand => {
                     return ReferenceKind::ReadWrite;
                 }
-                _ => {}
+                _ => break,
             }
         }
         ReferenceKind::Read
