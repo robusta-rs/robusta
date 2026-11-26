@@ -1,4 +1,5 @@
 class Blanks {
+
   int field;
 
   void f() {

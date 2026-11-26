@@ -119,6 +119,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
         });
         let first_member = node.members.first().map_or(0, |member| member.span().start);
         format_braced_body(f, node.is_empty(), node.span, |f| {
+            write_blank_line_at_body_start(node.span, f);
             let mut join = f.join_nodes_with_hardline();
             let constants = self.constants();
             for (index, constant) in constants.iter().enumerate() {
@@ -696,8 +697,23 @@ fn format_type_body<'parent, 'a: 'parent, M: TypeMember + 'a>(
     AstNode<'parent, 'a, M>: Format<'a, JavaFormatContext<'a>>,
 {
     format_braced_body(f, members.is_empty(), span, |f| {
+        write_blank_line_at_body_start(span, f);
         join_type_members(&mut f.join_nodes_with_hardline(), members);
     });
+}
+
+/// Keep one blank line at the start of the type body at `span` where the
+/// source has one after its `{`, or after the line comment kept on the `{`'s
+/// line. Other bodies drop it.
+fn write_blank_line_at_body_start(span: Span, f: &mut JavaFormatter<'_, '_>) {
+    let brace_end = f.comments().position_after_character(span.start, b'{');
+    let start = f
+        .comments()
+        .printed_line_comment_after(brace_end)
+        .map_or(brace_end, |comment| comment.span.end);
+    if f.source_text().lines_after_skipping_terminators(start, None) > 1 {
+        empty_line().fmt(f);
+    }
 }
 
 /// Separate members, preserving source gaps only between fields.
