@@ -307,7 +307,7 @@ class RobustaWorkflowFunctionalTest {
     }
 
     @Test
-    void taskListingAndHelpExposeTheWorkflowMatrixAndRunEscapeHatch() throws Exception {
+    void taskListingAndHelpExposeTheWorkflowMatrixAndVersionTask() throws Exception {
         Path project = createProject("task-ux", null, PLUGIN_BUILD);
 
         BuildResult tasks = runner(project, "tasks", "--group", "robusta").build();
@@ -325,18 +325,19 @@ class RobustaWorkflowFunctionalTest {
             assertFalse(help.getOutput().contains("reportFile"));
             assertFalse(help.getOutput().contains("reporter"));
         }
-        BuildResult runHelp = assertTaskHelp(
+        BuildResult versionHelp = assertTaskHelp(
             project,
-            "robustaRun",
-            "Runs the Robusta CLI with the supplied arguments."
+            "robustaVersion",
+            "Prints the Robusta CLI version."
         );
-        assertTrue(runHelp.getOutput().contains("--args"));
+        assertTrue(versionHelp.getOutput().contains("--args"));
 
         BuildResult allTasks = runner(project, "tasks", "--all").build();
         for (WorkflowCase workflow : WORKFLOWS) {
             assertEquals(1, occurrences(allTasks.getOutput(), workflow.taskName() + " -"));
         }
-        assertEquals(1, occurrences(allTasks.getOutput(), "robustaRun -"));
+        assertEquals(1, occurrences(allTasks.getOutput(), "robustaVersion -"));
+        assertFalse(allTasks.getOutput().contains("robustaRun"));
         assertFalse(allTasks.getOutput().contains("robustaApply"));
         assertFalse(allTasks.getOutput().contains("robustaRoot"));
         assertFalse(allTasks.getOutput().contains("NO-SOURCE"));

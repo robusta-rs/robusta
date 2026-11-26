@@ -21,26 +21,21 @@ class MultiModuleFunctionalTest {
     @TempDir Path temporaryDirectory;
 
     @Test
-    void rootGoalsSkipCoveredModulesButRunStaysLocal() throws Exception {
+    void rootGoalsSkipCoveredModules() throws Exception {
         Path root = reactor();
         Path wrapper = wrapper();
         Path record = temporaryDirectory.resolve("calls.txt");
         writeBehavior(temporaryDirectory, record, 0);
         for (String goal : List.of("check", "check-diff", "check-fix", "format", "format-diff", "format-fix",
-                "lint", "lint-diff", "lint-fix", "config-show", "config-init")) {
+                "lint", "lint-diff", "lint-fix", "config-show", "config-init", "version")) {
             Files.deleteIfExists(record);
             run(root, wrapper, goalCoordinate(goal));
             assertEquals(List.of(root.toRealPath().toString()), workingDirectories(record), goal);
         }
-        Files.delete(record);
-        run(root, wrapper, goalCoordinate("run"));
-        assertEquals(List.of(root.toRealPath().toString(), root.resolve("app").toRealPath().toString(),
-                root.resolve("app/inner").toRealPath().toString(), root.resolve("sibling").toRealPath().toString())
-                .stream().sorted().toList(), workingDirectories(record).stream().sorted().toList());
     }
 
     @Test
-    void selectedNestedModulesRunConfigGoalsInTheOutermostSelectedModule() throws Exception {
+    void selectedNestedModulesRunConfigAndVersionGoalsInTheOutermostSelectedModule() throws Exception {
         Path root = reactor();
         Path wrapper = wrapper();
         Path record = temporaryDirectory.resolve("calls.txt");
@@ -51,6 +46,14 @@ class MultiModuleFunctionalTest {
         Files.delete(record);
         run(root, wrapper, "-pl", "app/inner,app", goalCoordinate("config-init"));
         assertEquals(List.of(new Invocation(root.resolve("app").toRealPath(), List.of("init"))),
+                readInvocations(record));
+        Files.delete(record);
+        run(root, wrapper, "-pl", "app/inner,app", goalCoordinate("version"));
+        assertEquals(List.of(new Invocation(root.resolve("app").toRealPath(), List.of("--version"))),
+                readInvocations(record));
+        Files.delete(record);
+        run(root, wrapper, "-pl", "app/inner", goalCoordinate("version"));
+        assertEquals(List.of(new Invocation(root.resolve("app/inner").toRealPath(), List.of("--version"))),
                 readInvocations(record));
     }
 

@@ -115,6 +115,16 @@ final class FunctionalTestSupport {
         }
     }
 
+    /** Returns the directory the suite's Gradle task staged the native fake's bundle in. */
+    static Path fakeBundle() {
+        String bundle = System.getProperty(FAKE_BUNDLE_PROPERTY);
+        if (bundle == null) {
+            throw new IllegalStateException(
+                    "Run the suite through its Gradle task, which stages the fake bundle");
+        }
+        return Path.of(bundle);
+    }
+
     static Path newTestKitDirectory(String name) throws IOException {
         String configuredRoot = System.getProperty(TEST_KIT_ROOT_PROPERTY);
         Path root = configuredRoot == null
@@ -168,13 +178,8 @@ final class FunctionalTestSupport {
         private FakeBundle() {}
 
         private static List<File> load() {
-            String bundle = System.getProperty(FAKE_BUNDLE_PROPERTY);
-            if (bundle == null) {
-                throw new IllegalStateException(
-                        "Run the suite through its Gradle task, which stages the fake bundle");
-            }
             try {
-                return BundledPluginClasspath.pluginClasspath(Path.of(bundle));
+                return BundledPluginClasspath.pluginClasspath(fakeBundle());
             } catch (IOException error) {
                 throw new UncheckedIOException("Failed to read the plugin classpath", error);
             }

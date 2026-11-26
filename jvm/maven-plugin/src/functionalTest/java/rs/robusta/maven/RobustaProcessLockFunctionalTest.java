@@ -44,7 +44,7 @@ class RobustaProcessLockFunctionalTest {
 
     @Test
     void serialControlRemainsSerial() throws Exception {
-        Path root = reactor("format-fix", "run", 0);
+        Path root = reactor("format-fix", "version", 0);
         Result result = run(root, "validate");
         assertEquals(0, result.exitCode(), result.output());
         assertSerialActivity(root.resolve("activity"), 2);
@@ -53,7 +53,7 @@ class RobustaProcessLockFunctionalTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
     void nativeFailureReleasesTheSlotForAnotherModule(int exitCode) throws Exception {
-        Path root = reactor("format-fix", "run", exitCode);
+        Path root = reactor("format-fix", "version", exitCode);
         Result result = run(root, "-T", "3", "--fail-at-end", "validate");
         assertEquals(1, result.exitCode(), result.output());
         assertTrue(result.output().contains("beta") && result.output().contains("SUCCESS"), result.output());
@@ -62,7 +62,7 @@ class RobustaProcessLockFunctionalTest {
 
     @Test
     void unrelatedMavenWorkCanRunWhileTheNativeProcessWaits() throws Exception {
-        Path root = reactor("format-fix", "run", 0);
+        Path root = reactor("format-fix", "version", 0);
         Path alpha = root.resolve("alpha/pom.xml");
         Files.writeString(alpha, Files.readString(alpha).replace("--exit=0", "--exit=0 --await-release"));
         Path beta = root.resolve("beta/pom.xml");
@@ -94,7 +94,7 @@ class RobustaProcessLockFunctionalTest {
         for (String name : List.of("alpha", "beta")) {
             String goal = name.equals("alpha") ? first : second;
             String activity = root.resolve("activity").toString().replace('\\', '/');
-            String args = (goal.equals("run") ? "lint --fix " : "") + "--activity=\"" + activity + "\""
+            String args = "--activity=\"" + activity + "\""
                     + " --exit=" + (name.equals("alpha") ? exitCode : 0);
             String binding = """
                 <build><plugins><plugin>
@@ -115,9 +115,9 @@ class RobustaProcessLockFunctionalTest {
     private static Stream<Arguments> goalPairs() {
         return Stream.of(
                 Arguments.of("format-fix", "format-fix"),
-                Arguments.of("format-fix", "run"),
+                Arguments.of("format-fix", "version"),
                 Arguments.of("config-show", "lint-fix"),
-                Arguments.of("config-init", "run"),
-                Arguments.of("run", "run"));
+                Arguments.of("config-init", "version"),
+                Arguments.of("version", "version"));
     }
 }

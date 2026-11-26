@@ -16,9 +16,6 @@ import java.util.List;
  * <p>Both published names are spelled out rather than derived from one another. The projection
  * between them is mechanical, but a published name that follows a computed value changes
  * silently when the computation does, so each is stated where it can be read and reviewed.
- *
- * <p>The arbitrary-command pass-through ({@code robustaRun}, {@code robusta:run}) is deliberately
- * absent: it interprets no command line of its own.
  */
 public enum RobustaFixedCommand {
     /** Verify formatting and lint findings. */
@@ -103,6 +100,13 @@ public enum RobustaFixedCommand {
         "config-init",
         "Creates a starter robusta.yaml in this project directory.",
         "init"
+    ),
+    /** Print the CLI version. */
+    VERSION(
+        "robustaVersion",
+        "version",
+        "Prints the Robusta CLI version.",
+        "--version"
     );
 
     private final String gradleTaskName;
@@ -156,6 +160,17 @@ public enum RobustaFixedCommand {
      */
     public List<String> arguments() {
         return arguments;
+    }
+
+    /**
+     * Returns whether this command reads sources, so that it runs from the root directory limited
+     * to a project's directory rather than in that directory.
+     *
+     * @return true for the check, format, and lint commands
+     */
+    public boolean readsSources() {
+        String verb = arguments.get(0);
+        return verb.equals("check") || verb.equals("format") || verb.equals("lint");
     }
 
     /**

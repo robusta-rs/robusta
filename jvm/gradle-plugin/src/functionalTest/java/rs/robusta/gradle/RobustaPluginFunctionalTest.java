@@ -29,7 +29,7 @@ class RobustaPluginFunctionalTest {
         BuildResult result =
                 runner(
                                 project,
-                                "robustaRun",
+                                "robustaVersion",
                                 "--args=--record=\""
                                         + record
                                         + "\" alpha \"two words\" "
@@ -42,11 +42,12 @@ class RobustaPluginFunctionalTest {
         assertEquals(
                 List.of(
                         "cwd=" + project.toRealPath(),
-                        "arg[0]=--record=" + record,
-                        "arg[1]=alpha",
-                        "arg[2]=two words",
-                        "arg[3]=--option=value with spaces",
-                        "arg[4]=path with spaces/Example.java"),
+                        "arg[0]=--version",
+                        "arg[1]=--record=" + record,
+                        "arg[2]=alpha",
+                        "arg[3]=two words",
+                        "arg[4]=--option=value with spaces",
+                        "arg[5]=path with spaces/Example.java"),
                 Files.readAllLines(record, StandardCharsets.UTF_8));
     }
 
@@ -59,20 +60,21 @@ class RobustaPluginFunctionalTest {
                 """
                 plugins { id("rs.robusta") }
 
-                tasks.named<rs.robusta.gradle.RobustaExecTask>("robustaRun") {
+                tasks.named<rs.robusta.gradle.RobustaFixedCommandTask>("robustaVersion") {
                     arguments.set(listOf("--record=%s", "configured value"))
                 }
                 """
                         .formatted(kotlinString(record)),
                 StandardCharsets.UTF_8);
 
-        runner(project, "robustaRun").build();
+        runner(project, "robustaVersion").build();
 
         assertEquals(
                 List.of(
                         "cwd=" + project.toRealPath(),
-                        "arg[0]=--record=" + record,
-                        "arg[1]=configured value"),
+                        "arg[0]=--version",
+                        "arg[1]=--record=" + record,
+                        "arg[2]=configured value"),
                 Files.readAllLines(record, StandardCharsets.UTF_8));
     }
 
@@ -83,7 +85,7 @@ class RobustaPluginFunctionalTest {
         BuildResult verificationFailure =
                 runner(
                                 project,
-                                "robustaRun",
+                                "robustaVersion",
                                 "--args=--exit=1")
                         .buildAndFail();
         assertTrue(
@@ -95,7 +97,7 @@ class RobustaPluginFunctionalTest {
         BuildResult operationalFailure =
                 runner(
                                 project,
-                                "robustaRun",
+                                "robustaVersion",
                                 "--args=--exit=2")
                         .buildAndFail();
         assertTrue(
@@ -111,8 +113,7 @@ class RobustaPluginFunctionalTest {
         GradleRunner firstRunner =
                 runner(
                         project,
-                        "robustaRun",
-                        "--args=--version",
+                        "robustaVersion",
                         "--configuration-cache");
         BuildResult first = firstRunner.build();
         assertTrue(first.getOutput().contains("Configuration cache entry stored"));
@@ -120,8 +121,7 @@ class RobustaPluginFunctionalTest {
         BuildResult second =
                 runner(
                                 project,
-                                "robustaRun",
-                                "--args=--version",
+                                "robustaVersion",
                                 "--configuration-cache")
                         .build();
         assertTrue(second.getOutput().contains("Reusing configuration cache"));
@@ -134,8 +134,7 @@ class RobustaPluginFunctionalTest {
 
         BuildResult version = realRunner(
                         project,
-                        "robustaRun",
-                        "--args=--version",
+                        "robustaVersion",
                         "--configuration-cache")
                 .build();
         assertTrue(version.getOutput().contains("Version: "));
@@ -143,14 +142,13 @@ class RobustaPluginFunctionalTest {
 
         BuildResult reusedVersion = realRunner(
                         project,
-                        "robustaRun",
-                        "--args=--version",
+                        "robustaVersion",
                         "--configuration-cache")
                 .build();
         assertTrue(reusedVersion.getOutput().contains("Version: "));
         assertTrue(reusedVersion.getOutput().contains("Configuration cache entry reused"));
 
-        BuildResult rules = realRunner(project, "robustaRun", "--args=lint --rules").build();
+        BuildResult rules = realRunner(project, "robustaLint", "--args=--rules").build();
         assertTrue(rules.getOutput().contains("modifier-order"));
     }
 }

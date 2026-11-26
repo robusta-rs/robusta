@@ -54,22 +54,22 @@ class RobustaProcessServiceFunctionalTest {
             tasks.named("robustaFormatFix") { arguments.add("--exit=%d") }
             """.formatted(exitCode), java.nio.file.StandardOpenOption.APPEND);
         Files.writeString(project.resolve("beta/build.gradle"), """
-            tasks.named("robustaRun") { mustRunAfter(":alpha:robustaFormatFix") }
+            tasks.named("robustaVersion") { mustRunAfter(":alpha:robustaFormatFix") }
             """, java.nio.file.StandardOpenOption.APPEND);
         String[] arguments = {
-            ":alpha:robustaFormatFix", ":beta:robustaRun", "--parallel", "--max-workers=3",
+            ":alpha:robustaFormatFix", ":beta:robustaVersion", "--parallel", "--max-workers=3",
             "--continue", "--configuration-cache"
         };
 
         BuildResult failed = runner(project, arguments).buildAndFail();
         assertEquals(TaskOutcome.FAILED, failed.task(":alpha:robustaFormatFix").getOutcome());
-        assertEquals(TaskOutcome.SUCCESS, failed.task(":beta:robustaRun").getOutcome());
+        assertEquals(TaskOutcome.SUCCESS, failed.task(":beta:robustaVersion").getOutcome());
         assertSerialActivity(project.resolve("activity"), 2);
         Files.delete(project.resolve("activity/events"));
 
         BuildResult reused = runner(project, arguments).buildAndFail();
         assertTrue(reused.getOutput().contains("Configuration cache entry reused"));
-        assertEquals(TaskOutcome.SUCCESS, reused.task(":beta:robustaRun").getOutcome());
+        assertEquals(TaskOutcome.SUCCESS, reused.task(":beta:robustaVersion").getOutcome());
         assertSerialActivity(project.resolve("activity"), 2);
     }
 
@@ -132,7 +132,6 @@ class RobustaProcessServiceFunctionalTest {
                 tasks.withType(rs.robusta.gradle.AbstractRobustaTask).configureEach {
                     arguments.add("--activity=" + rootProject.file("activity").absolutePath)
                 }
-                tasks.named("robustaRun") { arguments.addAll("lint", "--fix") }
                 """);
         }
         return project;
@@ -141,10 +140,10 @@ class RobustaProcessServiceFunctionalTest {
     private static Stream<Arguments> taskPairs() {
         return Stream.of(
             Arguments.of("robustaFormatFix", "robustaFormatFix"),
-            Arguments.of("robustaFormatFix", "robustaRun"),
+            Arguments.of("robustaFormatFix", "robustaVersion"),
             Arguments.of("robustaConfigShow", "robustaLintFix"),
-            Arguments.of("robustaConfigInit", "robustaRun"),
-            Arguments.of("robustaRun", "robustaRun")
+            Arguments.of("robustaConfigInit", "robustaVersion"),
+            Arguments.of("robustaVersion", "robustaVersion")
         );
     }
 }

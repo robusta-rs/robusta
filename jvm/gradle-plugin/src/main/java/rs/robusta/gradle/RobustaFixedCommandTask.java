@@ -28,7 +28,7 @@ public abstract class RobustaFixedCommandTask extends AbstractRobustaTask {
         });
     }
 
-    /** @return the source scope, absent for configuration tasks */
+    /** @return the source scope, absent for tasks that read no sources */
     @Internal
     public abstract DirectoryProperty getSourceDirectory();
 

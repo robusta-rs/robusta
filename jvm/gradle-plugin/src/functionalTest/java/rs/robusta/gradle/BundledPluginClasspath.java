@@ -27,14 +27,12 @@ final class BundledPluginClasspath {
         Path binaryDirectory = Files.createDirectories(
                 resources.resolve("META-INF/robusta/bin"));
         Path binary = binaryDirectory.resolve(platform.bundledBinaryName());
-        if (platform.isWindows()) {
-            Files.copy(windowsShell(), binary, StandardCopyOption.REPLACE_EXISTING);
-        } else {
-            Files.writeString(
-                    binary,
-                    "#!/bin/sh\necho bundled robusta\n",
-                    StandardCharsets.UTF_8);
-        }
+        Files.copy(
+                FunctionalTestSupport.fakeBundle()
+                        .resolve("META-INF/robusta/bin")
+                        .resolve(platform.bundledBinaryName()),
+                binary,
+                StandardCopyOption.REPLACE_EXISTING);
         String checksum = validChecksum ? sha256(binary) : "0".repeat(64);
         Files.writeString(
                 binary.resolveSibling(binary.getFileName() + ".sha256"),
@@ -63,18 +61,6 @@ final class BundledPluginClasspath {
             classpath.add(new File(entry));
         }
         return List.copyOf(classpath);
-    }
-
-    static List<String> echoArguments() {
-        if (hostPlatform().isWindows()) {
-            return List.of("--args=/c \"echo bundled robusta\"");
-        }
-        return List.of("--args=-c \"echo bundled robusta\"");
-    }
-
-    private static Path windowsShell() {
-        return Path.of(System.getenv().getOrDefault(
-                "ComSpec", "C:\\Windows\\System32\\cmd.exe"));
     }
 
     private static String sha256(Path path) throws IOException {

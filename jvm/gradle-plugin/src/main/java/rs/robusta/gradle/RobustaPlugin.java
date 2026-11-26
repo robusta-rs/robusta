@@ -14,9 +14,6 @@ import rs.robusta.plugin.common.RobustaFixedCommand;
 
 /** Thin Gradle adapter for the bundled Robusta CLI executable. */
 public final class RobustaPlugin implements Plugin<Object> {
-    /** Name of the arbitrary-command pass-through task. */
-    public static final String RUN_TASK_NAME = "robustaRun";
-
     @Override
     public void apply(Object target) {
         if (target instanceof Settings) {
@@ -43,19 +40,7 @@ public final class RobustaPlugin implements Plugin<Object> {
             task.getPluginVersion().set(pluginVersion);
         });
 
-        project.getTasks()
-            .register(
-                RUN_TASK_NAME,
-                RobustaExecTask.class,
-                task -> {
-                    task.setGroup("robusta");
-                    task.setDescription("Runs the Robusta CLI with the supplied arguments.");
-                    task.getWorkingDirectory()
-                        .convention(project.getLayout().getProjectDirectory());
-                }
-            );
-
-        List<RobustaFixedCommandTask> configTasks = new ArrayList<>();
+        List<RobustaFixedCommandTask> directoryTasks = new ArrayList<>();
         for (RobustaFixedCommand command : RobustaFixedCommand.values()) {
             project.getTasks()
                 .register(
@@ -66,8 +51,7 @@ public final class RobustaPlugin implements Plugin<Object> {
                         task.setDescription(command.description());
                         task.getWorkingDirectory()
                             .convention(project.getLayout().getProjectDirectory());
-                        if (command != RobustaFixedCommand.CONFIG_SHOW
-                                && command != RobustaFixedCommand.CONFIG_INIT) {
+                        if (command.readsSources()) {
                             task.getWorkingDirectory().convention(
                                 project.getRootProject().getLayout().getProjectDirectory()
                             );
@@ -75,14 +59,15 @@ public final class RobustaPlugin implements Plugin<Object> {
                             task.getSourceRuns().set(sourceRuns);
                             task.mustRunAfter((Callable<List<String>>) () -> enclosingTasks(project, task));
                         } else {
-                            configTasks.add(task);
+                            directoryTasks.add(task);
                         }
                     }
                 );
         }
-        // The enclosing project's configuration file also applies to this one.
+        // An enclosing project's run serves this one: its configuration file applies here too, and
+        // it reports the same CLI version.
         project.getGradle().getTaskGraph().whenReady(graph -> {
-            for (RobustaFixedCommandTask task : configTasks) {
+            for (RobustaFixedCommandTask task : directoryTasks) {
                 if (graph.hasTask(task) && enclosingTasks(project, task).stream().anyMatch(graph::hasTask)) {
                     task.setEnabled(false);
                 }

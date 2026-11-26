@@ -115,8 +115,7 @@ class PublishedPluginFunctionalTest {
                 .withProjectDir(project.toFile())
                 .withTestKitDir(testKitDirectory.toFile())
                 .withArguments(
-                        "robustaRun",
-                        "--args=--version",
+                        "robustaVersion",
                         "--configuration-cache",
                         "--stacktrace");
     }

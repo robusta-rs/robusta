@@ -36,7 +36,8 @@ class RobustaPluginTest {
         Map.entry("robustaLintDiff", List.of("lint", "--diff")),
         Map.entry("robustaLintFix", List.of("lint", "--fix")),
         Map.entry("robustaConfigShow", List.of("config")),
-        Map.entry("robustaConfigInit", List.of("init"))
+        Map.entry("robustaConfigInit", List.of("init")),
+        Map.entry("robustaVersion", List.of("--version"))
     );
 
     @TempDir File projectDirectory;
@@ -58,20 +59,9 @@ class RobustaPluginTest {
             .stream()
             .filter(name -> name.startsWith("robusta"))
             .collect(Collectors.toSet());
-        assertEquals(
-            union(EXPECTED_FIXED_COMMANDS.keySet(), Set.of(RobustaPlugin.RUN_TASK_NAME)),
-            robustaTasks
-        );
+        assertEquals(EXPECTED_FIXED_COMMANDS.keySet(), robustaTasks);
         assertFalse(robustaTasks.contains("robustaApply"));
         assertFalse(robustaTasks.stream().anyMatch(name -> name.startsWith("robustaRoot")));
-
-        RobustaExecTask run = (RobustaExecTask) project.getTasks()
-            .getByName(RobustaPlugin.RUN_TASK_NAME);
-        assertTrue(run.getArguments().get().isEmpty());
-        assertEquals(
-            projectDirectory.getCanonicalFile(),
-            run.getWorkingDirectory().get().getAsFile().getCanonicalFile()
-        );
 
         for (String taskName : EXPECTED_FIXED_COMMANDS.keySet()) {
             RobustaFixedCommandTask task = (RobustaFixedCommandTask) project.getTasks()
@@ -90,10 +80,7 @@ class RobustaPluginTest {
         project.getPluginManager().apply(RobustaPlugin.class);
         List<String> parsed = List.of("--option=two words", "single quoted");
 
-        for (String taskName : union(
-            EXPECTED_FIXED_COMMANDS.keySet(),
-            Set.of(RobustaPlugin.RUN_TASK_NAME)
-        )) {
+        for (String taskName : EXPECTED_FIXED_COMMANDS.keySet()) {
             AbstractRobustaTask task = (AbstractRobustaTask) project.getTasks()
                 .getByName(taskName);
             task.setCommandLineArguments("--option=\"two words\" 'single quoted'");
@@ -164,11 +151,6 @@ class RobustaPluginTest {
             .getDependencies(task)
             .stream()
             .map(Task::getName)
-            .collect(Collectors.toSet());
-    }
-
-    private static Set<String> union(Set<String> left, Set<String> right) {
-        return java.util.stream.Stream.concat(left.stream(), right.stream())
             .collect(Collectors.toSet());
     }
 }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -47,6 +48,17 @@ class RobustaFixedCommandTest {
         assertThrows(
             UnsupportedOperationException.class,
             () -> RobustaFixedCommand.CHECK.arguments().add("--fix"));
+    }
+
+    @Test
+    void onlyTheConfigAndVersionCommandsReadNoSources() {
+        Set<RobustaFixedCommand> sourceless = EnumSet.of(
+            RobustaFixedCommand.CONFIG_SHOW,
+            RobustaFixedCommand.CONFIG_INIT,
+            RobustaFixedCommand.VERSION);
+        for (RobustaFixedCommand command : RobustaFixedCommand.values()) {
+            assertEquals(!sourceless.contains(command), command.readsSources(), command.name());
+        }
     }
 
     @Test

@@ -36,7 +36,7 @@ class BundledRobustaFunctionalTest {
 
         BuildResult first =
                 runner(project, resources, testKitDirectory, bundledArguments(true)).build();
-        assertTrue(first.getOutput().contains("bundled robusta"));
+        assertTrue(first.getOutput().contains("fake robusta stdout"));
         assertTrue(first.getOutput().contains("Configuration cache entry stored"));
 
         RobustaPlatform platform = BundledPluginClasspath.hostPlatform();
@@ -50,7 +50,7 @@ class BundledRobustaFunctionalTest {
 
         BuildResult second =
                 runner(project, resources, testKitDirectory, bundledArguments(true)).build();
-        assertTrue(second.getOutput().contains("bundled robusta"));
+        assertTrue(second.getOutput().contains("fake robusta stdout"));
         assertTrue(second.getOutput().contains("Reusing configuration cache"));
         assertTrue(second.getOutput().contains("Configuration cache entry reused"));
         assertEquals(sentinel, Files.getLastModifiedTime(extracted));
@@ -101,8 +101,8 @@ class BundledRobustaFunctionalTest {
             Future<BuildResult> second = executor.submit(() -> runner(
                     secondProject, resources, testKitDirectory, bundledArguments(false)).build());
 
-            assertTrue(first.get(2, TimeUnit.MINUTES).getOutput().contains("bundled robusta"));
-            assertTrue(second.get(2, TimeUnit.MINUTES).getOutput().contains("bundled robusta"));
+            assertTrue(first.get(2, TimeUnit.MINUTES).getOutput().contains("fake robusta stdout"));
+            assertTrue(second.get(2, TimeUnit.MINUTES).getOutput().contains("fake robusta stdout"));
         } finally {
             executor.shutdownNow();
         }
@@ -128,8 +128,7 @@ class BundledRobustaFunctionalTest {
 
     private static String[] bundledArguments(boolean configurationCache) {
         List<String> arguments = new ArrayList<>();
-        arguments.add("robustaRun");
-        arguments.addAll(BundledPluginClasspath.echoArguments());
+        arguments.add("robustaVersion");
         if (configurationCache) {
             arguments.add("--configuration-cache");
         }

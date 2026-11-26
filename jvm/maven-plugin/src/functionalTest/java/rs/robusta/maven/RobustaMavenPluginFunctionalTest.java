@@ -7,6 +7,7 @@ import static rs.robusta.maven.FunctionalTestSupport.Result;
 import static rs.robusta.maven.FunctionalTestSupport.createProject;
 import static rs.robusta.maven.FunctionalTestSupport.goalCoordinate;
 import static rs.robusta.maven.FunctionalTestSupport.minimalPom;
+import static rs.robusta.maven.FunctionalTestSupport.pluginVersion;
 import static rs.robusta.maven.FunctionalTestSupport.runFakeMaven;
 import static rs.robusta.maven.FunctionalTestSupport.runMaven;
 import static rs.robusta.maven.FunctionalTestSupport.writeJavaSource;
@@ -155,19 +156,24 @@ class RobustaMavenPluginFunctionalTest {
     }
 
     @Test
-    void theRunGoalPassesItsArgumentsThrough() throws Exception {
-        Path project = createProject(temporaryDirectory, "passthrough", minimalPom("passthrough"));
+    void theVersionGoalPrintsTheBundledCliVersion() throws Exception {
+        Path project = createProject(temporaryDirectory, "version", minimalPom("version"));
 
-        Result result = runMaven(
-                project,
-                temporaryDirectory.resolve("local-repo"),
-                "-Drobusta.args=lint --rules",
-                goalCoordinate("run"));
+        Result result = runMaven(project, temporaryDirectory.resolve("local-repo"), goalCoordinate("version"));
 
         assertEquals(0, result.exitCode(), result.output());
-        assertTrue(
-                result.output().contains("modifier-order"),
-                "the pass-through goal should reach `robusta lint --rules`:\n" + result.output());
+        assertTrue(result.output().contains("Version: " + pluginVersion()), result.output());
+    }
+
+    @Test
+    void theLintGoalListsTheRulesWithItsArguments() throws Exception {
+        Path project = createProject(temporaryDirectory, "rules", minimalPom("rules"));
+
+        Result result = runMaven(
+                project, temporaryDirectory.resolve("local-repo"), "-Drobusta.args=--rules", goalCoordinate("lint"));
+
+        assertEquals(0, result.exitCode(), result.output());
+        assertTrue(result.output().contains("modifier-order"), result.output());
     }
 
     @Test
@@ -186,7 +192,7 @@ class RobustaMavenPluginFunctionalTest {
 
             assertEquals(0, result.exitCode(), result.output());
             List<String> expected = new ArrayList<>(command.arguments());
-            if (!command.arguments().get(0).equals("config") && !command.arguments().get(0).equals("init")) {
+            if (command.readsSources()) {
                 expected.add(".");
             }
             expected.addAll(extras);
@@ -195,16 +201,6 @@ class RobustaMavenPluginFunctionalTest {
                     readInvocations(record),
                     command.mavenGoalName());
         }
-
-        Files.delete(record);
-        Result result = runFakeMaven(
-                project,
-                temporaryDirectory.resolve("local-repo"),
-                "-Drobusta.args=lint --config 'path with spaces/robusta.yaml'",
-                goalCoordinate("run"));
-        assertEquals(0, result.exitCode(), result.output());
-        assertEquals(List.of(new Invocation(project.toRealPath(),
-                List.of("lint", "--config", "path with spaces/robusta.yaml"))), readInvocations(record));
     }
 
     @Test
@@ -216,7 +212,6 @@ class RobustaMavenPluginFunctionalTest {
         for (RobustaFixedCommand command : RobustaFixedCommand.values()) {
             goals.add(command.mavenGoalName());
         }
-        goals.add("run");
         for (String goal : goals) {
             Result result = runFakeMaven(
                     project,
@@ -272,9 +267,8 @@ class RobustaMavenPluginFunctionalTest {
         assertFalse(Files.exists(project.resolve("robusta.yaml")));
     }
 
-    /** A standalone project's source and pass-through goals share its baseline. */
     @Test
-    void theLintGoalEnforcesABaselineThePassThroughGoalRecords() throws Exception {
+    void theLintGoalEnforcesTheBaselineItRecords() throws Exception {
         Path project = createProject(temporaryDirectory, "baseline", minimalPom("baseline"));
         Files.writeString(
                 project.resolve("robusta.yaml"),
@@ -298,7 +292,7 @@ class RobustaMavenPluginFunctionalTest {
         assertEquals(1, unbaselined.exitCode(), unbaselined.output());
 
         Result suppress = runMaven(
-                project, localRepository, "-Drobusta.args=lint --suppress-all", goalCoordinate("run"));
+                project, localRepository, "-Drobusta.args=--suppress-all", goalCoordinate("lint"));
         assertEquals(0, suppress.exitCode(), suppress.output());
         assertEquals(
                 """

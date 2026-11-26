@@ -148,16 +148,17 @@ class RobustaMultiProjectFunctionalTest {
     }
 
     @Test
-    void configurationTasksRunOnlyInTheOutermostRequestedProject() throws Exception {
+    void configurationAndVersionTasksRunOnlyInTheOutermostRequestedProject() throws Exception {
         Path project = project("config", "");
         Path record = project.resolve("invocations.txt");
         FakeRobusta.writeBehavior(project, record, 0);
 
         runner(
-            project, ":app:robustaConfigShow", ":app:robustaConfigInit"
+            project, ":app:robustaConfigShow", ":app:robustaConfigInit", ":app:robustaVersion"
         ).build();
 
         List<Invocation> inApp = List.of(
+            new Invocation(real(project.resolve("app")), List.of("--version")),
             new Invocation(real(project.resolve("app")), List.of("config")),
             new Invocation(real(project.resolve("app")), List.of("init"))
         );
@@ -165,9 +166,11 @@ class RobustaMultiProjectFunctionalTest {
 
         Files.delete(record);
         String[] arguments = {
-            ":app:nested:robustaConfigInit", "robustaConfigShow", "robustaConfigInit", CONFIGURATION_CACHE
+            ":app:nested:robustaConfigInit", ":app:nested:robustaVersion", "robustaConfigShow",
+            "robustaConfigInit", "robustaVersion", CONFIGURATION_CACHE
         };
         List<Invocation> inRoot = List.of(
+            new Invocation(real(project), List.of("--version")),
             new Invocation(real(project), List.of("config")),
             new Invocation(real(project), List.of("init"))
         );
@@ -181,6 +184,7 @@ class RobustaMultiProjectFunctionalTest {
         for (String child : List.of("app", "app:nested", "lib")) {
             assertEquals(TaskOutcome.SKIPPED, reused.task(":" + child + ":robustaConfigShow").getOutcome());
             assertEquals(TaskOutcome.SKIPPED, reused.task(":" + child + ":robustaConfigInit").getOutcome());
+            assertEquals(TaskOutcome.SKIPPED, reused.task(":" + child + ":robustaVersion").getOutcome());
         }
         assertEquals(inRoot, invocationsByArguments(record));
     }
