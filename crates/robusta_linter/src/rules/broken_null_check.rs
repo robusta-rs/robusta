@@ -204,10 +204,8 @@ fn dereference_within(
     context: &LintContext<'_, '_, '_>,
 ) -> Option<Span> {
     let is_wrapper = declared_type(symbol, context) == OperandType::Wrapper;
-    references_within(operand, symbol, context).find_map(|(node_id, _)| {
-        dereference_at(node_id, context)
-            .or_else(|| if is_wrapper { unboxing_at(node_id, context) } else { None })
-    })
+    references_within(operand, symbol, context)
+        .find_map(|(node_id, _)| dereference_at(node_id, is_wrapper, context))
 }
 
 fn references_within<'a>(
@@ -222,58 +220,65 @@ fn references_within<'a>(
         .map(|reference| (reference.node_id(), reference.kind()))
 }
 
-/// The span of the whole access when the name at `node_id` is the target of a
-/// dereference, or `None` when the name merely stands for its own value.
-fn dereference_at(node_id: NodeId, context: &LintContext<'_, '_, '_>) -> Option<Span> {
-    let nodes = context.nodes();
-    let name = nodes.kind(node_id);
-    let AstKind::IdentifierReference(_) = name else { return None };
-    let parent_id = nodes.parent_id(node_id);
-    let parent = nodes.kind(parent_id);
-    match parent {
-        AstKind::MethodMember(member) if member.target.address() == name.address() => {
-            Some(nodes.parent_kind(parent_id).span())
-        }
-        // The access is the whole dotted name.
-        AstKind::FieldAccess(access) if access.target.address() == name.address() => {
-            let mut outermost = parent;
-            for ancestor in nodes.ancestor_kinds(parent_id) {
-                match ancestor {
-                    AstKind::FieldAccess(access)
-                        if access.target.address() == outermost.address() =>
-                    {
-                        outermost = ancestor;
-                    }
-                    _ => break,
-                }
-            }
-            Some(outermost.span())
-        }
-        AstKind::ArrayAccess(access) if access.array.address() == name.address() => {
-            Some(access.span)
-        }
-        // Evaluating `x::m` throws when `x` is null (JLS §15.13.3).
-        AstKind::MethodReference(reference) if reference.target.address() == name.address() => {
-            Some(reference.span)
-        }
-        _ => None,
-    }
-}
-
-/// The span of the wrapper-typed name at `node_id` when the operator it is an
-/// operand of unboxes it (JLS 5.1.8).
-fn unboxing_at(node_id: NodeId, context: &LintContext<'_, '_, '_>) -> Option<Span> {
+/// The span of the dereference the name at `node_id` is the target of, or
+/// `None` when the name merely stands for its own value: the whole access, or
+/// the name itself when it is declared with a wrapper type (`is_wrapper`) and
+/// the operator it is an operand of unboxes it (JLS 5.1.8).
+fn dereference_at(
+    node_id: NodeId,
+    is_wrapper: bool,
+    context: &LintContext<'_, '_, '_>,
+) -> Option<Span> {
     let nodes = context.nodes();
     let kind = nodes.kind(node_id);
     let AstKind::IdentifierReference(name) = kind else { return None };
-    let mut operand = kind;
-    for ancestor in nodes.ancestor_kinds(node_id) {
-        match ancestor {
-            AstKind::ParenthesizedExpression(_) => operand = ancestor,
+    let mut unboxable = is_wrapper;
+    // The target may be the name inside parentheses and reference casts, which
+    // pass its value on unchanged: casting null succeeds (JLS §5.5).
+    let mut target = kind;
+    for (parent_id, parent) in nodes.ancestors_enumerated(node_id) {
+        let parent = parent.kind();
+        match parent {
+            AstKind::ParenthesizedExpression(_) => target = parent,
+            AstKind::CastExpression(cast)
+                if cast.operand.address() == target.address()
+                    && !matches!(cast.ty, Type::Primitive(_)) =>
+            {
+                target = parent;
+                // The cast's type, not the declared one, decides unboxing.
+                unboxable = false;
+            }
+            AstKind::MethodMember(member) if member.target.address() == target.address() => {
+                return Some(nodes.parent_kind(parent_id).span());
+            }
+            // The access is the whole dotted name.
+            AstKind::FieldAccess(access) if access.target.address() == target.address() => {
+                let mut outermost = parent;
+                for ancestor in nodes.ancestor_kinds(parent_id) {
+                    match ancestor {
+                        AstKind::FieldAccess(access)
+                            if access.target.address() == outermost.address() =>
+                        {
+                            outermost = ancestor;
+                        }
+                        _ => break,
+                    }
+                }
+                return Some(outermost.span());
+            }
+            AstKind::ArrayAccess(access) if access.array.address() == target.address() => {
+                return Some(access.span);
+            }
+            // Evaluating `x::m` throws when `x` is null (JLS §15.13.3).
+            AstKind::MethodReference(reference)
+                if reference.target.address() == target.address() =>
+            {
+                return Some(reference.span);
+            }
             // Every unary operator takes a primitive operand (JLS 15.15).
-            AstKind::UnaryExpression(_) => return Some(name.span),
-            AstKind::BinaryExpression(binary) => {
-                let other = if binary.lhs.address() == operand.address() {
+            AstKind::UnaryExpression(_) if unboxable => return Some(name.span),
+            AstKind::BinaryExpression(binary) if unboxable => {
+                let other = if binary.lhs.address() == target.address() {
                     &binary.rhs
                 } else {
                     &binary.lhs
@@ -471,6 +476,33 @@ mod tests {
     fn reports_through_parentheses() {
         let source = "class A { boolean f(String s) { return (s == null) && (s.isEmpty()); } }";
         tester().reports_without_fix(source);
+    }
+
+    #[test]
+    fn reports_a_dereference_through_parentheses_and_reference_casts() {
+        let source = r#"class A {
+    void f(String s, int[] a, boolean ready) {
+        boolean t = s == null && (s).isEmpty(); // Reported.
+        boolean u = a == null && (a)[0] == 0; // Reported.
+        boolean v = s == null && ((CharSequence) s).length() > 0; // Reported.
+        boolean w = s == null && ((Object) ((s))).hashCode() > 0; // Reported.
+        boolean x = s != null || test(((String) (Object) s)::isEmpty); // Reported.
+        boolean y = s != null && ((CharSequence) s).length() > 0; // Not reported, since the guard is correct.
+        boolean z = s == null && (ready ? "" : s).isEmpty(); // Not reported, since the receiver need not be s.
+    }
+
+    boolean test(java.util.function.BooleanSupplier supplier) {
+        return true;
+    }
+}
+"#;
+        insta::assert_snapshot!(tester().reports(source), @r#"
+        3:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("(s).isEmpty()")
+        4:34: warning[broken-null-check]: `a` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("(a)[0]")
+        5:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("((CharSequence) s).length()")
+        6:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("((Object) ((s))).hashCode()")
+        7:39: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("((String) (Object) s)::isEmpty")
+        "#);
     }
 
     #[test]
