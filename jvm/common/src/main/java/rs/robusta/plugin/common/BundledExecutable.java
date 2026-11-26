@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.FileLockInterruptionException;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -16,8 +18,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,7 +27,7 @@ public final class BundledExecutable {
     private static final int MAXIMUM_CHECKSUM_BYTES = 512;
     private static final Pattern CHECKSUM = Pattern.compile("^([0-9a-fA-F]{64})(?:\\s+\\*?.+)?$");
     private static final Pattern SAFE_VERSION = Pattern.compile("[0-9A-Za-z][0-9A-Za-z._+-]*");
-    private static final ConcurrentMap<Path, Object> PROCESS_LOCKS = new ConcurrentHashMap<>();
+    private static final long LOCK_RETRY_MILLIS = 10;
 
     private final String buildTool;
 
@@ -79,32 +79,44 @@ public final class BundledExecutable {
 
         try {
             Files.createDirectories(destination.getParent());
-            Path normalizedDestination = destination.toAbsolutePath().normalize();
-            Object processLock =
-                    PROCESS_LOCKS.computeIfAbsent(normalizedDestination, ignored -> new Object());
-            synchronized (processLock) {
-                Path lockPath = destination.resolveSibling(destination.getFileName() + ".lock");
-                try (FileChannel channel = FileChannel.open(
-                                lockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                        FileLock ignored = channel.lock()) {
-                    if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
-                        if (!Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS)) {
-                            throw new RobustaPluginException(
-                                    "Robusta cache path is not a regular file: " + destination);
-                        }
-                        String actual = sha256(destination);
-                        if (!actual.equals(expected)) {
-                            throw checksumFailure(destination.toString(), expected, actual);
-                        }
-                        makeExecutable(destination, platform);
-                        return destination;
+            Path lockPath = destination.resolveSibling(destination.getFileName() + ".lock");
+            try (FileChannel channel = FileChannel.open(
+                            lockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                    FileLock ignored = lock(channel)) {
+                if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
+                    if (!Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS)) {
+                        throw new RobustaPluginException(
+                                "Robusta cache path is not a regular file: " + destination);
                     }
-                    return extractLocked(binaryResource, destination, platform, expected);
+                    String actual = sha256(destination);
+                    if (!actual.equals(expected)) {
+                        throw checksumFailure(destination.toString(), expected, actual);
+                    }
+                    makeExecutable(destination, platform);
+                    return destination;
                 }
+                return extractLocked(binaryResource, destination, platform, expected);
             }
         } catch (IOException error) {
             throw new RobustaPluginException(
                     "Could not extract the bundled Robusta binary to " + destination, error);
+        }
+    }
+
+    // A file lock belongs to the whole JVM, while each build-tool class loader has its own copy of
+    // this class, so a thread waits out a lock this JVM already holds instead of sharing a monitor.
+    private static FileLock lock(FileChannel channel) throws IOException {
+        while (true) {
+            try {
+                return channel.lock();
+            } catch (OverlappingFileLockException held) {
+                try {
+                    Thread.sleep(LOCK_RETRY_MILLIS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new FileLockInterruptionException();
+                }
+            }
         }
     }
 

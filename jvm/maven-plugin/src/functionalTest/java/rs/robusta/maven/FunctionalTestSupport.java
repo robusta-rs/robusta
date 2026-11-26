@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 import org.junit.jupiter.api.Assumptions;
 
@@ -117,6 +119,27 @@ final class FunctionalTestSupport {
                 Path.of(System.getProperty("robusta.functionalTest.fakePlugin")),
                 directory.resolve(name + ".jar"),
                 StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Installs an empty artifact and returns the plugin {@code <dependencies>} that declare it.
+     * Maven loads a plugin in a separate class realm for each distinct set of plugin dependencies.
+     */
+    static String separateRealmDependencies(Path localRepository) throws IOException {
+        Path directory = Files.createDirectories(
+                localRepository.resolve("rs/robusta/functionaltest/realm-marker/1.0.0"));
+        Files.writeString(directory.resolve("realm-marker-1.0.0.pom"), """
+                <project><modelVersion>4.0.0</modelVersion><groupId>rs.robusta.functionaltest</groupId>
+                <artifactId>realm-marker</artifactId><version>1.0.0</version></project>
+                """);
+        try (JarOutputStream jar = new JarOutputStream(
+                Files.newOutputStream(directory.resolve("realm-marker-1.0.0.jar")), new Manifest())) {
+            jar.finish();
+        }
+        return """
+                <dependencies><dependency><groupId>rs.robusta.functionaltest</groupId>
+                <artifactId>realm-marker</artifactId><version>1.0.0</version></dependency></dependencies>
+                """;
     }
 
     private static Result run(Path project, Path localRepository, Path wrapperProject, String... arguments)

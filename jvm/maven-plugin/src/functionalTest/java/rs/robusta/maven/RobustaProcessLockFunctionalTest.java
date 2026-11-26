@@ -32,6 +32,17 @@ class RobustaProcessLockFunctionalTest {
     }
 
     @Test
+    void serializesNativeProcessesAcrossPluginRealms() throws Exception {
+        Path root = reactor("format-fix", "config-show", 0);
+        Path beta = root.resolve("beta/pom.xml");
+        String dependencies = separateRealmDependencies(temporaryDirectory.resolve("local-repo"));
+        Files.writeString(beta, Files.readString(beta).replace("<configuration>", dependencies + "<configuration>"));
+        Result result = run(root, "-T", "3", "validate");
+        assertEquals(0, result.exitCode(), result.output());
+        assertSerialActivity(root.resolve("activity"), 2);
+    }
+
+    @Test
     void serialControlRemainsSerial() throws Exception {
         Path root = reactor("format-fix", "run", 0);
         Result result = run(root, "validate");
