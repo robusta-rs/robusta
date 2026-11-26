@@ -23,6 +23,7 @@ robusta_allocator.workspace = true
 robusta_ast.workspace = true
 robusta_config.workspace = true
 robusta_diagnostics.workspace = true
+robusta_lexer.workspace = true
 robusta_macros.workspace = true
 robusta_semantic.workspace = true
 robusta_span.workspace = true
