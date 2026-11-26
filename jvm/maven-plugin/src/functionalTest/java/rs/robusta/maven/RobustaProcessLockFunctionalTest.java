@@ -66,20 +66,9 @@ class RobustaProcessLockFunctionalTest {
         Path alpha = root.resolve("alpha/pom.xml");
         Files.writeString(alpha, Files.readString(alpha).replace("--exit=0", "--exit=0 --await-release"));
         Path beta = root.resolve("beta/pom.xml");
-        String unrelated = """
-            <build><plugins><plugin>
-              <groupId>org.apache.maven.plugins</groupId><artifactId>maven-antrun-plugin</artifactId><version>3.1.0</version>
-              <executions><execution><phase>validate</phase><goals><goal>run</goal></goals><configuration><target>
-                <waitfor maxwait="20" maxwaitunit="second" timeoutproperty="native.timeout">
-                  <available file="%s/waiting"/>
-                </waitfor>
-                <fail if="native.timeout" message="Native process did not start"/>
-                <loadfile property="native.active" srcFile="%s/active"/>
-                <echo file="%s/release" message="${native.active}"/>
-              </target></configuration></execution></executions>
-            </plugin></plugins></build></project>
-            """.formatted(root.resolve("activity"), root.resolve("activity"), root.resolve("activity"));
-        Files.writeString(beta, minimalPom("beta").replace("</project>", unrelated));
+        String unrelated = nativeReleasePlugin(temporaryDirectory.resolve("local-repo"), root.resolve("activity"));
+        String build = "<build><plugins>" + unrelated + "</plugins></build></project>";
+        Files.writeString(beta, minimalPom("beta").replace("</project>", build));
         Result result = run(root, "-T", "3", "validate");
         assertEquals(0, result.exitCode(), result.output());
         assertEquals("1", Files.readString(root.resolve("activity/release")));
