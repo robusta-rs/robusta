@@ -5,6 +5,18 @@
 //! Consumes [`robusta_lexer`] tokens into an arena-allocated [`robusta_ast`] tree.
 //! Syntax errors recover at declaration, member, statement, and selected-list
 //! boundaries. Reject results with diagnostics before formatting or linting.
+//!
+//! # Examples
+//!
+//! <https://github.com/robusta-rs/robusta/blob/main/crates/robusta_parser/examples/parser.rs>
+//!
+//! ```rust,ignore
+#![doc = include_str!("../examples/parser.rs")]
+//! ```
+//!
+//! # Visitor
+//!
+//! <https://github.com/robusta-rs/robusta/blob/main/crates/robusta_parser/examples/visitor.rs>
 
 use robusta_allocator::{Allocator, Box, GetAllocator, Vec};
 use robusta_ast::{

@@ -24,3 +24,4 @@ robusta_lexer.workspace = true
 
 [dev-dependencies]
 robusta_ast_visit.workspace = true
+pico-args.workspace = true
