@@ -215,8 +215,8 @@ jobs:
           path: dist/robusta-${{ needs.version.outputs.number }}-${{ matrix.target }}
           retention-days: 30
 
-  bundle-gradle-plugin:
-    name: Bundle Gradle plugin
+  gradle-plugin:
+    name: Build Gradle plugin
     needs: [version, build]
     runs-on: ubuntu-latest
     env:
@@ -246,7 +246,7 @@ jobs:
       - name: Build plugin test fake
         run: cargo build --locked --bin robusta_plugin_fake
 
-      - name: Assemble and test self-contained plugin
+      - name: Assemble and test plugin and binary jars
         working-directory: jvm
         run: |
           chmod +x "$GITHUB_WORKSPACE/dist/native/robusta-x86_64-unknown-linux-musl"
@@ -255,7 +255,7 @@ jobs:
           # :maven-plugin:functionalTest, which drives a real mvnw build.
           ./gradlew clean :gradle-plugin:check :check \
             :gradle-plugin:publicationTest :gradle-plugin:validatePlugins \
-            :gradle-plugin:assembleBundledPlugin \
+            :gradle-plugin:assemble :binary:verifyBinaryJars \
             -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
@@ -263,17 +263,19 @@ jobs:
             "-Porg.gradle.java.installations.fromEnv=JAVA_HOME_8_X64,JAVA_HOME_11_X64,JAVA_HOME_17_X64" \
             -PrequireAllConsumerJvms=true
 
-      - name: Record bundle size
+      - name: Record jar sizes
         working-directory: jvm
         run: |
           # `publicationTest` publishes every publication, so `build/libs` also
-          # holds the sources and javadoc jars. Name the one being released.
-          plugin_jar="gradle-plugin/build/libs/robusta-gradle-plugin-$VERSION.jar"
-          test -f "$plugin_jar"
-          bytes=$(wc -c < "$plugin_jar" | tr -d ' ')
-          echo "Gradle plugin bundle: $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          # holds the sources and javadoc jars. Name the ones being released.
+          for jar in "gradle-plugin/build/libs/robusta-gradle-plugin-$VERSION.jar" \
+            binary/build/libs/robusta-binary-"$VERSION"-*.jar; do
+            test -f "$jar"
+            bytes=$(wc -c < "$jar" | tr -d ' ')
+            echo "$(basename "$jar"): $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
-      - name: Upload bundled Gradle plugin
+      - name: Upload Gradle plugin
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           if-no-files-found: error
@@ -283,8 +285,8 @@ jobs:
 
   # A separate job keeps the Maven functional suite's real `mvnw` build off the
   # Gradle plugin's path. The Maven plugin has no Gradle Plugin Portal coordinate.
-  bundle-maven-plugin:
-    name: Bundle Maven plugin
+  maven-plugin:
+    name: Build Maven plugin
     needs: [version, build]
     runs-on: ubuntu-latest
     env:
@@ -309,24 +311,24 @@ jobs:
       - name: Build plugin test fake
         run: cargo build --locked --bin robusta_plugin_fake
 
-      - name: Assemble and test self-contained plugin
+      - name: Assemble and test plugin
         working-directory: jvm
         run: |
-          ./gradlew clean :maven-plugin:check :maven-plugin:assembleBundledPlugin \
+          ./gradlew clean :maven-plugin:check :maven-plugin:assemble \
             -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
             -Drobusta.real.bundled=true
 
-      - name: Record bundle size
+      - name: Record jar size
         working-directory: jvm
         run: |
           plugin_jar="maven-plugin/build/libs/robusta-maven-plugin-$VERSION.jar"
           test -f "$plugin_jar"
           bytes=$(wc -c < "$plugin_jar" | tr -d ' ')
-          echo "Maven plugin bundle: $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "$(basename "$plugin_jar"): $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload bundled Maven plugin
+      - name: Upload Maven plugin
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           if-no-files-found: error
@@ -334,13 +336,13 @@ jobs:
           path: jvm/maven-plugin/build/libs/robusta-maven-plugin-${{ needs.version.outputs.number }}.jar
           retention-days: 30
 
-  # Every plugin upload lives here, in one job that needs both bundle jobs, so a
+  # Every plugin upload lives here, in one job that needs both plugin jobs, so a
   # test failure in either plugin stops the release of both. The Gradle Plugin
   # Portal refuses a second upload of a version it already has, so that
   # irreversible step runs last, after the reversible Central deployments.
   publish:
     name: Publish plugins
-    needs: [version, build, bundle-gradle-plugin, bundle-maven-plugin]
+    needs: [version, build, gradle-plugin, maven-plugin]
     if: ${{ inputs.publish_maven_central || inputs.publish_gradle_plugin_portal }}
     runs-on: ubuntu-latest
     steps:
@@ -361,15 +363,15 @@ jobs:
           merge-multiple: true
 
       # Rebuilt rather than downloaded, because a Central deployment needs the
-      # whole publication and not just the main jar. Both plugins normalize
-      # their archives, so a rebuild from the same staged binaries reproduces
-      # the jars the bundle jobs tested. Assembling both before either upload
-      # runs each plugin's bundle verification while nothing has been sent yet,
-      # and keeps the credentials below out of a step that builds.
-      - name: Assemble both plugin bundles
+      # whole publication and not just the main jar. Every archive is
+      # normalized, so a rebuild from the same binaries reproduces the jars the
+      # plugin jobs tested. Assembling them before any upload verifies the
+      # binary jars while nothing has been sent yet, and keeps the credentials
+      # below out of a step that builds.
+      - name: Assemble the binary and plugin jars
         working-directory: jvm
         run: |
-          ./gradlew :gradle-plugin:assembleBundledPlugin :maven-plugin:assembleBundledPlugin \
+          ./gradlew :binary:verifyBinaryJars :gradle-plugin:assemble :maven-plugin:assemble \
             -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
 
@@ -389,11 +391,9 @@ jobs:
             echo "::error title=Missing Maven Central credentials::Configure MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD, and MAVEN_SIGNING_KEY repository secrets"
             exit 1
           fi
-          # One invocation per plugin, so each uploads its own deployment.
-          ./gradlew :gradle-plugin:publishToMavenCentral \
-            -Prelease=true \
-            "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
-          ./gradlew :maven-plugin:publishToMavenCentral \
+          # One invocation uploads every artifact as one deployment.
+          ./gradlew :binary:publishToMavenCentral \
+            :gradle-plugin:publishToMavenCentral :maven-plugin:publishToMavenCentral \
             -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
 
@@ -417,7 +417,7 @@ jobs:
 
   github-release:
     name: Create GitHub release
-    needs: [version, build, bundle-gradle-plugin, bundle-maven-plugin]
+    needs: [version, build, gradle-plugin, maven-plugin]
     # A publishing run dispatched later from the tag would find the release already made.
     if: ${{ github.event_name == 'push' }}
     permissions:

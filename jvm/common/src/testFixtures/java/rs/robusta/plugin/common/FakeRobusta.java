@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public final class FakeRobusta {
     /**
@@ -48,6 +52,30 @@ public final class FakeRobusta {
         }
         if (!Files.readString(directory.resolve("active")).equals("0")) {
             throw new AssertionError("Native process still active: " + events);
+        }
+    }
+
+    /**
+     * Writes {@code jar} as {@code platform}'s binary jar, holding {@code binary} and a
+     * {@code .sha256} record of {@code checksum}.
+     */
+    public static void writeBinaryJar(Path jar, RobustaPlatform platform, byte[] binary, String checksum)
+            throws IOException {
+        Files.createDirectories(jar.toAbsolutePath().getParent());
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(jar))) {
+            output.putNextEntry(new ZipEntry(platform.binaryName()));
+            output.write(binary);
+            output.putNextEntry(new ZipEntry(platform.binaryName() + ".sha256"));
+            output.write((checksum + "  " + platform.binaryName() + "\n").getBytes(StandardCharsets.US_ASCII));
+        }
+    }
+
+    /** Returns the lowercase hexadecimal SHA-256 digest of {@code bytes}. */
+    public static String sha256(byte[] bytes) {
+        try {
+            return Hex.encode(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
         }
     }
 

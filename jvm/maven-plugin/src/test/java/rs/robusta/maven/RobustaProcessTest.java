@@ -18,8 +18,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import rs.robusta.plugin.common.RobustaPlatform;
-
 @Timeout(30)
 class RobustaProcessTest {
     @TempDir Path temporaryDirectory;
@@ -130,12 +128,7 @@ class RobustaProcessTest {
     }
 
     private ProcessBuilder builder(String... arguments) throws Exception {
-        RobustaPlatform platform =
-                RobustaPlatform.detect(System.getProperty("os.name"), System.getProperty("os.arch"));
-        Path fake = Path.of(System.getProperty("robusta.fake.bundle"))
-                .resolve("META-INF/robusta/bin")
-                .resolve(platform.bundledBinaryName());
-        List<String> command = new ArrayList<>(List.of(fake.toString()));
+        List<String> command = new ArrayList<>(List.of(System.getProperty("robusta.fake.executable")));
         command.addAll(List.of(arguments));
         // The fake reads a behavior file from its working directory or any ancestor.
         return new ProcessBuilder(command).directory(temporaryDirectory.toFile()).inheritIO();

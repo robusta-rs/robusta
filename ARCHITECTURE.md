@@ -207,9 +207,9 @@ Common functionality like error reporting (`robusta_diagnostics`), source positi
 
 #### Gradle Plugin (jvm/gradle-plugin)
 
-- **Purpose**: Java 8 Gradle adapter that bundles, selects, and invokes the native executable
+- **Purpose**: Java 8 Gradle adapter that resolves, extracts, and invokes the native executable
 - **Key Features**:
-  - Bundled supported native executables
+  - The running platform's executable, resolved from the plugin repositories
   - Configuration-cache compatible tasks
 - **Dependencies**: `jvm/common`
 
@@ -218,7 +218,7 @@ Common functionality like error reporting (`robusta_diagnostics`), source positi
 - **Purpose**: Java 8 Maven adapter over the same command surface
 - **Key Features**:
   - One goal per fixed Gradle task
-  - Bundled supported native executables
+  - The running platform's executable, resolved from the plugin repositories
 - **Dependencies**: `jvm/common`
 
 ## Data Flow

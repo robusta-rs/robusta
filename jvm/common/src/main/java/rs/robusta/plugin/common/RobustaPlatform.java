@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-/** The five native targets Robusta bundles, and detection of the running one. */
+/** The five native targets Robusta publishes a binary for, and detection of the running one. */
 public enum RobustaPlatform {
     LINUX_X86_64("linux", "x86_64", "x86_64-unknown-linux-musl", false),
     LINUX_AARCH64("linux", "aarch64", "aarch64-unknown-linux-musl", false),
@@ -33,12 +33,12 @@ public enum RobustaPlatform {
     }
 
     /**
-     * Resolves the bundled platform for a running JVM.
+     * Resolves the published platform for a running JVM.
      *
      * @param osName the {@code os.name} system property
      * @param osArchitecture the {@code os.arch} system property
      * @return the matching platform
-     * @throws RobustaPluginException when no bundled binary matches
+     * @throws RobustaPluginException when no published binary matches
      */
     public static RobustaPlatform detect(String osName, String osArchitecture)
             throws RobustaPluginException {
@@ -51,7 +51,7 @@ public enum RobustaPlatform {
             }
         }
         throw new RobustaPluginException(
-                "Robusta does not bundle a binary for detected platform os.name='"
+                "Robusta publishes no binary for detected platform os.name='"
                         + osName
                         + "', os.arch='"
                         + osArchitecture
@@ -64,7 +64,7 @@ public enum RobustaPlatform {
         return triple;
     }
 
-    public String bundledBinaryName() {
+    public String binaryName() {
         return "robusta-" + triple + (windows ? ".exe" : "");
     }
 

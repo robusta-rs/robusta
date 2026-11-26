@@ -15,7 +15,7 @@ In no specific order:
   - The CLI, the Gradle plugin, and the Maven coordinates all read that version
 - Run [Release CLI](https://github.com/robusta-rs/robusta/actions/workflows/release_cli.yml)
   - Also runs automatically on a `v*.*.*` tag push, without publishing the plugins
-  - Builds and tests the five native executables and the two plugin jars that bundle them
+  - Builds and tests the five native executables, the five jars that publish them, and the two plugin jars
   - On the tag push, creates the `v<version>` GitHub release with the native executables, their checksums, and the license
 
 ### Local Rehearsal
@@ -23,7 +23,7 @@ In no specific order:
 - Download the five native artifacts from that run into one directory and build the functional-test fake with `cargo build --locked --bin robusta_plugin_fake`, then from `jvm/` run
 
 ```bash
-./gradlew clean check publicationTest validatePlugins assembleBundledPlugin \
+./gradlew clean check publicationTest validatePlugins verifyBinaryJars \
   -Prelease=true \
   -ProbustaBinariesDirectory=<directory> \
   "-ProbustaFakeExecutable=$PWD/../target/debug/robusta_plugin_fake" \
@@ -34,10 +34,10 @@ In no specific order:
 
 ## Publish Artifacts
 
-- Run [Release CLI](https://github.com/robusta-rs/robusta/actions/workflows/release_cli.yml) from the `v<version>` tag with `publish_maven_central`, `publish_gradle_plugin_portal`, or both
+- Run [Release CLI](https://github.com/robusta-rs/robusta/actions/workflows/release_cli.yml) from the `v<version>` tag with `publish_maven_central`, then with `publish_gradle_plugin_portal`
   - Nothing is uploaded unless both plugins were assembled and tested
-  - Each plugin uploads its own Central deployment, whose final Publish action in the Central Portal is manual and cannot be undone
-  - With both selected, the Gradle Plugin Portal upload runs after the Central uploads
+  - The binary jars and both plugins upload as one Central deployment, whose final Publish action in the Central Portal is manual and cannot be undone
+  - The Gradle plugin fetches its binary jars from Maven Central, so run the Gradle Plugin Portal upload only once that deployment is published
 
 ## Update Publication Secrets
 

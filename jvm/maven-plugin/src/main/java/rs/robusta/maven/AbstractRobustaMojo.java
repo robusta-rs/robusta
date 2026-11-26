@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.inject.Inject;
+
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -15,9 +17,16 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
 
 import rs.robusta.plugin.common.CommandLineArguments;
+import rs.robusta.plugin.common.RobustaBinary;
 import rs.robusta.plugin.common.RobustaFixedCommand;
+import rs.robusta.plugin.common.RobustaPlatform;
 import rs.robusta.plugin.common.RobustaPluginException;
 
 /** Shared external-process boundary for Robusta goals. */
@@ -33,6 +42,13 @@ abstract class AbstractRobustaMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
     private MojoExecution mojoExecution;
+
+    @Inject
+    private RepositorySystem repositorySystem;
+
+    /** The repositories that served the plugin, which serve its binary too. */
+    @Parameter(defaultValue = "${project.remotePluginRepositories}", readonly = true, required = true)
+    private List<RemoteRepository> pluginRepositories;
 
     /** Arguments appended to the goal's own. */
     @Parameter(property = "robusta.args", defaultValue = "")
@@ -81,11 +97,7 @@ abstract class AbstractRobustaMojo extends AbstractMojo {
 
     private void execute(List<String> arguments, File workingDirectory)
             throws MojoExecutionException, MojoFailureException {
-        Path executable = BundledRobustaExecutable.obtain(
-                cacheRoot(),
-                System.getProperty("os.name"),
-                System.getProperty("os.arch"),
-                pluginDescriptor.getVersion());
+        Path executable = executable();
         List<String> command = new ArrayList<>(arguments.size() + 1);
         command.add(executable.toAbsolutePath().toString());
         command.addAll(arguments);
@@ -102,6 +114,30 @@ abstract class AbstractRobustaMojo extends AbstractMojo {
             throw new MojoExecutionException("Interrupted while running the Robusta executable", error);
         }
         failOnNonZeroExit(exitCode);
+    }
+
+    // The running platform's binary jar, resolved from the plugin repositories when a goal first
+    // needs it, and the binary extracted from it.
+    private Path executable() throws MojoExecutionException {
+        try {
+            RobustaPlatform platform =
+                    RobustaPlatform.detect(System.getProperty("os.name"), System.getProperty("os.arch"));
+            DefaultArtifact artifact = new DefaultArtifact(
+                    RobustaBinary.GROUP,
+                    RobustaBinary.ARTIFACT,
+                    platform.triple(),
+                    "jar",
+                    pluginDescriptor.getVersion());
+            ArtifactRequest request = new ArtifactRequest(artifact, pluginRepositories, null);
+            Path jar = repositorySystem
+                    .resolveArtifact(session.getRepositorySession(), request)
+                    .getArtifact()
+                    .getFile()
+                    .toPath();
+            return RobustaBinary.obtain(jar, platform, cacheRoot(), pluginDescriptor.getVersion());
+        } catch (RobustaPluginException | ArtifactResolutionException failure) {
+            throw new MojoExecutionException(failure.getMessage(), failure);
+        }
     }
 
     private ReentrantLock processLock() {

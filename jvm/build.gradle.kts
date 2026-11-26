@@ -1,11 +1,14 @@
-import java.security.MessageDigest
-import org.gradle.api.tasks.PathSensitivity
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
-// Both plugin modules publish through Vanniktech, whose Maven Central build service
-// is shared across the build. Sibling projects loading the plugin separately would
-// each get their own copy of that service class, so it is put on the root classpath once.
+// The plugins and the binary jars publish through Vanniktech, whose Maven
+// Central build service is shared across the build. Sibling projects loading the
+// plugin separately would each get their own copy of that service class, so it
+// is put on the root classpath once.
 plugins {
     id("com.vanniktech.maven.publish") version "0.37.0" apply false
 }
@@ -58,7 +61,7 @@ val verifyReleaseVersion = tasks.register("verifyReleaseVersion") {
     }
 }
 
-// The native distribution both plugins bundle. Declared once here because a new
+// The native distribution both plugins run. Declared once here because a new
 // platform is one product decision, not one per adapter.
 val robustaTriples = listOf(
     "x86_64-unknown-linux-musl",
@@ -78,96 +81,115 @@ val pluginJvmTarget = 8
 extra["repositoryRoot"] = repositoryRoot
 extra["robustaVersion"] = robustaVersion
 extra["robustaTriples"] = robustaTriples
-val robustaBinaryNames = robustaTriples.associateWith { triple ->
-    "robusta-$triple${if (triple.endsWith("windows-msvc")) ".exe" else ""}"
-}
-extra["robustaBinaryNames"] = robustaBinaryNames
-
-// The bundled binary name for the machine running the build, which the functional
-// tests stage their own binary under. Lazy, so other hosts can still build.
-val hostRobustaBinaryName = providers.provider {
-    val os = System.getProperty("os.name").lowercase()
-    val arch = System.getProperty("os.arch").lowercase()
-    val operatingSystem = when {
-        "windows" in os -> "windows"
-        "mac" in os || "darwin" in os -> "macos"
-        "linux" in os -> "linux"
-        else -> os
-    }
-    val architecture = when (arch) {
-        "amd64", "x86_64" -> "x86_64"
-        "aarch64", "arm64" -> "aarch64"
-        else -> arch
-    }
-    val triple = robustaTriples.firstOrNull { triple ->
-        val tripleOperatingSystem = when {
-            triple.contains("linux") -> "linux"
-            triple.contains("apple-darwin") -> "macos"
-            triple.contains("windows") -> "windows"
-            else -> ""
-        }
-        val tripleArchitecture = triple.substringBefore("-")
-        tripleOperatingSystem == operatingSystem && tripleArchitecture == architecture
-    }
-    robustaBinaryNames.getValue(
-        requireNotNull(triple) { "Unsupported platform for functional-test fixture: os=$os arch=$arch" },
-    )
-}
-
-fun sha256(file: File): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    file.inputStream().buffered().use { input ->
-        val buffer = ByteArray(16 * 1024)
-        while (true) {
-            val read = input.read(buffer)
-            if (read == -1) break
-            digest.update(buffer, 0, read)
-        }
-    }
-    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
-}
-
-extra["sha256"] = ::sha256
-
-// Copies one built binary into `destination` under the host platform's bundled
-// name, with its checksum, the way a release binary is bundled.
-extra["registerHostBundle"] = fun Project.(
-    name: String,
-    executable: Provider<File>,
-    property: String,
-    destination: Provider<Directory>,
-): TaskProvider<Task> = tasks.register(name) {
-    // Rebuilding the binary at the same path must invalidate the copy.
-    inputs.file(executable)
-        .withPropertyName(property)
-        .withPathSensitivity(PathSensitivity.NONE)
-        .optional()
-    inputs.property("binaryName", hostRobustaBinaryName)
-    outputs.dir(destination)
-    doLast {
-        val source = executable.orNull
-        require(source != null && source.isFile) {
-            "Pass -P$property=<path> pointing at a built binary"
-        }
-        val directory = destination.get().asFile
-        directory.mkdirs()
-        val binary = directory.resolve(hostRobustaBinaryName.get())
-        source.copyTo(binary, overwrite = true)
-        binary.setExecutable(true)
-        directory.resolve("${binary.name}.sha256")
-            .writeText(sha256(binary) + "  " + binary.name + "\n", Charsets.US_ASCII)
-    }
-}
 
 extra["buildJavaVersion"] = buildJavaVersion
 extra["pluginJvmTarget"] = pluginJvmTarget
 
-subprojects {
-    apply(plugin = "java")
+// Local Maven repositories that the functional tests and the release rehearsal
+// resolve from. Every published project writes to them, so a consumer finds the
+// binary jars beside the plugins, as it does on Maven Central.
+val localRepositories = mapOf(
+    "functionalTest" to layout.buildDirectory.dir("repositories/functional-test"),
+    "releaseRehearsal" to layout.buildDirectory.dir("repositories/release-rehearsal"),
+)
+extra["localRepositories"] = localRepositories
 
+// A snapshot is published under a new timestamp each time, so each repository
+// is emptied once per build rather than keeping every earlier publication.
+val cleanLocalRepositories = localRepositories.mapValues { (name, directory) ->
+    tasks.register<Delete>("clean${name.replaceFirstChar(Char::uppercase)}Repository") {
+        delete(directory)
+    }
+}
+
+subprojects {
     group = "rs.robusta"
     version = pluginVersion
     description = "A fast, Rust-native Java formatter and linter."
+
+    // The POM metadata every published artifact shares; each project names and
+    // describes its own.
+    plugins.withId("com.vanniktech.maven.publish.base") {
+        extensions.configure<MavenPublishBaseExtension> {
+            pom {
+                url.set("https://github.com/robusta-rs/robusta")
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/licenses/MIT")
+                        distribution.set("repo")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("ThomasRopke")
+                        name.set("Thomas Ropke")
+                        url.set("https://github.com/ThomasRopke")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/robusta-rs/robusta.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/robusta-rs/robusta.git")
+                    url.set("https://github.com/robusta-rs/robusta")
+                }
+                issueManagement {
+                    system.set("GitHub")
+                    url.set("https://github.com/robusta-rs/robusta/issues")
+                }
+            }
+        }
+    }
+
+    plugins.withId("maven-publish") {
+        extensions.configure<PublishingExtension> {
+            repositories {
+                localRepositories.forEach { (repositoryName, directory) ->
+                    maven {
+                        name = repositoryName
+                        url = uri(directory)
+                    }
+                }
+            }
+        }
+        localRepositories.keys.forEach { repositoryName ->
+            val suffix = "To${repositoryName.replaceFirstChar(Char::uppercase)}Repository"
+            tasks.withType<PublishToMavenRepository>()
+                .matching { it.name.endsWith(suffix) }
+                .configureEach {
+                    dependsOn(cleanLocalRepositories.getValue(repositoryName))
+                    if (repositoryName == "releaseRehearsal") {
+                        dependsOn(verifyReleaseVersion)
+                    }
+                }
+        }
+    }
+}
+
+val signAllPublications = providers.gradleProperty("signAllPublications")
+val signingInMemoryKey = providers.gradleProperty("signingInMemoryKey")
+val signingSecretKeyRingFile = providers.gradleProperty("signing.secretKeyRingFile")
+val hasSigningCredentials = providers.provider {
+    signingInMemoryKey.orNull?.isNotBlank() == true ||
+        signingSecretKeyRingFile.orNull?.isNotBlank() == true
+}
+
+val validateMavenCentralSigning = tasks.register("validateMavenCentralSigning") {
+    description = "Requires the PGP credentials used for Maven Central."
+    group = "publishing"
+    doLast {
+        require(signAllPublications.orNull.toBoolean()) {
+            "Set signAllPublications=true before publishing to Maven Central"
+        }
+        require(hasSigningCredentials.get()) {
+            "Configure signingInMemoryKey (recommended for CI) or signing.secretKeyRingFile " +
+                "before publishing to Maven Central"
+        }
+    }
+}
+
+// The binary jars hold no classes, so only the code modules are Java projects.
+configure(subprojects.filter { it.name != "binary" }) {
+    apply(plugin = "java")
 
     repositories {
         mavenCentral()
@@ -204,7 +226,7 @@ subprojects {
     }
 }
 
-// The two published coordinates are a public contract. Restructuring the JVM
+// The two plugin coordinates are a public contract. Restructuring the JVM
 // build into subprojects silently renamed both — the jar took the project name
 // and the Gradle plugin's Maven coordinate took `rootProject.name` — so the
 // names are pinned here rather than derived, and this gate proves it.

@@ -2,7 +2,6 @@ package rs.robusta.gradle;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
@@ -20,11 +19,14 @@ import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.Assumptions;
 
-import rs.robusta.plugin.common.BundledExecutable;
+import rs.robusta.plugin.common.RobustaBinary;
+import rs.robusta.plugin.common.RobustaPlatform;
 import rs.robusta.plugin.common.RobustaPluginException;
 
 final class FunctionalTestSupport {
-    private static final String FAKE_BUNDLE_PROPERTY = "robusta.fake.bundle";
+    private static final String FAKE_EXECUTABLE_PROPERTY = "robusta.fake.executable";
+    private static final String PLUGIN_VERSION_PROPERTY = "robusta.plugin.version";
+    private static final String BINARY_REPOSITORY_PROPERTY = "robusta.binary.repository";
     private static final String REAL_BUNDLED_PROPERTY = "robusta.real.bundled";
     private static final String TEST_KIT_ROOT_PROPERTY = "robusta.testkit.root";
     private static final String PLUGIN_BUILD = "plugins { id(\"rs.robusta\") }\n";
@@ -72,57 +74,76 @@ final class FunctionalTestSupport {
         }
     }
 
-    /** Runs the plugin with the native fake as its bundled binary. */
+    /** Runs the plugin with the native fake as its binary. */
     static GradleRunner runner(Path project, String... arguments) {
-        return runner(project, FakeBundle.CLASSPATH, SharedTestKitDirectories.FAKE, arguments);
+        return runner(project, FakeRepository.INIT_SCRIPT, SharedTestKitDirectories.FAKE, arguments);
     }
 
     /**
-     * Runs the plugin with the real CLI the build bundled. Both bundles extract to the same
+     * Runs the plugin with the real CLI the build published. Both binaries extract to the same
      * cache path, so each keeps its own TestKit directory.
      */
     static GradleRunner realRunner(Path project, String... arguments) {
         assumeRealBundle();
-        return runner(project, mutableArguments(arguments))
-                .withPluginClasspath()
-                .withTestKitDir(SharedTestKitDirectories.REAL.toFile());
+        return runner(project, RealRepository.INIT_SCRIPT, SharedTestKitDirectories.REAL, arguments);
     }
 
+    /**
+     * Runs the plugin with the binary jar from the repository that {@code initScript} adds to the
+     * plugin repositories.
+     */
     static GradleRunner runner(
-            Path project,
-            Iterable<? extends File> pluginClasspath,
-            Path testKitDirectory,
-            String... arguments) {
-        return runner(project, mutableArguments(arguments))
-                .withPluginClasspath(pluginClasspath)
+            Path project, Path initScript, Path testKitDirectory, String... arguments) {
+        List<String> allArguments = mutableArguments(arguments);
+        allArguments.add("--init-script");
+        allArguments.add(initScript.toString());
+        return runner(project, allArguments)
+                .withPluginClasspath()
                 .withTestKitDir(testKitDirectory.toFile());
     }
 
     /**
-     * Extracts the real CLI the build bundled, for tests that also run it directly, to where
+     * Extracts the real CLI the build published, for tests that also run it directly, to where
      * {@link #realRunner} has the plugin extract it.
      */
     static Path realExecutable() {
         assumeRealBundle();
-        try {
-            return new BundledExecutable("Gradle").obtain(
-                    SharedTestKitDirectories.REAL.resolve("caches/robusta"),
-                    System.getProperty("os.name"),
-                    System.getProperty("os.arch"),
-                    "development");
+        RobustaPlatform platform = BinaryRepository.hostPlatform();
+        Path module = Path.of(System.getProperty(BINARY_REPOSITORY_PROPERTY))
+                .resolve(RobustaBinary.GROUP.replace('.', '/'))
+                .resolve(RobustaBinary.ARTIFACT)
+                .resolve(pluginVersion());
+        try (Stream<Path> files = Files.list(module)) {
+            Path jar = files
+                    .filter(file -> file.getFileName().toString().endsWith("-" + platform.triple() + ".jar"))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("No published binary jar in " + module));
+            return RobustaBinary.obtain(
+                    jar, platform, SharedTestKitDirectories.REAL.resolve("caches/robusta"), pluginVersion());
+        } catch (IOException error) {
+            throw new UncheckedIOException(error);
         } catch (RobustaPluginException failure) {
             throw new IllegalStateException(failure.getMessage(), failure);
         }
     }
 
-    /** Returns the directory the suite's Gradle task staged the native fake's bundle in. */
-    static Path fakeBundle() {
-        String bundle = System.getProperty(FAKE_BUNDLE_PROPERTY);
-        if (bundle == null) {
+    /** Returns the native fake the suite's Gradle task names. */
+    static Path fakeExecutable() {
+        return Path.of(requiredProperty(FAKE_EXECUTABLE_PROPERTY));
+    }
+
+    /** Returns the version of the plugin under test, which its binary jar shares. */
+    static String pluginVersion() {
+        return requiredProperty(PLUGIN_VERSION_PROPERTY);
+    }
+
+    private static String requiredProperty(String name) {
+        String value = System.getProperty(name);
+        if (value == null) {
             throw new IllegalStateException(
-                    "Run the suite through its Gradle task, which stages the fake bundle");
+                    "Run the suite through its Gradle task, which sets " + name);
         }
-        return Path.of(bundle);
+        return value;
     }
 
     static Path newTestKitDirectory(String name) throws IOException {
@@ -172,16 +193,34 @@ final class FunctionalTestSupport {
         return new ArrayList<>(Arrays.asList(arguments));
     }
 
-    private static final class FakeBundle {
-        private static final List<File> CLASSPATH = load();
+    private static final class FakeRepository {
+        private static final Path INIT_SCRIPT = create();
 
-        private FakeBundle() {}
+        private FakeRepository() {}
 
-        private static List<File> load() {
+        private static Path create() {
+            Path directory = SharedTestKitDirectories.FAKE.resolve("binary");
             try {
-                return BundledPluginClasspath.pluginClasspath(fakeBundle());
+                return BinaryRepository.initScript(
+                        directory, BinaryRepository.createFake(directory.resolve("repository"), true));
             } catch (IOException error) {
-                throw new UncheckedIOException("Failed to read the plugin classpath", error);
+                throw new UncheckedIOException("Failed to create the fake binary repository", error);
+            }
+        }
+    }
+
+    private static final class RealRepository {
+        private static final Path INIT_SCRIPT = create();
+
+        private RealRepository() {}
+
+        private static Path create() {
+            try {
+                return BinaryRepository.initScript(
+                        SharedTestKitDirectories.REAL.resolve("binary"),
+                        Path.of(requiredProperty(BINARY_REPOSITORY_PROPERTY)));
+            } catch (IOException error) {
+                throw new UncheckedIOException("Failed to write the binary repository init script", error);
             }
         }
     }

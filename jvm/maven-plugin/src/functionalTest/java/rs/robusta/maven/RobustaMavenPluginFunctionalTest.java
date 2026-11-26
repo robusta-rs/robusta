@@ -8,8 +8,11 @@ import static rs.robusta.maven.FunctionalTestSupport.cliVersion;
 import static rs.robusta.maven.FunctionalTestSupport.createProject;
 import static rs.robusta.maven.FunctionalTestSupport.goalCoordinate;
 import static rs.robusta.maven.FunctionalTestSupport.minimalPom;
+import static rs.robusta.maven.FunctionalTestSupport.pluginRepositoryUrl;
+import static rs.robusta.maven.FunctionalTestSupport.publishedPlugin;
 import static rs.robusta.maven.FunctionalTestSupport.runFakeMaven;
 import static rs.robusta.maven.FunctionalTestSupport.runMaven;
+import static rs.robusta.maven.FunctionalTestSupport.runWithoutBinary;
 import static rs.robusta.maven.FunctionalTestSupport.writeJavaSource;
 import static rs.robusta.plugin.common.FakeRobusta.readInvocations;
 
@@ -18,6 +21,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,14 +34,14 @@ import rs.robusta.plugin.common.RobustaPlatform;
 
 /**
  * Drives real {@code ./mvnw} builds against the plugin published by the {@code functionalTest}
- * Gradle task, proving the bundled binary is actually delivered to and invoked from a Maven
- * build, not just from unit-tested Java classes.
+ * Gradle task, proving the binary is actually resolved and invoked from a Maven build, not just
+ * from unit-tested Java classes.
  */
 class RobustaMavenPluginFunctionalTest {
     @TempDir Path temporaryDirectory;
 
     @Test
-    void bundledBinaryFormatsACleanFile() throws Exception {
+    void binaryFormatsACleanFile() throws Exception {
         Path project = createProject(temporaryDirectory, "clean", minimalPom("clean"));
         writeJavaSource(
                 project,
@@ -58,7 +63,7 @@ class RobustaMavenPluginFunctionalTest {
     }
 
     @Test
-    void bundledBinaryFailsOnMisformattedSource() throws Exception {
+    void binaryFailsOnMisformattedSource() throws Exception {
         Path project = createProject(temporaryDirectory, "dirty", minimalPom("dirty"));
         writeJavaSource(
                 project,
@@ -73,7 +78,40 @@ class RobustaMavenPluginFunctionalTest {
     }
 
     @Test
-    void extractsTheBundledBinaryIntoTheEffectiveLocalRepository() throws Exception {
+    void failsWhenThePluginRepositoriesLackTheRunningPlatformsJar() throws Exception {
+        Path repository = temporaryDirectory.resolve("plugin-only");
+        Path plugin = Path.of(System.getProperty("robusta.functionalTest.repository"))
+                .resolve("rs/robusta/robusta-maven-plugin");
+        try (Stream<Path> files = Files.walk(plugin)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                Path copy = repository.resolve("rs/robusta/robusta-maven-plugin").resolve(plugin.relativize(file));
+                Files.createDirectories(copy.getParent());
+                Files.copy(file, copy);
+            }
+        }
+        Path project = createProject(
+                temporaryDirectory,
+                "missing",
+                minimalPom("missing").replace(pluginRepositoryUrl(), repository.toUri().toString()));
+
+        Result result = runWithoutBinary(
+                project, temporaryDirectory.resolve("local-repo"), goalCoordinate("version"));
+
+        assertEquals(1, result.exitCode(), result.output());
+        assertTrue(result.output().contains("rs.robusta:robusta-binary:jar:"), result.output());
+    }
+
+    @Test
+    void thePublishedPluginJarHoldsNoBinary() throws Exception {
+        try (JarFile jar = new JarFile(publishedPlugin("jar").toFile())) {
+            assertFalse(jar.stream()
+                    .map(entry -> entry.getName().substring(entry.getName().lastIndexOf('/') + 1))
+                    .anyMatch(name -> name.startsWith("robusta-")));
+        }
+    }
+
+    @Test
+    void extractsTheBinaryIntoTheEffectiveLocalRepository() throws Exception {
         Path project = createProject(temporaryDirectory, "cache", minimalPom("cache"));
         Path localRepository = temporaryDirectory.resolve("redirected-repo");
 
@@ -156,7 +194,7 @@ class RobustaMavenPluginFunctionalTest {
     }
 
     @Test
-    void theVersionGoalPrintsTheBundledCliVersion() throws Exception {
+    void theVersionGoalPrintsTheCliVersion() throws Exception {
         Path project = createProject(temporaryDirectory, "version", minimalPom("version"));
 
         Result result = runMaven(project, temporaryDirectory.resolve("local-repo"), goalCoordinate("version"));
