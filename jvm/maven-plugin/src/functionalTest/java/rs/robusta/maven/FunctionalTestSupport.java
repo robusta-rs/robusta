@@ -1,6 +1,7 @@
 package rs.robusta.maven;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
@@ -193,20 +195,62 @@ final class FunctionalTestSupport {
      * Maven loads a plugin in a separate class realm for each distinct set of plugin dependencies.
      */
     static String separateRealmDependencies(Path localRepository) throws IOException {
-        Path directory = Files.createDirectories(
-                localRepository.resolve("rs/robusta/functionaltest/realm-marker/1.0.0"));
-        Files.writeString(directory.resolve("realm-marker-1.0.0.pom"), """
-                <project><modelVersion>4.0.0</modelVersion><groupId>rs.robusta.functionaltest</groupId>
-                <artifactId>realm-marker</artifactId><version>1.0.0</version></project>
-                """);
-        try (JarOutputStream jar = new JarOutputStream(
-                Files.newOutputStream(directory.resolve("realm-marker-1.0.0.jar")), new Manifest())) {
-            jar.finish();
-        }
+        installArtifact(localRepository, "realm-marker", "jar", Map.of());
         return """
                 <dependencies><dependency><groupId>rs.robusta.functionaltest</groupId>
                 <artifactId>realm-marker</artifactId><version>1.0.0</version></dependency></dependencies>
                 """;
+    }
+
+    /**
+     * Installs a plugin whose goal runs {@link NativeReleaseMojo} on {@code activity}, and returns
+     * the {@code <plugin>} that binds it to {@code validate}. It stands in for a third-party plugin
+     * without reaching a remote repository.
+     */
+    static String nativeReleasePlugin(Path localRepository, Path activity) throws IOException {
+        String mojo = NativeReleaseMojo.class.getName().replace('.', '/') + ".class";
+        byte[] mojoClass;
+        try (InputStream input = resourceStream(mojo)) {
+            mojoClass = input.readAllBytes();
+        }
+        String descriptor = """
+                <plugin><groupId>rs.robusta.functionaltest</groupId>
+                <artifactId>native-release-maven-plugin</artifactId><version>1.0.0</version>
+                <goalPrefix>native-release</goalPrefix><mojos><mojo><goal>release</goal>
+                <description>Releases a waiting native fake.</description><implementation>%s</implementation>
+                <instantiationStrategy>per-lookup</instantiationStrategy><threadSafe>true</threadSafe>
+                <parameters><parameter><name>activity</name><type>java.io.File</type><required>true</required>
+                <description>The directory the fakes log their activity to.</description>
+                </parameter></parameters></mojo></mojos></plugin>
+                """.formatted(NativeReleaseMojo.class.getName());
+        installArtifact(localRepository, "native-release-maven-plugin", "maven-plugin", Map.of(
+                "META-INF/maven/plugin.xml", descriptor.getBytes(StandardCharsets.UTF_8),
+                mojo, mojoClass));
+        return """
+                <plugin><groupId>rs.robusta.functionaltest</groupId>
+                <artifactId>native-release-maven-plugin</artifactId><version>1.0.0</version>
+                <configuration><activity>%s</activity></configuration>
+                <executions><execution><phase>validate</phase><goals><goal>release</goal></goals>
+                </execution></executions>
+                </plugin>
+                """.formatted(activity.toAbsolutePath());
+    }
+
+    private static void installArtifact(Path localRepository, String artifactId, String packaging,
+            Map<String, byte[]> entries) throws IOException {
+        Path directory = Files.createDirectories(
+                localRepository.resolve("rs/robusta/functionaltest").resolve(artifactId).resolve("1.0.0"));
+        Files.writeString(directory.resolve(artifactId + "-1.0.0.pom"), """
+                <project><modelVersion>4.0.0</modelVersion><groupId>rs.robusta.functionaltest</groupId>
+                <artifactId>%s</artifactId><version>1.0.0</version><packaging>%s</packaging></project>
+                """.formatted(artifactId, packaging));
+        try (JarOutputStream jar = new JarOutputStream(
+                Files.newOutputStream(directory.resolve(artifactId + "-1.0.0.jar")), new Manifest())) {
+            for (Map.Entry<String, byte[]> entry : entries.entrySet()) {
+                jar.putNextEntry(new JarEntry(entry.getKey()));
+                jar.write(entry.getValue());
+            }
+        }
     }
 
     private static Result run(Path project, Path localRepository, Path wrapperProject, String... arguments)
@@ -280,7 +324,7 @@ final class FunctionalTestSupport {
         }
     }
 
-    private static java.io.InputStream resourceStream(String resource) throws IOException {
+    private static InputStream resourceStream(String resource) throws IOException {
         URL url = FunctionalTestSupport.class.getClassLoader().getResource(resource);
         if (url == null) {
             throw new IOException("Missing functional-test resource " + resource);
