@@ -13,7 +13,9 @@ Robusta formats and lints in one binary. **Formatting** is deterministic and ide
 
 Robusta is a DX toolchain, not a correctness analyzer — comprehensive semantic analysis stays with SonarQube, Error Prone, and SpotBugs. Fixes never raise the source language level: no fix makes Java 8 code need a later release.
 
-Robusta is based on [Oxc](https://oxc.rs). It follows Oxc's project structure, architecture, and command line, and ports parts of Oxc's code, including the formatter core that Oxc based on the [Biome](https://biomejs.dev) formatter. Thank you to the Oxc and Biome teams.
+Robusta follows [Oxc](https://oxc.rs)'s architecture and project structure and ports parts of its Rust implementation. [google-java-format](https://github.com/google/google-java-format) helped shape Robusta's Java layout and Javadoc formatting.
+
+Thanks to the Oxc and google-java-format teams.
 
 For more information, check out our website at [robusta.rs](https://robusta.rs).
 
