@@ -4,7 +4,7 @@ use super::*;
 /// or constructor (JLS §8.1.2, §8.4.4).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct TypeParameters<'a> {
     pub node_id: Cell<NodeId>,
     /// From `<` to `>`.
@@ -14,7 +14,7 @@ pub struct TypeParameters<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 // Pluralize as `TypeParameterList` to avoid naming clash with `TypeParameters`.
 #[plural(TypeParameterList)]
 pub struct TypeParameter<'a> {
@@ -29,7 +29,7 @@ pub struct TypeParameter<'a> {
 /// A type or contextual `var` in inference-capable variable positions.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum VariableType<'a> {
     Var(Box<'a, VarType>) = 0,
     INHERIT(Type<'a>),
@@ -37,7 +37,7 @@ pub enum VariableType<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct VarType {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -45,7 +45,7 @@ pub struct VarType {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Type<'a> {
     Primitive(Box<'a, PrimitiveType<'a>>) = 66,
     Array(Box<'a, ArrayType<'a>>) = 67,
@@ -55,7 +55,7 @@ pub enum Type<'a> {
 /// A method's result, or the type of a class literal (JLS 8.4.5, 15.8.2).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum MethodResult<'a> {
     Void(Box<'a, VoidType>) = 0,
     INHERIT(Type<'a>),
@@ -64,7 +64,7 @@ pub enum MethodResult<'a> {
 /// `void`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct VoidType {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -73,7 +73,7 @@ pub struct VoidType {
 /// `int`, or `@A int` in a nested type position (JLS 4.2).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct PrimitiveType<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -98,7 +98,7 @@ pub enum PrimitiveTypeKind {
 /// A class or interface type (JLS 4.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ClassType<'a> {
     Simple(Box<'a, SimpleClassType<'a>>) = 64,
     Qualified(Box<'a, QualifiedClassType<'a>>) = 65,
@@ -110,7 +110,7 @@ pub enum ClassType<'a> {
 /// nested type positions.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SimpleClassType<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -122,7 +122,7 @@ pub struct SimpleClassType<'a> {
 /// `Map.@Nullable Entry<E>` holds `Map`, `@Nullable`, `Entry`, and `E`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedClassType<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -134,7 +134,7 @@ pub struct QualifiedClassType<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayType<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -146,7 +146,7 @@ pub struct ArrayType<'a> {
 /// A detached dimension, e.g. `String value() @A []`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayTypeDimension<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -156,7 +156,7 @@ pub struct ArrayTypeDimension<'a> {
 /// `<String, T>`, or the `<>` of a class instance creation (JLS §4.5.1, §15.9).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct TypeArguments<'a> {
     pub node_id: Cell<NodeId>,
     /// From `<` to `>`.
@@ -167,7 +167,7 @@ pub struct TypeArguments<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 // Pluralize as `TypeArgumentList` to avoid naming clash with `TypeArguments`.
 #[plural(TypeArgumentList)]
 pub enum TypeArgument<'a> {
@@ -177,7 +177,7 @@ pub enum TypeArgument<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct WildcardTypeArgument<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -188,7 +188,7 @@ pub struct WildcardTypeArgument<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct WildcardBound<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,

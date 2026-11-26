@@ -68,7 +68,7 @@ impl<'a> TypeDeclarationKind<'a> {
 
 #[cfg(test)]
 mod tests {
-    use robusta_allocator::Allocator;
+    use robusta_allocator::{Allocator, GetAddress, UnstableAddress};
     use robusta_span::{GetSpan, Span};
 
     use super::*;
@@ -118,5 +118,21 @@ mod tests {
 
         assert_eq!(AstKind::LambdaExpression(&lambda).span(), Span::new(16, 22));
         assert_eq!(AstKind::ClassBody(&class_body).span(), Span::new(30, 32));
+    }
+
+    #[test]
+    fn addresses_identify_one_node_through_every_view() {
+        let allocator = &Allocator::new();
+        let builder = AstBuilder::new(allocator);
+        let first = Expression::new_int_literal(Span::new(0, 1), "1", &builder);
+        let second = Expression::new_int_literal(Span::new(0, 1), "1", &builder);
+        let Expression::IntLiteral(literal) = &first else { unreachable!() };
+        let address = first.address();
+
+        assert_eq!(literal.address(), address);
+        assert_eq!(literal.unstable_address(), address);
+        assert_eq!(AstKind::IntLiteral(literal).address(), address);
+        assert_ne!(second.address(), address);
+        assert_eq!(VariableInitializer::from(first).address(), address);
     }
 }

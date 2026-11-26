@@ -3,7 +3,7 @@ use super::*;
 /// A name that is never looked up (JLS 6.2), such as `out` in `System.out`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct IdentifierName<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -17,7 +17,7 @@ pub struct IdentifierName<'a> {
 /// such as `System` in `System.out`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct IdentifierReference<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -30,7 +30,7 @@ pub struct IdentifierReference<'a> {
 /// What a declaration declares, such as `x` in `int x`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct BindingIdentifier<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -43,7 +43,7 @@ pub struct BindingIdentifier<'a> {
 /// A statement label, such as `outer` in `break outer`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct LabelIdentifier<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -54,7 +54,7 @@ pub struct LabelIdentifier<'a> {
 /// A package, import, or module name, none of which is looked up.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Name<'a> {
     Identifier(Box<'a, IdentifierName<'a>>) = 0,
     Qualified(Box<'a, QualifiedName<'a>>) = 1,
@@ -63,7 +63,7 @@ pub enum Name<'a> {
 /// `a.b.c` holds `a.b` and `c`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedName<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -74,7 +74,7 @@ pub struct QualifiedName<'a> {
 /// The name of a type, without annotations or type arguments (JLS 6.5).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum TypeName<'a> {
     Identifier(Box<'a, IdentifierReference<'a>>) = 0,
     Qualified(Box<'a, QualifiedTypeName<'a>>) = 1,
@@ -83,7 +83,7 @@ pub enum TypeName<'a> {
 /// `a.b.C` holds `a.b` and `C`. Only `a` is looked up.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct QualifiedTypeName<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,

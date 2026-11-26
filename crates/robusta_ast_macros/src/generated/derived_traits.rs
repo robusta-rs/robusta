@@ -7,6 +7,8 @@ use quote::quote;
 pub fn get_trait_crate_and_generics(trait_name: &str) -> Option<(TokenStream, TokenStream)> {
     let res = match trait_name {
         "Dummy" => (quote!(::robusta_allocator::Dummy), quote!(< 'static >)),
+        "GetAddress" => (quote!(::robusta_allocator::GetAddress), TokenStream::new()),
+        "UnstableAddress" => (quote!(::robusta_allocator::UnstableAddress), TokenStream::new()),
         "ContentEq" => (quote!(::robusta_span::ContentEq), TokenStream::new()),
         "GetSpan" => (quote!(::robusta_span::GetSpan), TokenStream::new()),
         _ => return None,

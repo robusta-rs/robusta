@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use robusta_allocator::UnstableAddress;
 use robusta_ast_macros::ast;
 use robusta_span::{ContentEq, GetSpan, Span};
 use robusta_syntax::node::NodeId;
@@ -7,7 +8,7 @@ use robusta_syntax::node::NodeId;
 /// An integer literal (JLS §3.10.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct IntLiteral<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -17,7 +18,7 @@ pub struct IntLiteral<'a> {
 /// A floating-point literal (JLS §3.10.2).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct FloatLiteral<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -27,7 +28,7 @@ pub struct FloatLiteral<'a> {
 /// A character literal (JLS §3.10.4).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CharLiteral<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -37,7 +38,7 @@ pub struct CharLiteral<'a> {
 /// A string literal or text block (JLS §3.10.5, §3.10.6).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct StringLiteral<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -47,7 +48,7 @@ pub struct StringLiteral<'a> {
 /// `true` or `false` (JLS §3.10.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct BooleanLiteral {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -57,7 +58,7 @@ pub struct BooleanLiteral {
 /// `null` (JLS §3.10.8).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct NullLiteral {
     pub node_id: Cell<NodeId>,
     pub span: Span,

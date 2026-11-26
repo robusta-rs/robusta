@@ -3,7 +3,7 @@ use super::*;
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct Block<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -13,7 +13,7 @@ pub struct Block<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Statement<'a> {
     Block(Box<'a, Block<'a>>) = 0,
     /// A preserved empty statement `;` (JLS §14.6).
@@ -43,7 +43,7 @@ pub enum Statement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EmptyStatement {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -53,7 +53,7 @@ pub struct EmptyStatement {
 /// An `else` binds to the nearest unmatched `if`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct IfStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -66,7 +66,7 @@ pub struct IfStatement<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SwitchStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -79,7 +79,7 @@ pub struct SwitchStatement<'a> {
 /// An arrow rule or a colon-label group, never mixed in one switch.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum SwitchCase<'a> {
     Rule(Box<'a, SwitchRule<'a>>) = 0,
     Group(Box<'a, SwitchBlockStatementGroup<'a>>) = 1,
@@ -89,7 +89,7 @@ pub enum SwitchCase<'a> {
 /// Spans through its expression semicolon, block, or throw statement.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SwitchRule<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -99,7 +99,7 @@ pub struct SwitchRule<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum SwitchRuleBody<'a> {
     Block(Box<'a, Block<'a>>) = 64,
     Throw(Box<'a, ThrowStatement<'a>>) = 65,
@@ -110,7 +110,7 @@ pub enum SwitchRuleBody<'a> {
 /// Trailing labels before `}` have no statements.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SwitchBlockStatementGroup<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -132,7 +132,7 @@ pub enum SwitchLabel<'a> {
 /// `has_default` marks `case null, default`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CaseLabel<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -143,7 +143,7 @@ pub struct CaseLabel<'a> {
 /// `case Pattern, Pattern [when guard]` (JLS §14.11.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CasePatternLabel<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -154,7 +154,7 @@ pub struct CasePatternLabel<'a> {
 /// `default` without `case` (JLS §14.11.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct DefaultLabel {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -162,7 +162,7 @@ pub struct DefaultLabel {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct WhileStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -173,7 +173,7 @@ pub struct WhileStatement<'a> {
 /// `do … while (…);` (JLS §14.13).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct DoStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -186,7 +186,7 @@ pub struct DoStatement<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ForStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -200,7 +200,7 @@ pub struct ForStatement<'a> {
 /// A declaration or statement-expression list in `for` (JLS §14.14.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ForInit<'a> {
     Declaration(Box<'a, LocalVariableDeclaration<'a>>) = 0,
     Expressions(Box<'a, StatementExpressionList<'a>>) = 1,
@@ -209,7 +209,7 @@ pub enum ForInit<'a> {
 /// `i = 0, j = 1` in a basic `for` header, one expression or several (JLS §14.14.1).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct StatementExpressionList<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -220,7 +220,7 @@ pub struct StatementExpressionList<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct EnhancedForStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -236,7 +236,7 @@ pub struct EnhancedForStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct BreakStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -245,7 +245,7 @@ pub struct BreakStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ContinueStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -254,7 +254,7 @@ pub struct ContinueStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ThrowStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -264,7 +264,7 @@ pub struct ThrowStatement<'a> {
 /// `assert condition;` or `assert condition : message;` (JLS §14.10).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct AssertStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -277,7 +277,7 @@ pub struct AssertStatement<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct TryStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -296,7 +296,7 @@ pub struct TryStatement<'a> {
 /// Accesses are names or fields, excluding arbitrary expressions.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Resource<'a> {
     Declaration(Box<'a, ResourceDeclaration<'a>>) = 2,
     INHERIT(ResourceAccess<'a>),
@@ -304,7 +304,7 @@ pub enum Resource<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum ResourceAccess<'a> {
     Identifier(Box<'a, IdentifierReference<'a>>) = 0,
     /// `owner.resource`, `primary.resource`, `super.resource`, or `TypeName.super.resource`.
@@ -314,7 +314,7 @@ pub enum ResourceAccess<'a> {
 /// One initialized resource variable, `{modifier} Type name = init`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ResourceDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -328,7 +328,7 @@ pub struct ResourceDeclaration<'a> {
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct CatchClause<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -342,7 +342,7 @@ pub struct CatchClause<'a> {
 /// `synchronized (lock) block` (JLS §14.19).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct SynchronizedStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -353,7 +353,7 @@ pub struct SynchronizedStatement<'a> {
 /// `label: statement`, targeted by labeled `break`/`continue` (JLS §14.7).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct LabeledStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -363,7 +363,7 @@ pub struct LabeledStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ConstructorInvocation<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -386,7 +386,7 @@ pub enum ConstructorInvocationKind {
 /// An assignment, increment/decrement, method call, or class creation (JLS §14.8).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ExpressionStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -395,7 +395,7 @@ pub struct ExpressionStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct LocalVariableDeclaration<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -407,7 +407,7 @@ pub struct LocalVariableDeclaration<'a> {
 /// `return [value];` (JLS §14.17).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ReturnStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -418,7 +418,7 @@ pub struct ReturnStatement<'a> {
 /// Contextual `yield` remains a name in statement expressions such as `yield++`.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct YieldStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -427,7 +427,7 @@ pub struct YieldStatement<'a> {
 
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct VariableDeclarator<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -440,7 +440,7 @@ pub struct VariableDeclarator<'a> {
 /// An expression or array initializer after `=` (JLS §8.3).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum VariableInitializer<'a> {
     Array(Box<'a, ArrayInitializer<'a>>) = 64,
     INHERIT(Expression<'a>),
@@ -449,7 +449,7 @@ pub enum VariableInitializer<'a> {
 /// `{a, b, c}` with nestable initializers (JLS §10.6).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayInitializer<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,

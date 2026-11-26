@@ -38,6 +38,7 @@ impl Generator for AstKindGenerator {
 }
 
 const HEADER: &str = "\
+use robusta_allocator::{Address, GetAddress, UnstableAddress};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::node::NodeId;
 ///@@line_break
@@ -91,6 +92,16 @@ fn generate(schema: &Schema) -> String {
     output += "    fn span(&self) -> Span {\n        match self {\n";
     for item in &nodes {
         let _ = writeln!(output, "            Self::{}(node) => node.span(),", item.name);
+    }
+    output += "        }\n    }\n}\n///@@line_break\n";
+
+    output += "impl GetAddress for AstKind<'_> {\n";
+    output += "    /// Get [`Address`] of an [`AstKind`].\n";
+    output += "    ///@ This boils down to 1 instruction.\n";
+    output += "    ///@ In all cases, it gets the pointer from the reference in the `AstKind`.\n";
+    output += "    #[inline]\n    fn address(&self) -> Address {\n        match *self {\n";
+    for item in &nodes {
+        let _ = writeln!(output, "            Self::{}(it) => it.unstable_address(),", item.name);
     }
     output += "        }\n    }\n}\n///@@line_break\n";
 

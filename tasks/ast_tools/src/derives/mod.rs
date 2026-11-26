@@ -18,11 +18,15 @@ use crate::{
 
 mod content_eq;
 mod dummy;
+mod get_address;
 mod get_span;
+mod unstable_address;
 
 pub use content_eq::DeriveContentEq;
 pub use dummy::DeriveDummy;
+pub use get_address::DeriveGetAddress;
 pub use get_span::DeriveGetSpan;
+pub use unstable_address::DeriveUnstableAddress;
 
 /// Trait to define a derive.
 pub trait Derive: Runner {
