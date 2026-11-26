@@ -18,6 +18,7 @@ plugins {
 val repositoryRoot = rootProject.extra["repositoryRoot"] as File
 val buildJavaVersion = rootProject.extra["buildJavaVersion"] as Int
 val pluginJvmTarget = rootProject.extra["pluginJvmTarget"] as Int
+val robustaVersion = rootProject.extra["robustaVersion"] as String
 
 // See the Gradle adapter: the published name is pinned, not derived from the
 // project name this module has inside the multi-project build.
@@ -272,6 +273,18 @@ publishing {
     }
 }
 
+// A snapshot is published under a new timestamp each time, so the repository
+// is emptied first rather than keeping every earlier build.
+val cleanFunctionalTestRepository = tasks.register<Delete>("cleanFunctionalTestRepository") {
+    delete(layout.buildDirectory.dir("repositories/functional-test"))
+}
+
+tasks.withType<PublishToMavenRepository>()
+    .matching { it.name.endsWith("ToFunctionalTestRepository") }
+    .configureEach {
+        dependsOn(cleanFunctionalTestRepository)
+    }
+
 // The plugin jar with the fake in place of its bundled binaries. A functional
 // test installs it into its own local repository, where Maven resolves it
 // instead of the published jar.
@@ -333,6 +346,7 @@ val functionalTest = tasks.register<Test>("functionalTest") {
         layout.buildDirectory.dir("repositories/functional-test").get().asFile.absolutePath,
     )
     systemProperty("robusta.functionalTest.pluginVersion", project.version.toString())
+    systemProperty("robusta.functionalTest.cliVersion", robustaVersion)
 
     inputs.files(fakeBundledPluginJar)
         .withPropertyName("fakeBundledPlugin")
@@ -392,7 +406,12 @@ val validateMavenCentralSigning = tasks.register("validateMavenCentralSigning") 
 }
 
 tasks.named("prepareMavenCentralPublishing") {
-    dependsOn(validateMavenCentralSigning, verifyRobustaBinaryBundle, verifyBundledCommonClasses)
+    dependsOn(
+        ":verifyReleaseVersion",
+        validateMavenCentralSigning,
+        verifyRobustaBinaryBundle,
+        verifyBundledCommonClasses,
+    )
 }
 
 // The functional suite publishes a jar bundling only the current platform's binary to

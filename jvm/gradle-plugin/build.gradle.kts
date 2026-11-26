@@ -20,7 +20,6 @@ plugins {
 val repositoryRoot = rootProject.extra["repositoryRoot"] as File
 val buildJavaVersion = rootProject.extra["buildJavaVersion"] as Int
 val pluginJvmTarget = rootProject.extra["pluginJvmTarget"] as Int
-val releaseVersion = version.toString()
 // The published artifact name. Pinned rather than derived from the project
 // name: this module became `:gradle-plugin` inside a multi-project build, and
 // the coordinate a consumer already depends on must not follow it.
@@ -271,7 +270,7 @@ val hasSigningCredentials = providers.provider {
 
 mavenPublishing {
     configure(GradlePublishPlugin())
-    coordinates(group.toString(), publishedArtifactId, releaseVersion)
+    coordinates(group.toString(), publishedArtifactId, version.toString())
     publishToMavenCentral()
 
     pom {
@@ -359,6 +358,7 @@ val validateMavenCentralSigning = tasks.register("validateMavenCentralSigning") 
 
 tasks.named("prepareMavenCentralPublishing") {
     dependsOn(
+        ":verifyReleaseVersion",
         validateMavenCentralSigning,
         verifyRobustaBinaryBundle,
         verifyDistributionLicenses,
@@ -368,6 +368,7 @@ tasks.named("prepareMavenCentralPublishing") {
 
 tasks.named("publishPlugins") {
     dependsOn(
+        ":verifyReleaseVersion",
         verifyRobustaBinaryBundle,
         verifyDistributionLicenses,
         "verifyPluginMetadata",
@@ -377,7 +378,7 @@ tasks.named("publishPlugins") {
 tasks.withType<PublishToMavenRepository>().configureEach {
     dependsOn(verifyRobustaBinaryBundle, verifyDistributionLicenses)
     if (name.endsWith("ToReleaseRehearsalRepository")) {
-        dependsOn(cleanReleaseRehearsalRepository)
+        dependsOn(":verifyReleaseVersion", cleanReleaseRehearsalRepository)
     }
 }
 
@@ -487,7 +488,7 @@ val publicationTest = tasks.register<Test>("publicationTest") {
         "robusta.published.repository",
         releaseRehearsalRepository.get().asFile.absolutePath,
     )
-    systemProperty("robusta.published.version", releaseVersion)
+    systemProperty("robusta.published.version", version.toString())
     shouldRunAfter(functionalTest)
 }
 

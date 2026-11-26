@@ -102,12 +102,7 @@ class GoalSurfaceFunctionalTest {
     }
 
     private static String pluginDescriptor() throws IOException {
-        Path repository = Path.of(System.getProperty("robusta.functionalTest.repository"));
-        String version = System.getProperty("robusta.functionalTest.pluginVersion");
-        Path jar = repository
-                .resolve("rs/robusta/robusta-maven-plugin")
-                .resolve(version)
-                .resolve("robusta-maven-plugin-" + version + ".jar");
+        Path jar = FunctionalTestSupport.publishedPlugin("jar");
         assertTrue(Files.isRegularFile(jar), "published plugin jar is missing: " + jar);
         try (JarFile jarFile = new JarFile(jar.toFile());
                 InputStream input = jarFile.getInputStream(jarFile.getEntry("META-INF/maven/plugin.xml"))) {

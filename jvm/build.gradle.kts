@@ -36,6 +36,28 @@ fun workspaceVersion(manifest: File): String {
 
 val robustaVersion = workspaceVersion(repositoryRoot.resolve("Cargo.toml"))
 
+// Between releases the workspace version is the last published one, so every
+// build is a snapshot of the next minor release unless the release passes
+// `-Prelease=true`. A local plugin build then never claims a published version,
+// nor shares the published plugin's binary cache.
+val isRelease = providers.gradleProperty("release").orNull.toBoolean()
+val pluginVersion = if (isRelease) {
+    robustaVersion
+} else {
+    val (major, minor) = robustaVersion.split('.')
+    "$major.${minor.toInt() + 1}.0-SNAPSHOT"
+}
+
+val verifyReleaseVersion = tasks.register("verifyReleaseVersion") {
+    description = "Requires a release build before publishing to a public repository."
+    group = "publishing"
+    val release = isRelease
+    val refusal = "Pass -Prelease=true to publish $robustaVersion instead of $pluginVersion"
+    doLast {
+        require(release) { refusal }
+    }
+}
+
 // The native distribution both plugins bundle. Declared once here because a new
 // platform is one product decision, not one per adapter.
 val robustaTriples = listOf(
@@ -54,6 +76,7 @@ val buildJavaVersion = 17
 val pluginJvmTarget = 8
 
 extra["repositoryRoot"] = repositoryRoot
+extra["robustaVersion"] = robustaVersion
 extra["robustaTriples"] = robustaTriples
 val robustaBinaryNames = robustaTriples.associateWith { triple ->
     "robusta-$triple${if (triple.endsWith("windows-msvc")) ".exe" else ""}"
@@ -143,7 +166,7 @@ subprojects {
     apply(plugin = "java")
 
     group = "rs.robusta"
-    version = robustaVersion
+    version = pluginVersion
     description = "A fast, Rust-native Java formatter and linter."
 
     repositories {

@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rs.robusta.maven.FunctionalTestSupport.Result;
+import static rs.robusta.maven.FunctionalTestSupport.cliVersion;
 import static rs.robusta.maven.FunctionalTestSupport.createProject;
 import static rs.robusta.maven.FunctionalTestSupport.goalCoordinate;
 import static rs.robusta.maven.FunctionalTestSupport.minimalPom;
-import static rs.robusta.maven.FunctionalTestSupport.pluginVersion;
 import static rs.robusta.maven.FunctionalTestSupport.runFakeMaven;
 import static rs.robusta.maven.FunctionalTestSupport.runMaven;
 import static rs.robusta.maven.FunctionalTestSupport.writeJavaSource;
@@ -162,7 +162,7 @@ class RobustaMavenPluginFunctionalTest {
         Result result = runMaven(project, temporaryDirectory.resolve("local-repo"), goalCoordinate("version"));
 
         assertEquals(0, result.exitCode(), result.output());
-        assertTrue(result.output().contains("Version: " + pluginVersion()), result.output());
+        assertTrue(result.output().contains("Version: " + cliVersion()), result.output());
     }
 
     @Test

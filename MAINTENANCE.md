@@ -24,6 +24,7 @@ In no specific order:
 
 ```bash
 ./gradlew clean check publicationTest validatePlugins assembleBundledPlugin \
+  -Prelease=true \
   -ProbustaBinariesDirectory=<directory> \
   "-ProbustaFakeExecutable=$PWD/../target/debug/robusta_plugin_fake" \
   -Drobusta.real.bundled=true
