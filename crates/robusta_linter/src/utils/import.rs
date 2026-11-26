@@ -1,3 +1,4 @@
+use robusta_ast::{ImportDeclaration, ImportKind};
 use robusta_span::Span;
 
 use crate::utils::{follows_documentation, removal_span};
@@ -16,4 +17,10 @@ pub fn delete_import(context: &LintContext<'_, '_, '_>, import: Span) -> Option<
         return None;
     }
     Some(Fix::delete(removal_span(context.source_text(), import)))
+}
+
+/// Whether `import` names a `java.lang` type, which every file imports already.
+pub fn imports_java_lang_type(import: &ImportDeclaration<'_>) -> bool {
+    import.kind == ImportKind::SingleType
+        && import.name.names_from_last().skip(1).eq(["lang", "java"])
 }
