@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use robusta_allocator::{Box, Vec};
+use robusta_allocator::{Box, Dummy, Vec};
 use robusta_ast_macros::ast;
 use robusta_span::{ContentEq, GetSpan, Span};
 use robusta_syntax::{

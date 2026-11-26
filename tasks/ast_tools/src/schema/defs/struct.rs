@@ -9,6 +9,7 @@ use super::{
         FileId,
         extensions::{
             content_eq::{ContentEqStructField, ContentEqType},
+            dummy::DummyStruct,
             kind::Kind,
             layout::{Layout, Offset},
             visit::VisitStruct,
@@ -34,6 +35,7 @@ pub struct StructDef {
     pub fields: Vec<FieldDef>,
     pub kind: Kind,
     pub layout: Layout,
+    pub dummy: DummyStruct,
     pub content_eq: ContentEqType,
 }
 

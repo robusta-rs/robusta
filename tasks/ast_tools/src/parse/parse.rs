@@ -18,6 +18,7 @@ use crate::{
         StructDef, TypeDef, TypeId, VariantDef, VecDef, Visibility,
         extensions::{
             content_eq::{ContentEqStructField, ContentEqType},
+            dummy::{DummyEnum, DummyStruct},
             kind::Kind,
             layout::{Layout, Offset},
             visit::{VisitEnum, VisitStruct, VisitVec},
@@ -106,6 +107,7 @@ impl Parser {
             fields,
             kind: Kind::default(),
             layout: Layout::default(),
+            dummy: DummyStruct::default(),
             content_eq: ContentEqType::default(),
             name,
             file_id,
@@ -177,6 +179,7 @@ impl Parser {
             inherits,
             inherited_by: Vec::new(),
             layout: Layout::default(),
+            dummy: DummyEnum::default(),
             content_eq: ContentEqType::default(),
             name,
             file_id,

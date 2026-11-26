@@ -1276,6 +1276,7 @@ name = "robusta_syntax"
 version = "0.1.0"
 dependencies = [
  "oxc_index",
+ "robusta_allocator",
  "robusta_ast_macros",
  "robusta_span",
  "unicode-general-category",

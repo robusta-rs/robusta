@@ -11,6 +11,7 @@ pub use file::File;
 /// Extensions to schema for specific generators.
 pub mod extensions {
     pub mod content_eq;
+    pub mod dummy;
     pub mod kind;
     pub mod layout;
     pub mod visit;
@@ -74,6 +75,14 @@ impl Schema {
     #[must_use]
     pub fn enum_def(&self, type_id: TypeId) -> &EnumDef {
         self.types[type_id].as_enum().expect("type is an enum")
+    }
+
+    /// Get mutable reference to [`EnumDef`] for a [`TypeId`].
+    ///
+    /// # Panics
+    /// Panics if type [`TypeId`] refers to is not an enum.
+    pub fn enum_def_mut(&mut self, type_id: TypeId) -> &mut EnumDef {
+        self.types[type_id].as_enum_mut().expect("type is an enum")
     }
 
     /// Get iterator over all structs and enums.

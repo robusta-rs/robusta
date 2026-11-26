@@ -1,3 +1,4 @@
+use robusta_allocator::{Allocator, Dummy};
 use robusta_ast_macros::ast;
 
 /// A half-open byte range `[start, end)` into the source text.
@@ -67,6 +68,16 @@ impl GetSpan for Span {
     #[inline]
     fn span(&self) -> Span {
         *self
+    }
+}
+
+// Adapted from https://github.com/oxc-project/oxc/blob/777d2d1b5cb7845740dd734bf85f420bc5c3e3a5/crates/oxc_span/src/span.rs
+impl<'a> Dummy<'a> for Span {
+    /// Create a dummy [`Span`].
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
+    fn dummy(_allocator: &'a Allocator) -> Self {
+        Self::empty(0)
     }
 }
 

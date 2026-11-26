@@ -3,6 +3,7 @@
 //! AST node ID.
 
 use oxc_index::define_nonmax_u32_index_type;
+use robusta_allocator::{Allocator, Dummy};
 use robusta_ast_macros::ast;
 
 define_nonmax_u32_index_type! {
@@ -27,6 +28,13 @@ impl NodeId {
 impl Default for NodeId {
     #[inline]
     fn default() -> Self {
+        Self::DUMMY
+    }
+}
+
+impl<'a> Dummy<'a> for NodeId {
+    #[inline]
+    fn dummy(_: &'a Allocator) -> Self {
         Self::DUMMY
     }
 }

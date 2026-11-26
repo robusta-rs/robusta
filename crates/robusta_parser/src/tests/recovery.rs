@@ -1,3 +1,5 @@
+use robusta_syntax::node::NodeId;
+
 use super::*;
 
 #[test]
@@ -86,6 +88,33 @@ fn malformed_truncated_inputs_terminate_at_eof() {
 }
 
 #[test]
+fn fatal_units_are_empty_ordinary_forms_keeping_comments_in_order() {
+    for (source, comments) in [
+        (
+            "/* keep this */ class Fatal { void f() { call( // trailing",
+            ["/* keep this */", "// trailing"],
+        ),
+        // The lexer reports the unterminated comment and ends the source.
+        ("/* keep this */ class Fatal { /* unterminated", ["/* keep this */", "/* unterminated"]),
+    ] {
+        let allocator = Allocator::new();
+        let result = parse(&allocator, source);
+        assert_eq!(result.status, ParseStatus::Fatal, "{source}");
+        assert!(!result.errors.is_empty(), "{source}");
+        let unit = result.unit;
+        let texts = unit.comments.iter().map(|comment| comment.span.source_text(source));
+        assert!(texts.eq(comments), "{source}: {:?}", unit.comments);
+        assert_eq!(unit.span, Span::empty(0), "{source}");
+        let CompilationUnitContent::Ordinary(form) = &unit.content else {
+            panic!("{source}: expected an ordinary form");
+        };
+        assert_eq!(form.span, Span::empty(0), "{source}");
+        assert!(form.package.is_none(), "{source}");
+        assert!(form.imports.is_empty() && form.types.is_empty(), "{source}");
+    }
+}
+
+#[test]
 fn compact_source_stray_closing_brace_is_reported_and_skipped() {
     for source in [
         "}",
@@ -129,6 +158,10 @@ fn overlong_source_yields_a_fatal_empty_unit() {
     assert_eq!(result.status, ParseStatus::Fatal);
     assert!(result.unit.types().is_empty());
     assert!(result.unit.comments.is_empty());
+    assert_eq!(result.unit.node_id(), NodeId::ROOT);
+    assert_ne!(result.unit.content.node_id(), NodeId::ROOT);
+    // The placeholder's lists stay empty without taking arena space.
+    assert_eq!(allocator.used_bytes(), 0);
     assert_eq!(result.errors.len(), 1);
     assert_eq!(result.errors[0].message, "source length exceeds 4 GiB limit");
 }

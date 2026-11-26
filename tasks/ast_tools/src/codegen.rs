@@ -71,10 +71,11 @@ impl GeneratorOrDerive {
         }
     }
 
-    /// Execute `prepare` method on a [`Generator`].
+    /// Execute `prepare` method on a [`Generator`] or [`Derive`].
     pub fn prepare(self, schema: &mut Schema) {
-        if let Self::Generator(generator) = self {
-            generator.prepare(schema);
+        match self {
+            Self::Generator(generator) => generator.prepare(schema),
+            Self::Derive(derive) => derive.prepare(schema),
         }
     }
 

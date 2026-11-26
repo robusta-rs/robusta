@@ -1,6 +1,6 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/7db7a29aab2d9cf33df279eda41f2ffa4d9799b8/crates/oxc_allocator/src/take_in.rs
 
-use std::mem;
+use std::{cell::Cell, mem};
 
 use crate::{Allocator, GetAllocator, Vec};
 
@@ -24,10 +24,28 @@ pub trait Dummy<'a>: Sized {
     fn dummy(allocator: &'a Allocator) -> Self;
 }
 
+impl<'a, T> Dummy<'a> for Option<T> {
+    /// Create a dummy [`Option`].
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
+    fn dummy(_allocator: &'a Allocator) -> Self {
+        None
+    }
+}
+
 impl<'a, T> Dummy<'a> for Vec<'a, T> {
     /// Create a dummy [`Vec`].
     #[inline]
     fn dummy(allocator: &'a Allocator) -> Self {
         Vec::new_in(&allocator)
+    }
+}
+
+impl<'a, T: Dummy<'a>> Dummy<'a> for Cell<T> {
+    /// Create a dummy [`Cell`].
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
+    fn dummy(allocator: &'a Allocator) -> Self {
+        Cell::new(Dummy::dummy(allocator))
     }
 }
