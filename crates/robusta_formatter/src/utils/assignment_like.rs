@@ -387,9 +387,9 @@ fn should_break_after_operator<'a>(
     }
 }
 
-/// Traverses nested unary expressions to find the innermost one.
+/// Traverses nested prefix operators, casts included, to find the innermost operand.
 ///
-/// Example: `!-value` returns `value`.
+/// Example: `!(int) value` returns `value`.
 fn innermost_expression<'b, 'a>(
     mut expression: AstNode<'b, 'a, Expression<'a>>,
     f: &JavaFormatter<'_, 'a>,
@@ -398,10 +398,13 @@ where
     'a: 'b,
 {
     let allocator = f.allocator();
-    while let Expression::Unary(_) = expression.inner() {
-        expression = expression.as_unary().unwrap().in_arena(allocator).operand();
+    loop {
+        expression = match expression.inner() {
+            Expression::Unary(_) => expression.as_unary().unwrap().in_arena(allocator).operand(),
+            Expression::Cast(_) => expression.as_cast().unwrap().in_arena(allocator).operand(),
+            _ => return expression,
+        };
     }
-    expression
 }
 
 /// A chain that has no calls at all or all of whose calls have no arguments
