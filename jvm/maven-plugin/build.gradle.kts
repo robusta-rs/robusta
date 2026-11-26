@@ -4,7 +4,6 @@ import com.vanniktech.maven.publish.SourcesJar
 import java.util.zip.ZipFile
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -37,14 +36,8 @@ tasks.withType<AbstractArchiveTask>().configureEach {
     isReproducibleFileOrder = true
 }
 
-// The sources jar is sourced from SourceSet.allSource, which includes generated resources.
-tasks.withType<Jar>().matching { it.name == "sourcesJar" }.configureEach {
-    exclude("META-INF/robusta/bin/**")
-    includeEmptyDirs = false
-}
-
 // See the Gradle adapter's note: `common` is packaged into this jar
-// rather than depended on, so Robusta keeps exactly two published coordinates.
+// rather than depended on, so Robusta keeps exactly two plugin coordinates.
 val pluginCommon = project(":common")
 
 dependencies {
@@ -56,9 +49,11 @@ dependencies {
     // POM's dependencies (mirrors <scope>provided</scope>).
     compileOnly("org.apache.maven:maven-plugin-api:3.9.16")
     compileOnly("org.apache.maven:maven-core:3.9.16")
-    // The effective local repository, which honours -Dmaven.repo.local, is only reachable
-    // through the resolver session. compileOnly is not transitive, so it is named here.
+    // The resolver resolves the binary jar, and its session holds the effective local
+    // repository, which honours -Dmaven.repo.local. compileOnly is not transitive, so it is
+    // named here.
     compileOnly("org.apache.maven.resolver:maven-resolver-api:1.9.27")
+    compileOnly("javax.inject:javax.inject:1")
     compileOnly("org.apache.maven.plugin-tools:maven-plugin-annotations:3.15.2")
 
     testImplementation("org.apache.maven:maven-plugin-api:3.9.16")
@@ -77,156 +72,17 @@ mavenPlugin {
     goalPrefix = "robusta"
 }
 
-@Suppress("UNCHECKED_CAST")
-val robustaBinaryNames = rootProject.extra["robustaBinaryNames"] as Map<String, String>
-
-@Suppress("UNCHECKED_CAST")
-val sha256 = rootProject.extra["sha256"] as (File) -> String
-
-@Suppress("UNCHECKED_CAST")
-val registerHostBundle = rootProject.extra["registerHostBundle"]
-    as Project.(String, Provider<File>, String, Provider<Directory>) -> TaskProvider<Task>
-
-val robustaBinariesDirectory = providers.gradleProperty("robustaBinariesDirectory")
-val robustaDebugExecutable = providers.gradleProperty("robustaDebugExecutable").map(::file)
 val robustaFakeExecutable = providers.gradleProperty("robustaFakeExecutable").map(::file)
-val debugRobustaBundle = layout.buildDirectory.dir("functionalTestFixture/debug-robusta")
-val fakeRobustaBundle = layout.buildDirectory.dir("functionalTestFixture/fake-robusta")
-val generatedRobustaResources = layout.buildDirectory.dir("generated/robusta-resources")
 val projectLicense = repositoryRoot.resolve("LICENSE")
 
-fun bundledInputFiles(directory: File): Map<String, File> {
-    val expectedNames = robustaBinaryNames.values.flatMap { listOf(it, "$it.sha256") }.toSet()
-    val files = directory.walkTopDown()
-        .filter(File::isFile)
-        .filter { it.name in expectedNames }
-        .groupBy(File::getName)
-    val duplicates = files.filterValues { it.size != 1 }.keys
-    require(duplicates.isEmpty()) {
-        "Duplicate Robusta bundle inputs: ${duplicates.sorted().joinToString()}"
-    }
-    return files.mapValues { it.value.single() }
-}
-
-fun verifyBundledInputs(directory: File, requireAll: Boolean) {
-    require(directory.isDirectory) {
-        "Robusta binaries directory does not exist: $directory"
-    }
-    val files = bundledInputFiles(directory)
-    require(files.isNotEmpty()) {
-        "No recognized Robusta binaries found under $directory"
-    }
-    for (binaryName in robustaBinaryNames.values) {
-        val binary = files[binaryName]
-        val checksum = files["$binaryName.sha256"]
-        require((binary == null) == (checksum == null)) {
-            "Robusta bundle input must contain both $binaryName and $binaryName.sha256"
-        }
-        if (binary == null) continue
-        val expected = checksum!!.readText(Charsets.US_ASCII)
-            .trim()
-            .split(Regex("\\s+"), limit = 2)
-            .first()
-            .lowercase()
-        require(expected.matches(Regex("[0-9a-f]{64}"))) {
-            "Invalid SHA-256 record: $checksum"
-        }
-        val actual = sha256(binary)
-        require(actual == expected) {
-            "Checksum mismatch for $binaryName: expected $expected, actual $actual"
-        }
-    }
-    if (requireAll) {
-        val missing = robustaBinaryNames.values.filterNot(files::containsKey)
-        require(missing.isEmpty()) {
-            "Missing Robusta release binaries: ${missing.joinToString()}"
-        }
-    }
-}
-
-// -ProbustaDebugExecutable bundles a local debug CLI in place of release binaries.
-val prepareDebugRobustaBundle = registerHostBundle(
-    "prepareDebugRobustaBundle",
-    robustaDebugExecutable,
-    "robustaDebugExecutable",
-    debugRobustaBundle,
-)
-
-// The tests run the native fake from `tasks/plugin_fake`, directly or as the
-// bundled binary of a second plugin jar. -ProbustaFakeExecutable selects the
-// built fake.
-val prepareFakeRobustaBundle = registerHostBundle(
-    "prepareFakeRobustaBundle",
-    robustaFakeExecutable,
-    "robustaFakeExecutable",
-    fakeRobustaBundle.map { it.dir("META-INF/robusta/bin") },
-)
-
-val prepareRobustaBinaries = tasks.register<Sync>("prepareRobustaBinaries") {
-    val input = robustaDebugExecutable.map { debugRobustaBundle.get().asFile }
-        .orElse(robustaBinariesDirectory.map(::file))
-        .orElse(file("src/main/robusta-binaries"))
-    if (robustaDebugExecutable.isPresent) {
-        dependsOn(prepareDebugRobustaBundle)
-    }
-    from(input) {
-        include(robustaBinaryNames.values.flatMap { listOf("**/$it", "**/$it.sha256") })
-        includeEmptyDirs = false
-        eachFile {
-            path = "META-INF/robusta/bin/$name"
-        }
-    }
-    into(generatedRobustaResources)
-    doFirst {
-        if (robustaBinariesDirectory.isPresent) {
-            verifyBundledInputs(file(robustaBinariesDirectory.get()), requireAll = false)
-        }
-    }
-}
-
-sourceSets.main {
-    resources.srcDir(prepareRobustaBinaries)
-}
+@Suppress("UNCHECKED_CAST")
+val functionalTestRepository =
+    (rootProject.extra["localRepositories"] as Map<String, Provider<Directory>>).getValue("functionalTest")
 
 tasks.processResources {
     from(projectLicense) {
         into("META-INF")
     }
-}
-
-val verifyRobustaBinaryBundle = tasks.register("verifyRobustaBinaryBundle") {
-    dependsOn(tasks.jar)
-    doLast {
-        require(robustaBinariesDirectory.isPresent) {
-            "Set -ProbustaBinariesDirectory=<path> to assemble the self-contained plugin jar"
-        }
-        val directory = file(robustaBinariesDirectory.get())
-        verifyBundledInputs(directory, requireAll = true)
-        val inputs = bundledInputFiles(directory)
-        ZipFile(tasks.jar.get().archiveFile.get().asFile).use { archive ->
-            robustaBinaryNames.values
-                .flatMap { listOf(it, "$it.sha256") }
-                .forEach { name ->
-                    val path = "META-INF/robusta/bin/$name"
-                    val entry = requireNotNull(archive.getEntry(path)) {
-                        "Plugin jar is missing $path"
-                    }
-                    val actual = archive.getInputStream(entry).use { it.readBytes() }
-                    val expected = requireNotNull(inputs[name]).readBytes()
-                    require(actual.contentEquals(expected)) {
-                        "Plugin jar contains stale $path"
-                    }
-                }
-        }
-    }
-}
-
-val signAllPublications = providers.gradleProperty("signAllPublications")
-val signingInMemoryKey = providers.gradleProperty("signingInMemoryKey")
-val signingSecretKeyRingFile = providers.gradleProperty("signing.secretKeyRingFile")
-val hasSigningCredentials = providers.provider {
-    signingInMemoryKey.orNull?.isNotBlank() == true ||
-        signingSecretKeyRingFile.orNull?.isNotBlank() == true
 }
 
 mavenPublishing {
@@ -237,64 +93,6 @@ mavenPublishing {
     pom {
         name.set("Robusta Maven Plugin")
         description.set(project.description)
-        url.set("https://github.com/robusta-rs/robusta")
-        licenses {
-            license {
-                name.set("MIT License")
-                url.set("https://opensource.org/licenses/MIT")
-                distribution.set("repo")
-            }
-        }
-        developers {
-            developer {
-                id.set("ThomasRopke")
-                name.set("Thomas Ropke")
-                url.set("https://github.com/ThomasRopke")
-            }
-        }
-        scm {
-            connection.set("scm:git:https://github.com/robusta-rs/robusta.git")
-            developerConnection.set("scm:git:ssh://git@github.com/robusta-rs/robusta.git")
-            url.set("https://github.com/robusta-rs/robusta")
-        }
-        issueManagement {
-            system.set("GitHub")
-            url.set("https://github.com/robusta-rs/robusta/issues")
-        }
-    }
-}
-
-publishing {
-    repositories {
-        maven {
-            name = "functionalTest"
-            url = uri(layout.buildDirectory.dir("repositories/functional-test"))
-        }
-    }
-}
-
-// A snapshot is published under a new timestamp each time, so the repository
-// is emptied first rather than keeping every earlier build.
-val cleanFunctionalTestRepository = tasks.register<Delete>("cleanFunctionalTestRepository") {
-    delete(layout.buildDirectory.dir("repositories/functional-test"))
-}
-
-tasks.withType<PublishToMavenRepository>()
-    .matching { it.name.endsWith("ToFunctionalTestRepository") }
-    .configureEach {
-        dependsOn(cleanFunctionalTestRepository)
-    }
-
-// The plugin jar with the fake in place of its bundled binaries. A functional
-// test installs it into its own local repository, where Maven resolves it
-// instead of the published jar.
-val fakeBundledPluginJar = tasks.register<Jar>("fakeBundledPluginJar") {
-    destinationDirectory = layout.buildDirectory.dir("functionalTestFixture/fake-plugin")
-    from(zipTree(tasks.jar.flatMap { it.archiveFile })) {
-        exclude("META-INF/robusta/bin/**")
-    }
-    from(prepareFakeRobustaBundle) {
-        into("META-INF/robusta/bin")
     }
 }
 
@@ -318,17 +116,29 @@ tasks.withType<Test>().configureEach {
     }
 }
 
+// The tests run the native fake from `tasks/plugin_fake`, directly or as the
+// running platform's binary jar. -ProbustaFakeExecutable selects the built fake.
+fun Test.useFakeRobusta() {
+    inputs.file(robustaFakeExecutable)
+        .withPropertyName("robustaFakeExecutable")
+        .withPathSensitivity(PathSensitivity.NONE)
+        .optional()
+    robustaFakeExecutable.orNull?.let { systemProperty("robusta.fake.executable", it.absolutePath) }
+}
+
 tasks.test {
-    inputs.files(prepareFakeRobustaBundle)
-        .withPropertyName("fakeRobustaBundle")
-        .withPathSensitivity(PathSensitivity.RELATIVE)
-    systemProperty("robusta.fake.bundle", fakeRobustaBundle.get().asFile.absolutePath)
+    useFakeRobusta()
 }
 
 val functionalTest = tasks.register<Test>("functionalTest") {
     description = "Runs Maven Wrapper-driven functional tests against a locally published plugin."
     group = LifecycleBasePlugin.VERIFICATION_GROUP
-    dependsOn("publishMavenPublicationToFunctionalTestRepository")
+    // The plugin, and the real binary `:binary` publishes from
+    // -ProbustaDebugExecutable or -ProbustaBinariesDirectory.
+    dependsOn(
+        "publishMavenPublicationToFunctionalTestRepository",
+        ":binary:publishAllPublicationsToFunctionalTestRepository",
+    )
     testClassesDirs = functionalTestSourceSet.output.classesDirs
     classpath = functionalTestSourceSet.runtimeClasspath
     shouldRunAfter(tasks.test)
@@ -337,24 +147,18 @@ val functionalTest = tasks.register<Test>("functionalTest") {
     // Gradle infers is not the whole input. The generated plugin descriptor is derived from
     // annotations and Javadoc, which produce identical bytecode: without this the goal-surface
     // gate stays up to date across a descriptor change and never runs.
-    inputs.dir(layout.buildDirectory.dir("repositories/functional-test"))
+    inputs.dir(functionalTestRepository)
         .withPropertyName("publishedPlugin")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 
     systemProperty(
         "robusta.functionalTest.repository",
-        layout.buildDirectory.dir("repositories/functional-test").get().asFile.absolutePath,
+        functionalTestRepository.get().asFile.absolutePath,
     )
     systemProperty("robusta.functionalTest.pluginVersion", project.version.toString())
     systemProperty("robusta.functionalTest.cliVersion", robustaVersion)
 
-    inputs.files(fakeBundledPluginJar)
-        .withPropertyName("fakeBundledPlugin")
-        .withPathSensitivity(PathSensitivity.NONE)
-    systemProperty(
-        "robusta.functionalTest.fakePlugin",
-        fakeBundledPluginJar.get().archiveFile.get().asFile.absolutePath,
-    )
+    useFakeRobusta()
     providers.systemProperty("robusta.real.bundled").orNull?.let {
         systemProperty("robusta.real.bundled", it)
     }
@@ -376,7 +180,7 @@ val verifyBundledCommonClasses = tasks.register("verifyBundledCommonClasses") {
         // fail at NoClassDefFoundError inside a consumer's build.
         ZipFile(tasks.jar.get().archiveFile.get().asFile).use { archive ->
             listOf(
-                "rs/robusta/plugin/common/BundledExecutable.class",
+                "rs/robusta/plugin/common/RobustaBinary.class",
                 "rs/robusta/plugin/common/RobustaPlatform.class",
                 "rs/robusta/plugin/common/CommandLineArguments.class",
                 "rs/robusta/plugin/common/Hex.class",
@@ -391,42 +195,19 @@ val verifyBundledCommonClasses = tasks.register("verifyBundledCommonClasses") {
     }
 }
 
-val validateMavenCentralSigning = tasks.register("validateMavenCentralSigning") {
-    description = "Requires the PGP credentials used for Maven Central."
-    group = "publishing"
-    doLast {
-        require(signAllPublications.orNull.toBoolean()) {
-            "Set signAllPublications=true before publishing to Maven Central"
-        }
-        require(hasSigningCredentials.get()) {
-            "Configure signingInMemoryKey (recommended for CI) or signing.secretKeyRingFile " +
-                "before publishing to Maven Central"
-        }
-    }
-}
-
 tasks.named("prepareMavenCentralPublishing") {
     dependsOn(
         ":verifyReleaseVersion",
-        validateMavenCentralSigning,
-        verifyRobustaBinaryBundle,
+        ":validateMavenCentralSigning",
         verifyBundledCommonClasses,
     )
 }
 
-// The functional suite publishes a jar bundling only the current platform's binary to
-// its in-tree repository, so the complete-bundle gate guards Maven Central alone.
 tasks.withType<PublishToMavenRepository>()
     .matching { it.name.endsWith("ToMavenCentralRepository") }
     .configureEach {
-        dependsOn(verifyRobustaBinaryBundle, verifyBundledCommonClasses)
+        dependsOn(verifyBundledCommonClasses)
     }
-
-tasks.register("assembleBundledPlugin") {
-    description = "Assembles a plugin jar containing every supported Robusta binary."
-    group = LifecycleBasePlugin.BUILD_GROUP
-    dependsOn(verifyRobustaBinaryBundle, tasks.jar)
-}
 
 tasks.check {
     dependsOn(functionalTest, verifyBundledCommonClasses)

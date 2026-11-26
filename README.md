@@ -7,7 +7,7 @@
 
 ## ☕ Robusta
 
-A fast, Rust-native Java formatter and linter. Robusta is one native executable with no JVM to start, takes its formatting and lint settings from the nearest `robusta.yaml` above each file, and runs the same way on a developer machine and in CI. Gradle and Maven plugins bundle that executable so a build can call it directly.
+A fast, Rust-native Java formatter and linter. Robusta is one native executable with no JVM to start, takes its formatting and lint settings from the nearest `robusta.yaml` above each file, and runs the same way on a developer machine and in CI. Gradle and Maven plugins fetch that executable for the running platform so a build can call it directly.
 
 Robusta formats and lints in one binary. **Formatting** is deterministic and idempotent. **Linting** analyzes each file on its own, so it is deterministic, needs no build information, and is safe to enforce in CI.
 

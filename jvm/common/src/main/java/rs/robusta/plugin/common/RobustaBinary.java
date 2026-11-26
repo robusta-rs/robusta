@@ -20,45 +20,55 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
-/** Extracts a bundled native executable into a cache and verifies it against its checksum. */
-public final class BundledExecutable {
-    private static final String RESOURCE_ROOT = "/META-INF/robusta/bin/";
+/**
+ * The jar published for each platform, holding its binary and {@code .sha256} checksum, and
+ * extraction of that binary into a cache.
+ */
+public final class RobustaBinary {
+    /** The group of the published binary jars. */
+    public static final String GROUP = "rs.robusta";
+
+    /** The artifact of the published binary jars, whose classifier is the Rust target. */
+    public static final String ARTIFACT = "robusta-binary";
+
     private static final int MAXIMUM_CHECKSUM_BYTES = 512;
     private static final Pattern CHECKSUM = Pattern.compile("^([0-9a-fA-F]{64})(?:\\s+\\*?.+)?$");
     private static final Pattern SAFE_VERSION = Pattern.compile("[0-9A-Za-z][0-9A-Za-z._+-]*");
     private static final long LOCK_RETRY_MILLIS = 10;
 
-    private final String buildTool;
+    private RobustaBinary() {}
 
     /**
-     * Creates an extractor whose failures name the build tool.
+     * Returns the Gradle coordinates of the jar holding {@code platform}'s binary.
      *
-     * @param buildTool the build tool name used in failure messages, such as {@code Gradle}
+     * @param version the plugin version
+     * @param platform the platform whose Rust target is the classifier
+     * @return {@code group:artifact:version:classifier}
      */
-    public BundledExecutable(String buildTool) {
-        this.buildTool = buildTool;
+    public static String coordinates(String version, RobustaPlatform platform) {
+        return GROUP + ":" + ARTIFACT + ":" + version + ":" + platform.triple();
     }
 
     /**
-     * Extracts the binary for the running platform under
+     * Extracts {@code platform}'s binary from {@code jar} under
      * {@code cacheRoot/version/triple}, reusing a checksum-valid binary already there.
      *
+     * @param jar the resolved jar holding the binary
+     * @param platform the running platform
      * @param cacheRoot the build tool's Robusta cache directory
-     * @param osName the {@code os.name} system property
-     * @param osArchitecture the {@code os.arch} system property
      * @param version the plugin version, which must be a safe path segment
      * @return the extracted executable
-     * @throws RobustaPluginException when the platform is unsupported or the binary cannot be
-     *     extracted and verified
+     * @throws RobustaPluginException when the binary cannot be extracted and verified
      */
-    public Path obtain(Path cacheRoot, String osName, String osArchitecture, String version)
+    public static Path obtain(Path jar, RobustaPlatform platform, Path cacheRoot, String version)
             throws RobustaPluginException {
-        RobustaPlatform platform = RobustaPlatform.detect(osName, osArchitecture);
         if (!SAFE_VERSION.matcher(version).matches()) {
             throw new RobustaPluginException("Invalid Robusta plugin version for cache path: " + version);
         }
-        return extract(platform, destination(cacheRoot, version, platform));
+        return extract(jar, platform, destination(cacheRoot, version, platform));
     }
 
     /** Returns where {@link #obtain} places the binary for {@code platform}. */
@@ -67,18 +77,17 @@ public final class BundledExecutable {
     }
 
     /**
-     * Returns the binary at {@code destination}, extracting it when it is missing or does not
-     * match its bundled checksum.
+     * Returns the binary at {@code destination}, extracting it from {@code jar} when it is missing
+     * or does not match the checksum in the jar.
      *
-     * @throws RobustaPluginException when the bundled binary does not match its checksum or
+     * @throws RobustaPluginException when the jar's binary does not match its checksum or
      *     cannot be installed at {@code destination}
      */
-    public Path extract(RobustaPlatform platform, Path destination) throws RobustaPluginException {
-        String binaryResource = RESOURCE_ROOT + platform.bundledBinaryName();
-        String checksumResource = binaryResource + ".sha256";
-        String expected = readChecksum(checksumResource);
-
-        try {
+    public static Path extract(Path jar, RobustaPlatform platform, Path destination)
+            throws RobustaPluginException {
+        String binaryEntry = platform.binaryName();
+        try (ZipFile archive = new ZipFile(jar.toFile())) {
+            String expected = readChecksum(archive, jar, binaryEntry + ".sha256");
             Files.createDirectories(destination.getParent());
             Path lockPath = destination.resolveSibling(destination.getFileName() + ".lock");
             try (FileChannel channel = FileChannel.open(
@@ -94,11 +103,11 @@ public final class BundledExecutable {
                         return destination;
                     }
                 }
-                return extractLocked(binaryResource, destination, platform, expected);
+                return extractLocked(archive, jar, binaryEntry, destination, platform, expected);
             }
         } catch (IOException error) {
             throw new RobustaPluginException(
-                    "Could not extract the bundled Robusta binary to " + destination, error);
+                    "Could not extract the Robusta binary from " + jar + " to " + destination, error);
         }
     }
 
@@ -119,13 +128,18 @@ public final class BundledExecutable {
         }
     }
 
-    private Path extractLocked(
-            String binaryResource, Path destination, RobustaPlatform platform, String expected)
+    private static Path extractLocked(
+            ZipFile archive,
+            Path jar,
+            String binaryEntry,
+            Path destination,
+            RobustaPlatform platform,
+            String expected)
             throws IOException, RobustaPluginException {
         Path temporary = Files.createTempFile(destination.getParent(), ".robusta-", ".tmp");
         try {
             String actual;
-            try (InputStream input = openResource(binaryResource);
+            try (InputStream input = openEntry(archive, jar, binaryEntry);
                     OutputStream output =
                             Files.newOutputStream(temporary, StandardOpenOption.TRUNCATE_EXISTING)) {
                 MessageDigest digest = sha256();
@@ -139,7 +153,7 @@ public final class BundledExecutable {
             }
 
             if (!actual.equals(expected)) {
-                throw checksumFailure(binaryResource, expected, actual);
+                throw checksumFailure(jar + "!/" + binaryEntry, expected, actual);
             }
             makeExecutable(temporary, platform);
             try {
@@ -150,7 +164,7 @@ public final class BundledExecutable {
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException error) {
                 throw new RobustaPluginException(
-                        "The Robusta cache filesystem cannot atomically install the bundled binary at "
+                        "The Robusta cache filesystem cannot atomically install the binary at "
                                 + destination,
                         error);
             }
@@ -165,16 +179,15 @@ public final class BundledExecutable {
         }
     }
 
-    private String readChecksum(String resource) throws RobustaPluginException {
+    private static String readChecksum(ZipFile archive, Path jar, String entry)
+            throws IOException, RobustaPluginException {
         String contents;
-        try (InputStream input = openResource(resource)) {
+        try (InputStream input = openEntry(archive, jar, entry)) {
             contents = new String(readBounded(input), StandardCharsets.US_ASCII).trim();
-        } catch (IOException error) {
-            throw new RobustaPluginException("Could not read bundled Robusta checksum " + resource, error);
         }
         Matcher matcher = CHECKSUM.matcher(contents);
         if (!matcher.matches()) {
-            throw new RobustaPluginException("Invalid bundled Robusta checksum record " + resource);
+            throw new RobustaPluginException("Invalid Robusta checksum record " + jar + "!/" + entry);
         }
         return matcher.group(1).toLowerCase(Locale.ROOT);
     }
@@ -194,13 +207,13 @@ public final class BundledExecutable {
         return Arrays.copyOf(buffer, total);
     }
 
-    private InputStream openResource(String resource) throws RobustaPluginException {
-        InputStream input = BundledExecutable.class.getResourceAsStream(resource);
-        if (input == null) {
-            throw new RobustaPluginException(
-                    "The Robusta " + buildTool + " plugin is missing bundled resource " + resource + ".");
+    private static InputStream openEntry(ZipFile archive, Path jar, String entry)
+            throws IOException, RobustaPluginException {
+        ZipEntry found = archive.getEntry(entry);
+        if (found == null) {
+            throw new RobustaPluginException("The Robusta binary jar " + jar + " is missing " + entry + ".");
         }
-        return input;
+        return archive.getInputStream(found);
     }
 
     private static String sha256(Path path) throws IOException {
@@ -225,7 +238,7 @@ public final class BundledExecutable {
 
     private static RobustaPluginException checksumFailure(String binary, String expected, String actual) {
         return new RobustaPluginException(
-                "Bundled Robusta checksum mismatch for "
+                "Robusta checksum mismatch for "
                         + binary
                         + ": expected "
                         + expected
@@ -239,7 +252,7 @@ public final class BundledExecutable {
             return;
         }
         if (!path.toFile().setExecutable(true, true) || !Files.isExecutable(path)) {
-            throw new RobustaPluginException("Could not mark the bundled Robusta binary executable: " + path);
+            throw new RobustaPluginException("Could not mark the Robusta binary executable: " + path);
         }
     }
 }

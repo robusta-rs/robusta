@@ -7,19 +7,25 @@ import java.util.List;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.InvalidUserDataException;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.process.ExecOperations;
 import org.gradle.process.ExecResult;
 import org.gradle.work.DisableCachingByDefault;
 
 import rs.robusta.plugin.common.CommandLineArguments;
+import rs.robusta.plugin.common.RobustaBinary;
+import rs.robusta.plugin.common.RobustaPlatform;
 import rs.robusta.plugin.common.RobustaPluginException;
 
 /** Shared external-process boundary for Robusta tasks. */
@@ -40,15 +46,24 @@ public abstract class AbstractRobustaTask extends DefaultTask {
     public abstract DirectoryProperty getWorkingDirectory();
 
     /**
-     * Returns the cache root used for bundled executables.
+     * Returns the running platform's binary jar.
      *
-     * @return the bundled-executable cache root
+     * @return the resolved {@code rs.robusta:robusta-binary} jar
      */
-    @Internal
-    public abstract DirectoryProperty getBundledCacheRoot();
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    public abstract ConfigurableFileCollection getBinaryJar();
 
     /**
-     * Returns the plugin version that namespaces bundled cache entries.
+     * Returns the cache root the binary is extracted under.
+     *
+     * @return the binary cache root
+     */
+    @Internal
+    public abstract DirectoryProperty getCacheRoot();
+
+    /**
+     * Returns the plugin version that namespaces cache entries.
      *
      * @return the plugin version
      */
@@ -87,17 +102,25 @@ public abstract class AbstractRobustaTask extends DefaultTask {
     protected abstract ExecOperations getExecOperations();
 
     /**
-     * Executes the bundled Robusta binary with the supplied arguments.
+     * Executes the Robusta binary with the supplied arguments.
      *
      * @param arguments native CLI arguments
      * @return the native process exit code
      */
     protected final int executeRobusta(List<String> arguments) {
-        File executable = BundledRobustaExecutable.obtain(
-                getBundledCacheRoot().get().getAsFile().toPath(),
-                System.getProperty("os.name"),
-                System.getProperty("os.arch"),
-                getPluginVersion().get());
+        File executable;
+        try {
+            RobustaPlatform platform =
+                    RobustaPlatform.detect(System.getProperty("os.name"), System.getProperty("os.arch"));
+            executable = RobustaBinary.obtain(
+                    getBinaryJar().getSingleFile().toPath(),
+                    platform,
+                    getCacheRoot().get().getAsFile().toPath(),
+                    getPluginVersion().get())
+                .toFile();
+        } catch (RobustaPluginException failure) {
+            throw new GradleException(failure.getMessage(), failure);
+        }
         Logger logger = getLogger();
         // Gradle logs captured standard output at QUIET and standard error at ERROR.
         try (Utf8LineOutputStream output =

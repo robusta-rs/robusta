@@ -9,6 +9,7 @@ import static rs.robusta.gradle.FunctionalTestSupport.newTestKitDirectory;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipFile;
 
@@ -22,17 +23,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Document;
 
+import rs.robusta.plugin.common.RobustaPlatform;
+
 class PublishedPluginFunctionalTest {
     private static final String REPOSITORY_PROPERTY = "robusta.published.repository";
     private static final String VERSION_PROPERTY = "robusta.published.version";
 
     @TempDir Path temporaryDirectory;
 
+    // A fresh TestKit directory has empty caches, so each first run resolves the plugin and its
+    // binary jar from the rehearsal repository alone.
     @Test
-    void resolvesFinalMarkerAndExecutesBundledBinary() throws Exception {
-        String repositoryValue = requiredProperty(REPOSITORY_PROPERTY);
+    void resolvesFinalMarkerAndRunsTheBinaryFromThePluginRepository() throws Exception {
+        Path repository = Path.of(requiredProperty(REPOSITORY_PROPERTY));
         String version = requiredProperty(VERSION_PROPERTY);
-        Path repository = Path.of(repositoryValue);
         verifyPublication(repository, version);
         Path project = createProject(temporaryDirectory, "published", "");
         Files.writeString(
@@ -48,6 +52,10 @@ class PublishedPluginFunctionalTest {
                     id("rs.robusta") version "%s"
                 }
 
+                dependencyResolutionManagement {
+                    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                }
+
                 rootProject.name = "published-consumer"
                 """.formatted(repository.toUri(), version),
                 StandardCharsets.UTF_8);
@@ -60,6 +68,64 @@ class PublishedPluginFunctionalTest {
         BuildResult second = runner(project, testKitDirectory).build();
         assertTrue(second.getOutput().contains("Version: " + version), second.getOutput());
         assertTrue(second.getOutput().contains("Configuration cache entry reused"), second.getOutput());
+    }
+
+    @Test
+    void runsTheBinaryFromALegacyBuildscriptClasspath() throws Exception {
+        Path repository = Path.of(requiredProperty(REPOSITORY_PROPERTY));
+        String version = requiredProperty(VERSION_PROPERTY);
+        Path project = createProject(temporaryDirectory, "legacy", """
+                buildscript {
+                    repositories {
+                        maven { url = uri("%s") }
+                    }
+                    dependencies {
+                        classpath("rs.robusta:robusta-gradle-plugin:%s")
+                    }
+                }
+
+                subprojects {
+                    apply(plugin = "rs.robusta")
+                }
+                """.formatted(repository.toUri(), version));
+        Files.writeString(
+                project.resolve("settings.gradle.kts"),
+                "rootProject.name = \"legacy-consumer\"\ninclude(\"app\")\n",
+                StandardCharsets.UTF_8);
+        Files.createDirectories(project.resolve("app"));
+
+        BuildResult result = runner(project, newTestKitDirectory("legacy"), ":app:robustaVersion").build();
+        assertTrue(result.getOutput().contains("Version: " + version), result.getOutput());
+    }
+
+    @Test
+    void runsTheBinaryFromAProjectPluginsBlock() throws Exception {
+        Path repository = Path.of(requiredProperty(REPOSITORY_PROPERTY));
+        String version = requiredProperty(VERSION_PROPERTY);
+        Path project = createProject(temporaryDirectory, "project-plugin", """
+                plugins {
+                    id("rs.robusta") version "%s" apply false
+                }
+                """.formatted(version));
+        Files.writeString(project.resolve("settings.gradle.kts"), """
+                pluginManagement {
+                    repositories {
+                        maven { url = uri("%s") }
+                    }
+                }
+
+                rootProject.name = "project-plugin-consumer"
+                include("app")
+                """.formatted(repository.toUri()), StandardCharsets.UTF_8);
+        Files.createDirectories(project.resolve("app"));
+        Files.writeString(
+                project.resolve("app/build.gradle.kts"),
+                "plugins {\n    id(\"rs.robusta\")\n}\n",
+                StandardCharsets.UTF_8);
+
+        BuildResult result =
+                runner(project, newTestKitDirectory("project-plugin"), ":app:robustaVersion").build();
+        assertTrue(result.getOutput().contains("Version: " + version), result.getOutput());
     }
 
     private static void verifyPublication(Path repository, String version) throws Exception {
@@ -93,7 +159,29 @@ class PublishedPluginFunctionalTest {
         try (ZipFile sources = new ZipFile(implementation.resolve(implementationName + "-sources.jar").toFile())) {
             List<String> entries = sources.stream().map(entry -> entry.getName()).toList();
             assertTrue(entries.contains("rs/robusta/gradle/RobustaPlugin.java"));
-            assertFalse(entries.stream().anyMatch(name -> name.startsWith("META-INF/robusta/bin/")));
+        }
+        try (ZipFile plugin = new ZipFile(implementation.resolve(implementationName + ".jar").toFile())) {
+            assertFalse(plugin.stream()
+                    .map(entry -> entry.getName().substring(entry.getName().lastIndexOf('/') + 1))
+                    .anyMatch(name -> name.startsWith("robusta-")));
+        }
+
+        Path binary = repository.resolve("rs/robusta/robusta-binary").resolve(version);
+        String binaryName = "robusta-binary-" + version;
+        Document binaryPom = readPom(binary.resolve(binaryName + ".pom"));
+        assertPomValue(binaryPom, "/project/artifactId", "robusta-binary");
+        assertPomValue(binaryPom, "/project/packaging", "pom");
+        for (RobustaPlatform platform : RobustaPlatform.values()) {
+            try (ZipFile jar = new ZipFile(binary.resolve(binaryName + "-" + platform.triple() + ".jar").toFile())) {
+                List<String> binaries = jar.stream()
+                        .map(entry -> entry.getName())
+                        .filter(name -> name.startsWith("robusta-"))
+                        .sorted()
+                        .toList();
+                assertEquals(
+                        List.of(platform.binaryName(), platform.binaryName() + ".sha256"),
+                        binaries);
+            }
         }
     }
 
@@ -111,13 +199,16 @@ class PublishedPluginFunctionalTest {
     }
 
     private static GradleRunner runner(Path project, Path testKitDirectory) {
+        return runner(project, testKitDirectory, "robustaVersion", "--configuration-cache");
+    }
+
+    private static GradleRunner runner(Path project, Path testKitDirectory, String... arguments) {
+        List<String> allArguments = new ArrayList<>(List.of(arguments));
+        allArguments.add("--stacktrace");
         return GradleRunner.create()
                 .withProjectDir(project.toFile())
                 .withTestKitDir(testKitDirectory.toFile())
-                .withArguments(
-                        "robustaVersion",
-                        "--configuration-cache",
-                        "--stacktrace");
+                .withArguments(allArguments);
     }
 
     private static String requiredProperty(String name) {

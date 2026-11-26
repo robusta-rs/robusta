@@ -11,3 +11,4 @@ rootProject.name = "robusta-jvm"
 include("common")
 include("gradle-plugin")
 include("maven-plugin")
+include("binary")

@@ -5,7 +5,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +22,10 @@ import javax.xml.xpath.XPathFactory;
 import org.junit.jupiter.api.Assumptions;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+
+import rs.robusta.plugin.common.FakeRobusta;
+import rs.robusta.plugin.common.RobustaPlatform;
+import rs.robusta.plugin.common.RobustaPluginException;
 
 final class FunctionalTestSupport {
     private static final String REAL_BUNDLED_PROPERTY = "robusta.real.bundled";
@@ -43,13 +46,21 @@ final class FunctionalTestSupport {
     }
 
     /**
-     * The plugin's file with this extension in the functional-test repository. A snapshot is
-     * published under its timestamp and build number, which the version's metadata records.
+     * The plugin's file with this extension in the functional-test repository.
      */
     static Path publishedPlugin(String extension) throws IOException {
+        return published("robusta-maven-plugin", "." + extension);
+    }
+
+    /**
+     * An artifact's file with this suffix in the functional-test repository. A snapshot is
+     * published under its timestamp and build number, which the version's metadata records.
+     */
+    private static Path published(String artifactId, String suffix) throws IOException {
         String version = pluginVersion();
         Path directory = Path.of(System.getProperty("robusta.functionalTest.repository"))
-                .resolve("rs/robusta/robusta-maven-plugin")
+                .resolve("rs/robusta")
+                .resolve(artifactId)
                 .resolve(version);
         String fileVersion = version;
         if (version.endsWith("-SNAPSHOT")) {
@@ -58,7 +69,7 @@ final class FunctionalTestSupport {
             String buildNumber = xpath(metadata, "/metadata/versioning/snapshot/buildNumber");
             fileVersion = version.replace("SNAPSHOT", timestamp + "-" + buildNumber);
         }
-        return directory.resolve("robusta-maven-plugin-" + fileVersion + "." + extension);
+        return directory.resolve(artifactId + "-" + fileVersion + suffix);
     }
 
     private static Document readXml(Path path) throws IOException {
@@ -126,7 +137,7 @@ final class FunctionalTestSupport {
 
     /**
      * Runs the project's Maven Wrapper with the given arguments, e.g. {@code goalCoordinate("format")},
-     * against the published plugin and the real CLI it bundles.
+     * against the published plugin and the real CLI published beside it.
      */
     static Result runMaven(Path project, Path localRepository, String... arguments) throws IOException, InterruptedException {
         return runMaven(project, localRepository, project, arguments);
@@ -136,13 +147,13 @@ final class FunctionalTestSupport {
             throws IOException, InterruptedException {
         Assumptions.assumeTrue(
                 Boolean.getBoolean(REAL_BUNDLED_PROPERTY),
-                "Pass -Drobusta.real.bundled=true with bundled resources to run acceptance checks");
+                "Pass -Drobusta.real.bundled=true with a published binary to run acceptance checks");
         return run(project, localRepository, wrapperProject, arguments);
     }
 
     /**
-     * Runs the project's Maven Wrapper against a plugin whose bundled binary is the native fake.
-     * The fake replaces the published plugin in {@code localRepository}, so real runs need another.
+     * Runs the project's Maven Wrapper with the native fake as the plugin's binary. The fake
+     * replaces the published binary jar in {@code localRepository}, so real runs need another.
      */
     static Result runFakeMaven(Path project, Path localRepository, String... arguments)
             throws IOException, InterruptedException {
@@ -151,21 +162,30 @@ final class FunctionalTestSupport {
 
     static Result runFakeMaven(Path project, Path localRepository, Path wrapperProject, String... arguments)
             throws IOException, InterruptedException {
-        installFakePlugin(localRepository);
+        installFakeBinary(localRepository);
         return run(project, localRepository, wrapperProject, arguments);
+    }
+
+    /** Runs the project's Maven Wrapper with no binary installed in {@code localRepository}. */
+    static Result runWithoutBinary(Path project, Path localRepository, String... arguments)
+            throws IOException, InterruptedException {
+        return run(project, localRepository, project, arguments);
     }
 
     // Maven resolves a local artifact with no recorded origin as installed, ahead of the published jar.
     // A snapshot resolves to its published timestamp, so the fake takes the published file name.
-    private static void installFakePlugin(Path localRepository) throws IOException {
+    private static void installFakeBinary(Path localRepository) throws IOException {
+        RobustaPlatform platform;
+        try {
+            platform = RobustaPlatform.detect(System.getProperty("os.name"), System.getProperty("os.arch"));
+        } catch (RobustaPluginException failure) {
+            throw new IllegalStateException("Unsupported test host", failure);
+        }
         Path directory = Files.createDirectories(
-                localRepository.resolve("rs/robusta/robusta-maven-plugin").resolve(pluginVersion()));
-        Path pom = publishedPlugin("pom");
-        Files.copy(pom, directory.resolve(pom.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(
-                Path.of(System.getProperty("robusta.functionalTest.fakePlugin")),
-                directory.resolve(publishedPlugin("jar").getFileName()),
-                StandardCopyOption.REPLACE_EXISTING);
+                localRepository.resolve("rs/robusta/robusta-binary").resolve(pluginVersion()));
+        Path jar = directory.resolve(published("robusta-binary", "-" + platform.triple() + ".jar").getFileName());
+        byte[] binary = Files.readAllBytes(Path.of(System.getProperty("robusta.fake.executable")));
+        FakeRobusta.writeBinaryJar(jar, platform, binary, FakeRobusta.sha256(binary));
     }
 
     /**
