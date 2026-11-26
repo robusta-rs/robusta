@@ -88,8 +88,8 @@ source: "crates/robusta_linter/src/rules/broken_null_check.rs"
 <RuleHeader />
 
 Reports `x == null && x.m()` and `x != null || x.m()` for a local
-variable or parameter `x`, where short-circuit evaluation reaches the
-dereference only when `x` is null.
+variable or parameter `x` that the chain does not assign, where
+short-circuit evaluation reaches the dereference only when `x` is null.
 
 When `x` is declared with a `java.lang` wrapper type, such as `Integer`
 or `Boolean`, unboxing it is a dereference too. The rule takes `x` as

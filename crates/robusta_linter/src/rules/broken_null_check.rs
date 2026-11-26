@@ -39,8 +39,8 @@ use crate::{LintContext, Rule, RuleFixMeta, utils::imports_java_lang_type};
 
 declare_robusta_lint! {
     /// Reports `x == null && x.m()` and `x != null || x.m()` for a local
-    /// variable or parameter `x`, where short-circuit evaluation reaches the
-    /// dereference only when `x` is null.
+    /// variable or parameter `x` that the chain does not assign, where
+    /// short-circuit evaluation reaches the dereference only when `x` is null.
     ///
     /// When `x` is declared with a `java.lang` wrapper type, such as `Integer`
     /// or `Boolean`, unboxing it is a dereference too. The rule takes `x` as
@@ -85,7 +85,7 @@ impl Rule for BrokenNullCheck {
 
         let Some(broken) = broken_guard(
             &binary.lhs,
-            Chain { op: binary.op, comparison, span: binary.span },
+            Chain { op: binary.op, comparison, node: node.id() },
             &binary.rhs,
             context,
         ) else {
@@ -121,13 +121,31 @@ impl Rule for BrokenNullCheck {
 }
 
 /// The short-circuiting chain one operand hangs off: its connective, the
-/// comparison that inverts under that connective, and the span the whole chain
-/// covers.
+/// comparison that inverts under that connective, and the visited link of the
+/// chain.
 #[derive(Clone, Copy)]
 struct Chain {
     op: BinaryOp,
     comparison: BinaryOp,
-    span: Span,
+    node: NodeId,
+}
+
+impl Chain {
+    /// The span of the whole chain: the outermost expression the visited link
+    /// belongs to through parentheses and further links with the same
+    /// connective, which may extend it on either side.
+    fn span(self, context: &LintContext<'_, '_, '_>) -> Span {
+        let nodes = context.nodes();
+        let mut span = nodes.kind(self.node).span();
+        for ancestor in nodes.ancestor_kinds(self.node) {
+            match ancestor {
+                AstKind::ParenthesizedExpression(_) => {}
+                AstKind::BinaryExpression(binary) if binary.op == self.op => span = binary.span,
+                _ => break,
+            }
+        }
+        span
+    }
 }
 
 /// The first null comparison in `guard` whose value `operand` dereferences.
@@ -154,11 +172,11 @@ fn broken_guard<'a>(
 
     let name = null_compared_name(binary)?;
     let symbol = local_or_parameter(name, context)?;
-    // A write anywhere in the chain — not just in the guarded operand — means
-    // the value reaching the dereference need not be the one the guard
-    // compared. `s == null && (s = t).isEmpty() && s.isEmpty()` reassigns `s`
-    // in an intermediate conjunct, so the last one is not a defect at all.
-    if is_written_within(chain.span, symbol, context) {
+    // A chain that assigns the compared value anywhere, not just in the
+    // guarded operand, is not reported. `s == null && (s = t).isEmpty() &&
+    // s.isEmpty()` reassigns `s` in an intermediate conjunct, so the value the
+    // last one dereferences need not be the one the guard compared.
+    if is_written_within(chain.span(context), symbol, context) {
         return None;
     }
     let dereference = dereference_within(operand.span(), symbol, context)?;
@@ -570,6 +588,30 @@ mod tests {
             "class A { boolean f(String s, String t) { return s == null && (s = t).isEmpty() \
              && s.isEmpty(); } }",
         );
+    }
+
+    #[test]
+    fn reports_unless_the_whole_chain_assigns_the_compared_value() {
+        let source = r#"class A {
+    void f(String s, String t, boolean ready) {
+        boolean a = s == null && s.isEmpty() && (s = "") != null; // Not reported.
+        boolean b = s != null || s.isEmpty() || (s = "") == null; // Not reported.
+        boolean c = (s == null && s.isEmpty()) && (s = "") != null; // Not reported.
+        boolean d = (s = t) != null && (s == null && s.isEmpty()); // Not reported.
+        boolean e = s == null && s.isEmpty() && (t = "") != null; // Reported.
+        boolean f = s == null && s.isEmpty() || (s = "") != null; // Reported.
+        boolean g = ready && (s = t) == null || s == null && s.isEmpty(); // Reported.
+        s = t;
+        boolean h = s == null && s.isEmpty(); // Reported.
+    }
+}
+"#;
+        insta::assert_snapshot!(tester().reports(source), @r#"
+        7:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("s.isEmpty()")
+        8:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("s.isEmpty()")
+        9:62: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("s.isEmpty()")
+        11:34: warning[broken-null-check]: `s` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("s.isEmpty()")
+        "#);
     }
 
     #[test]
