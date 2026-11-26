@@ -42,6 +42,15 @@ jobs:
         with:
           cache-provider: basic
 
+      # The distribution the Maven functional suite's `mvnw` downloads.
+      # Saved only on `main`, and only when the key changes. PRs restore `main`'s cache.
+      - name: Restore Maven Wrapper distribution
+        id: maven-wrapper-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('jvm/maven-plugin/src/functionalTest/resources/wrapper/.mvn/wrapper/maven-wrapper.properties') }}
+
       - name: Run tests
         run: cargo test --all-features --locked --no-fail-fast 2>&1 | tee "$RUNNER_TEMP/robusta-rust-tests.log"
 
@@ -57,6 +66,7 @@ jobs:
       # drifting away from the shared `RobustaFixedCommand` table if a pull
       # request runs it. The staged bundle is all `prepareRobustaBinaries` needs.
       - name: Validate Gradle and Maven plugins with bundled CLI
+        id: plugin-tests
         if: ${{ !cancelled() && steps.cli-build.outcome == 'success' }}
         working-directory: jvm
         run: |
@@ -87,6 +97,13 @@ jobs:
             "-ProbustaBinariesDirectory=$bundle_dir" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake$suffix" \
             -Drobusta.real.bundled=true 2>&1 | tee "$RUNNER_TEMP/robusta-jvm-tests.log"
+
+      - name: Save Maven Wrapper distribution
+        if: ${{ !cancelled() && github.ref_name == 'main' && steps.plugin-tests.outcome == 'success' && steps.maven-wrapper-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ steps.maven-wrapper-cache.outputs.cache-primary-key }}
 
       - name: Upload test diagnostics
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
@@ -133,6 +150,15 @@ jobs:
         with:
           cache-provider: basic
 
+      # The distribution the Maven functional suite's `mvnw` downloads.
+      # Saved only on `main`, and only when the key changes. PRs restore `main`'s cache.
+      - name: Restore Maven Wrapper distribution
+        id: maven-wrapper-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('jvm/maven-plugin/src/functionalTest/resources/wrapper/.mvn/wrapper/maven-wrapper.properties') }}
+
       - name: Verify native ARM64 host
         run: |
           rustc -vV
@@ -155,6 +181,7 @@ jobs:
           file target/release/robusta | grep -Eq 'ELF 64-bit LSB.*(ARM aarch64|ARM64|AArch64)'
 
       - name: Validate Gradle and Maven plugins with bundled ARM64 product
+        id: plugin-tests
         working-directory: jvm
         run: |
           bundle_dir="$RUNNER_TEMP/robusta-binaries"
@@ -168,6 +195,13 @@ jobs:
             "-ProbustaBinariesDirectory=$bundle_dir" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/release/robusta_plugin_fake" \
             -Drobusta.real.bundled=true
+
+      - name: Save Maven Wrapper distribution
+        if: ${{ !cancelled() && github.ref_name == 'main' && steps.plugin-tests.outcome == 'success' && steps.maven-wrapper-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ steps.maven-wrapper-cache.outputs.cache-primary-key }}
 
   gradle-compatibility:
     name: Gradle and JVM compatibility
