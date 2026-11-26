@@ -1224,6 +1224,7 @@ dependencies = [
 name = "robusta_parser"
 version = "0.1.0"
 dependencies = [
+ "pico-args",
  "robusta_allocator",
  "robusta_ast",
  "robusta_ast_visit",

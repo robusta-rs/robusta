@@ -1,3 +1,5 @@
+// Adapted from https://github.com/oxc-project/oxc/blob/777d2d1b5cb7845740dd734bf85f420bc5c3e3a5/crates/oxc_diagnostics/src/lib.rs
+
 //! Diagnostics, source positions, and report output.
 //!
 //! [`RobustaDiagnostic`] supplies severity, messages, source labels, help, and
@@ -33,6 +35,14 @@ pub type Labels = smallvec::SmallVec<[LabeledSpan; 2]>;
 
 /// The result type used across robusta: a value, or a fatal diagnostic.
 pub type Result<T> = std::result::Result<T, RobustaDiagnostic>;
+
+fn render(diagnostic: &dyn Diagnostic) -> String {
+    let mut output = String::new();
+    let _ = GraphicalReportHandler::new_themed(GraphicalTheme::none())
+        .with_width(80)
+        .render_report(&mut output, diagnostic);
+    output
+}
 
 /// Describes one problem robusta found: what is wrong, how severe it is, and
 /// where in the source it is.
@@ -131,6 +141,11 @@ impl RobustaDiagnostic {
     /// [`NamedSource`] when a presentation path is available.
     pub fn with_source_code<T: SourceCode + 'static>(self, source: T) -> Error {
         Box::new(DiagnosticWithSource { diagnostic: self, source_code: source })
+    }
+
+    /// Attach source code and render without color, wrapped at 80 columns.
+    pub fn render_with_source_code<T: SourceCode>(self, source_code: T) -> String {
+        render(&DiagnosticWithSource { diagnostic: self, source_code })
     }
 }
 
@@ -380,5 +395,23 @@ mod tests {
         assert_eq!(labels[1].label(), Some("problem here"));
         assert!(labels[1].primary());
         assert_eq!(diagnostic.primary_span(), Span::new(108, 210));
+    }
+
+    #[test]
+    fn render_with_source_code_quotes_the_labeled_source() {
+        let source = "class A {\n    int b = ;\n}\n";
+        let rendered = RobustaDiagnostic::error("expected an expression", Span::new(22, 23))
+            .render_with_source_code(source);
+
+        let expected = "
+  x expected an expression
+   ,-[2:13]
+ 1 | class A {
+ 2 |     int b = ;
+   :             ^
+ 3 | }
+   `----
+";
+        assert_eq!(rendered, expected);
     }
 }
