@@ -16,7 +16,7 @@ use robusta_ast::{
     AnnotationInterfaceElementDeclaration, AssignmentExpression, Comment, ElementValuePair,
     Expression, ResourceDeclaration, VariableDeclarator,
 };
-use robusta_formatter_core::{FormatElements, text_width, write};
+use robusta_formatter_core::{FormatElements, format_args, text_width, write};
 use robusta_span::{GetSpan, Span};
 
 #[derive(Clone, Copy)]
@@ -188,23 +188,42 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
         }
     }
 
-    /// The comments after the operator up to a line comment ending its line (`= /* c */ // d`).
-    /// Deferred comments and blocks after a riding line comment lead the right side.
-    fn operator_line_run(
-        operator_end: u32,
-        has_riding_comment: bool,
-        f: &JavaFormatter<'_, 'a>,
-    ) -> &'a [Comment] {
+    /// The comments on the operator's line after it, which print right after the operator: up to
+    /// a line comment ending the line (`= /* c */ // d`), or block comments before the code they
+    /// lead (`= /* c */ x`). Deferred comments, alignable block comments, and blocks after a
+    /// riding line comment lead the right side.
+    fn operator_line_run(&self, operator_end: u32, f: &JavaFormatter<'_, 'a>) -> &'a [Comment] {
         let comments = f.comments();
         if comments.has_comment_before(operator_end) {
             return &[];
         }
-        let run = comments.end_of_line_comments_after(operator_end);
-        if run.last().is_some_and(Comment::is_line) && (!has_riding_comment || run.len() == 1) {
-            run
+        let has_riding_comment = comments.printed_line_comment_after(self.left_end(f)).is_some();
+        let leading = comments.comments_before(self.right_start());
+        // A block comment that starts the next line before code counts as on the operator's line,
+        // where the fallback for a line too long prints it.
+        let run = match leading.first() {
+            Some(&first) if first.is_block() && first.preceded_by_newline() => {
+                let run = comments.same_line_comments_after(first.span.start);
+                if run.last().is_some_and(|last| last.is_line() || last.followed_by_newline()) {
+                    return &[];
+                }
+                run
+            }
+            _ => comments.same_line_comments_after(operator_end),
+        };
+        let is_kept = if run.last().is_some_and(Comment::is_line) {
+            !has_riding_comment || run.len() == 1
         } else {
-            &[]
-        }
+            !has_riding_comment
+                && !run.iter().any(|&comment| is_alignable_block_comment(comment, f))
+        };
+        if is_kept { run } else { &[] }
+    }
+
+    /// The right side's leading comments that the operator's line does not take.
+    fn leading_after_operator_line(&self, f: &JavaFormatter<'_, 'a>) -> &'a [Comment] {
+        let run = self.operator_line_run(self.operator_end(f), f).len();
+        &f.comments().comments_before(self.right_start())[run..]
     }
 
     fn write_right(&self, f: &mut JavaFormatter<'_, 'a>) {
@@ -239,8 +258,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
             return layout;
         }
 
-        let comments = f.comments();
-        let leading = comments.comments_before(self.right_start());
+        let leading = self.leading_after_operator_line(f);
         if has_line_comment_on_operator_line
             || leading.iter().any(|&comment| is_alignable_block_comment(comment, f))
             || self.should_break_after_operator(right, is_left_short, f)
@@ -335,7 +353,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
         f: &JavaFormatter<'_, 'a>,
     ) -> bool {
         // Only a comment followed by a newline forces the break.
-        if f.comments().has_leading_own_line_comment(self.right_start()) {
+        if self.leading_after_operator_line(f).iter().any(Comment::followed_by_newline) {
             return true;
         }
         right.is_some_and(|right| should_break_after_operator(right, is_left_short, f))
@@ -523,20 +541,27 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
         let left_may_break = formatted_left.may_directly_break();
         let left_end = self.left_end(f);
         let riding_comment = f.comments().printed_line_comment_after(left_end);
-        let operator_line_run = Self::operator_line_run(operator_end, riding_comment.is_some(), f);
+        let operator_line_run = self.operator_line_run(operator_end, f);
         // A line comment on the operator's line, before it (printed by the left side) or after
         // it (the run): the pending `line_suffix` must be followed by the break.
-        let has_line_comment_on_operator_line = !operator_line_run.is_empty()
-            || riding_comment.is_some_and(|comment| {
-                comment.span.start > left_end
-                    || f.comments().unprinted_comments().first().is_some_and(|next| {
-                        next.is_block()
-                            && next.span.start >= operator_end
-                            && next.span.end <= self.right_start()
-                    })
-            });
+        let has_line_comment_on_operator_line =
+            operator_line_run.last().is_some_and(Comment::is_line)
+                || riding_comment.is_some_and(|comment| {
+                    comment.span.start > left_end
+                        || f.comments().unprinted_comments().first().is_some_and(|next| {
+                            next.is_block()
+                                && next.span.start >= operator_end
+                                && next.span.end <= self.right_start()
+                        })
+                });
         let layout =
             self.layout(is_left_short, left_may_break, has_line_comment_on_operator_line, f);
+        // Block comments on the operator's line stay there while it fits; this group breaks before
+        // them when it does not.
+        let comment_break = operator_line_run
+            .last()
+            .is_some_and(Comment::is_block)
+            .then(|| f.state().group_id("operator_line_comments"));
 
         let left = format_once(move |f| {
             for element in formatted_left {
@@ -548,16 +573,13 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
             // reached through the generated `fmt`, so the span-keyed context
             // slot hands it across that frame.
             if let Some(Expression::Lambda(lambda)) = self.right_expression().as_deref() {
-                f.context_mut().set_lambda_assignment_layout(lambda.span, layout);
+                f.context_mut().set_lambda_assignment_layout(lambda.span, layout, comment_break);
             }
             self.write_right(f);
         });
 
-        let inner_content = format_once(|f| {
-            write!(f, [group(&left)]);
-            self.write_operator(f);
-            FormatTrailingComments::Comments(operator_line_run).fmt(f);
-
+        let write_layout = |right: &dyn Format<'a, JavaFormatContext<'a>>,
+                            f: &mut JavaFormatter<'_, 'a>| {
             match layout {
                 AssignmentLikeLayout::Fluid => {
                     let group_id = f.state().group_id("assignment_like");
@@ -589,6 +611,30 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
                 AssignmentLikeLayout::ChainTail => {
                     write!(f, [soft_line_indent_or_space(&right)]);
                 }
+            }
+        };
+
+        let inner_content = format_once(|f| {
+            write!(f, [group(&left)]);
+            self.write_operator(f);
+            if let Some(comment_break) = comment_break {
+                // Once the group breaks, the right side follows the comments on their line;
+                // otherwise it takes the layout's break after them.
+                write!(f, [group(&indent(&soft_line_break())).with_group_id(Some(comment_break))]);
+                FormatTrailingComments::Inline(operator_line_run).fmt(f);
+                let right = (&right).memoized();
+                write!(
+                    f,
+                    [
+                        if_group_breaks(&indent(&format_args!(space(), right)))
+                            .with_group_id(Some(comment_break)),
+                        if_group_fits_on_line(&format_with(|f| write_layout(&right, f)))
+                            .with_group_id(Some(comment_break))
+                    ]
+                );
+            } else {
+                FormatTrailingComments::Comments(operator_line_run).fmt(f);
+                write_layout(&right, f);
             }
         });
 

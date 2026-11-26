@@ -144,6 +144,9 @@ pub enum FormatTrailingComments<'c> {
     /// `;`, printed as the statement's dangling comments: a line comment among
     /// them ends the line without expanding the group around the statement.
     Dangling(&'c [Comment]),
+    /// Block comments a printer keeps on its current line, wherever they
+    /// started: those after an assignment's operator.
+    Inline(&'c [Comment]),
 }
 
 impl<'a> Format<'a, crate::JavaFormatContext<'a>> for FormatTrailingComments<'_> {
@@ -162,6 +165,9 @@ impl<'a> Format<'a, crate::JavaFormatContext<'a>> for FormatTrailingComments<'_>
             }
             Self::Dangling(comments) => {
                 format_trailing_comments_impl(comments, TrailingRun::Dangling, f);
+            }
+            Self::Inline(comments) => {
+                format_trailing_comments_impl(comments, TrailingRun::Inline, f);
             }
         }
     }
@@ -251,6 +257,8 @@ enum TrailingRun {
     AfterLineComment,
     /// See [`FormatTrailingComments::Dangling`].
     Dangling,
+    /// See [`FormatTrailingComments::Inline`].
+    Inline,
 }
 
 /// Formats trailing `comments`.
@@ -265,7 +273,7 @@ fn format_trailing_comments_impl(
     let mut previous_comment: Option<Comment> = None;
     for &comment in comments {
         f.comments().increment_printed_count(&comment);
-        let line_count = f.lines_before(comment.span);
+        let line_count = if run == TrailingRun::Inline { 0 } else { f.lines_before(comment.span) };
         total_lines_before += line_count;
         let nestle = previous_comment
             .is_some_and(|previous| should_nestle_adjacent_comments(previous, comment, f));

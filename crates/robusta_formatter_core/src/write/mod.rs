@@ -3,6 +3,7 @@
 pub mod arguments;
 pub mod buffer;
 pub mod builders;
+pub mod extensions;
 pub mod formatter;
 mod macros;
 pub mod state;

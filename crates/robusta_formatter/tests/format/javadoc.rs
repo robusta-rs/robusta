@@ -570,8 +570,7 @@ fn moved_javadoc_assignment_output() {
     class A {
       int
         aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa =
-          /** @return x */ /* c */
-          0;
+          /** @return x */ /* c */ 0;
     }
     ");
 }

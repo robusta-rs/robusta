@@ -1017,8 +1017,55 @@ fn a_block_comment_ending_the_operator_line_leads_the_value() {
     assert_snapshot!(fmt_with_options(source, &options), @"
     class A {
       static final Map<String, String> DEFAULTS =
-        /* c */
-        new HashMap<>();
+        /* c */ new HashMap<>();
+    }
+    ");
+}
+
+#[test]
+fn block_comments_after_an_assignment_operator_keep_its_line() {
+    let source = "class A { void m() {
+    pricing = /* per order */ (Order... orders) -> customer -> totalFor(orders, customer);
+    totalPrice = /* before tax */ basePrice * quantity + shippingCost + handlingFee;
+    Map<String, List<Order>> ordersByCustomer = /* filled lazily */ new HashMap<>();
+    rate = /* lead,
+   kept */ order -> customer -> order.rate();
+} }";
+    // A line width of 60 for the statements, indented by four columns.
+    let options = Options { line_width: crate::fixtures::line_width(64), ..Options::default() };
+    check_formatter_contract_with_options(source, &options).unwrap();
+    assert_snapshot!(fmt_with_options(source, &options), @"
+    class A {
+      void m() {
+        pricing = /* per order */
+          (Order... orders) ->
+          customer ->
+            totalFor(orders, customer);
+        totalPrice = /* before tax */
+          basePrice * quantity + shippingCost + handlingFee;
+        Map<String, List<Order>> ordersByCustomer =
+          /* filled lazily */ new HashMap<>();
+        rate = /* lead,
+       kept */ order -> customer -> order.rate();
+      }
+    }
+    ");
+}
+
+#[test]
+fn multiline_block_comments_around_a_lambda_chain_assignment_are_stable() {
+    let source = "class A { void f() {\n h = /* a\n  b */ x /* a\n  b */ -> y -> x + y;\n} }\n";
+    check_formatter_contract_with_options(source, &Options::default()).unwrap();
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f() {
+        h = /* a
+      b */
+          x /* a
+      b */ ->
+          y ->
+            x + y;
+      }
     }
     ");
 }
