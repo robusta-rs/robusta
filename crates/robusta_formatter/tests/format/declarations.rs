@@ -138,9 +138,107 @@ fn comments_before_implements_and_throws_drop_the_blank_line_before_them() {
     class Order extends Base
         // Marks it as priced.
         implements Priced {
+
       void pay()
           // Thrown when the card fails.
           throws Failure {}
+    }
+    ");
+}
+
+#[test]
+fn type_bodies_keep_a_blank_line_after_their_brace() {
+    let source = "class A { // c
+
+
+  int x;
+  void f() {
+
+    Runnable r = () -> {
+
+      g();
+    };
+    if (r != null) {
+
+      g();
+    }
+  }
+}
+interface I {
+
+  // leads f
+  void f();
+}
+enum E {
+
+  A {
+
+    void f() {}
+  }
+}
+record R() {
+
+  static int x;
+}
+@interface N {
+
+  int v();
+}
+class B {
+  Object o = new Object() {
+
+    int y;
+  };
+  class Empty {
+
+  }
+}";
+    assert_snapshot!(fmt(source), @"
+    class A { // c
+
+      int x;
+
+      void f() {
+        Runnable r = () -> {
+          g();
+        };
+        if (r != null) {
+          g();
+        }
+      }
+    }
+
+    interface I {
+
+      // leads f
+      void f();
+    }
+
+    enum E {
+
+      A {
+
+        void f() {}
+      },
+    }
+
+    record R() {
+
+      static int x;
+    }
+
+    @interface N {
+
+      int v();
+    }
+
+    class B {
+      Object o = new Object() {
+
+        int y;
+      };
+
+      class Empty {}
     }
     ");
 }
