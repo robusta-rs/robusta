@@ -258,9 +258,11 @@ fn lint_help_documents_fix_mode() {
     Rule filter options, applied over the configuration, left to right:
        For example `-D style -A uppercase-long-suffix`.
        The categories are:
-       * `correctness` - Code that is wrong or useless.
-       * `style` - Consistency and readability concerns with no behavioral risk.
-       * `suspicious` - Constructs that commonly indicate stale or misleading code.
+       * `correctness` - Code that is wrong, or a variable, declaration, or statement that does nothing
+      and does not write out what Java does implicitly.
+       * `suspicious` - Code that is probably wrong but can be intended.
+       * `pedantic` - A declaration or statement that writes out what Java does implicitly.
+       * `style` - Code that Java can write in a shorter or more conventional form.
        * `all` - All registered rules.
         -A, --allow=NAME          Disable a rule, a category, or `all` for this run.
         -W, --warn=NAME           Set a rule, a category, or `all` to warn for this run.
@@ -351,9 +353,11 @@ fn check_help_documents_fix_mode() {
     Rule filter options, applied over the configuration, left to right:
        For example `-D style -A uppercase-long-suffix`.
        The categories are:
-       * `correctness` - Code that is wrong or useless.
-       * `style` - Consistency and readability concerns with no behavioral risk.
-       * `suspicious` - Constructs that commonly indicate stale or misleading code.
+       * `correctness` - Code that is wrong, or a variable, declaration, or statement that does nothing
+      and does not write out what Java does implicitly.
+       * `suspicious` - Code that is probably wrong but can be intended.
+       * `pedantic` - A declaration or statement that writes out what Java does implicitly.
+       * `style` - Code that Java can write in a shorter or more conventional form.
        * `all` - All registered rules.
         -A, --allow=NAME          Disable a rule, a category, or `all` for this run.
         -W, --warn=NAME           Set a rule, a category, or `all` to warn for this run.

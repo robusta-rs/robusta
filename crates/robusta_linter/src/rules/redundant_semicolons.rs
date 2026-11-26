@@ -17,7 +17,7 @@ declare_robusta_lint! {
         id: REDUNDANT_SEMICOLONS_ID = "redundant-semicolons",
         rule: REDUNDANT_SEMICOLONS,
         summary: "Reports empty declarations and redundant empty statements.",
-        category: Style,
+        category: Correctness,
         fix: RuleFixMeta::Fixable(FixKind::SAFE_FIX),
         node_types: [EmptyDeclaration, EmptyStatement],
     }

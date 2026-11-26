@@ -29,7 +29,7 @@ declare_robusta_lint! {
         id: REDUNDANT_SUPER_CALL_ID = "redundant-super-call",
         rule: REDUNDANT_SUPER_CALL,
         summary: "Reports an explicit leading `super()` equivalent to the implicit constructor invocation.",
-        category: Style,
+        category: Pedantic,
         fix: RuleFixMeta::Fixable(FixKind::SAFE_FIX),
         node_types: [ConstructorDeclaration],
     }

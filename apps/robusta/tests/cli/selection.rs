@@ -1157,15 +1157,15 @@ fn lint_applies_each_nested_config_rule_set_within_one_run() {
     // other directory's rule against a file it never governs.
     let temp = TempProject::new();
     temp.write("a/robusta.yaml", "lint:\n  rules:\n    uppercase-long-suffix: deny\n");
-    temp.write("a/Example.java", "class Example { long value = 10l;; }\n");
-    temp.write("b/robusta.yaml", "lint:\n  rules:\n    redundant-semicolons: deny\n");
-    temp.write("b/Example.java", "class Example { long value = 10l;; }\n");
+    temp.write("a/Example.java", "class Example { final static long value = 10l; }\n");
+    temp.write("b/robusta.yaml", "lint:\n  rules:\n    modifier-order: deny\n");
+    temp.write("b/Example.java", "class Example { final static long value = 10l; }\n");
 
     let output = robusta_in_dir(&["lint", "--reporter", "checkstyle", "."], &temp.dir);
 
     assert_eq!(output.status.code(), Some(1), "{}", stderr(&output));
     assert_eq!(output.stderr.len(), 0);
-    insta::assert_snapshot!(stdout(&output), @r#"<?xml version="1.0" encoding="utf-8"?><checkstyle version="4.3"><file name="a/Example.java"><error line="1" column="32" severity="error" message="use uppercase `L` for the long literal suffix" source="uppercase-long-suffix" /></file> <file name="b/Example.java"><error line="1" column="34" severity="error" message="redundant semicolon" source="redundant-semicolons" /></file></checkstyle>"#);
+    insta::assert_snapshot!(stdout(&output), @r#"<?xml version="1.0" encoding="utf-8"?><checkstyle version="4.3"><file name="a/Example.java"><error line="1" column="45" severity="error" message="use uppercase `L` for the long literal suffix" source="uppercase-long-suffix" /></file> <file name="b/Example.java"><error line="1" column="17" severity="error" message="modifiers are not in the canonical order" source="modifier-order" /></file></checkstyle>"#);
 }
 
 /// `A.java` in one directory per selection: the shared list skips `shared/`,

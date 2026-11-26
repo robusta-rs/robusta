@@ -246,7 +246,7 @@ lint:
         assert!(yaml.contains("javadoc: false"));
         assert!(yaml.contains("line-ending: lf"));
         assert!(yaml.contains("insert-final-newline: false"));
-        assert!(yaml.contains("redundant-semicolons: allow"));
+        assert!(yaml.contains("redundant-return: allow"));
     }
 
     #[test]
@@ -552,36 +552,40 @@ lint:
 
     #[test]
     fn parse_config_defaults_to_correctness_warnings_and_allow_disables_them() {
+        let correctness = rules::builtin_rules()
+            .iter()
+            .filter(|rule| rule.meta().category == RuleCategory::Correctness)
+            .map(|rule| rule.id().as_str())
+            .collect::<Vec<_>>();
         let omitted = parse_config("").expect("empty config should parse");
-        let disabled = parse_config(
-            r"
-lint:
-  rules:
-    unused-import: allow
-    unused-local-variable: allow
-",
-        )
-        .expect("config should parse");
+        let disabled = correctness.iter().fold("lint:\n  rules:\n".to_owned(), |config, rule| {
+            config + "    " + rule + ": allow\n"
+        });
+        let disabled = parse_config(&disabled).expect("config should parse");
 
         assert_eq!(omitted.lint, ConfigStoreBuilder::default());
-        assert_eq!(
-            enabled(&omitted.lint),
-            [("unused-import", Severity::Warning), ("unused-local-variable", Severity::Warning)]
-        );
+        let mut defaults = enabled(&omitted.lint);
+        defaults.sort_unstable();
+        let mut expected =
+            correctness.iter().map(|rule| (*rule, Severity::Warning)).collect::<Vec<_>>();
+        expected.sort_unstable();
+        assert_eq!(defaults, expected);
         assert_eq!(enabled(&disabled.lint).len(), 0);
     }
 
     #[test]
     fn parse_config_sets_each_category_severity() {
-        let config = parse_config("lint:\n  categories:\n    correctness: deny\n    style: warn\n")
-            .expect("config should parse");
+        let config = parse_config(
+            "lint:\n  categories:\n    correctness: deny\n    pedantic: warn\n    style: warn\n",
+        )
+        .expect("config should parse");
         let lint = config.lint.build(Path::new(""));
         let mut categories = Vec::new();
         for configured in lint.rules() {
             let category = configured.rule().meta().category;
             let expected = match category {
                 RuleCategory::Correctness => Severity::Error,
-                RuleCategory::Style => Severity::Warning,
+                RuleCategory::Pedantic | RuleCategory::Style => Severity::Warning,
                 RuleCategory::Suspicious => panic!("{} should not run", configured.rule().id()),
             };
             assert_eq!(configured.severity(), expected, "{}", configured.rule().id());
@@ -589,6 +593,7 @@ lint:
         }
 
         assert!(categories.contains(&RuleCategory::Correctness));
+        assert!(categories.contains(&RuleCategory::Pedantic));
         assert!(categories.contains(&RuleCategory::Style));
     }
 
@@ -680,9 +685,12 @@ lint:
         assert_eq!(
             enabled(&config.lint),
             [
+                ("redundant-semicolons", Severity::Warning),
                 ("modifier-order", Severity::Warning),
                 ("unused-import", Severity::Error),
                 ("unused-local-variable", Severity::Warning),
+                ("broken-null-check", Severity::Warning),
+                ("duplicate-import", Severity::Warning),
             ]
         );
         assert_eq!(reported(&config.lint), [SPARE]);

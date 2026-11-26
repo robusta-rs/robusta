@@ -56,35 +56,44 @@ impl LintDiagnostic {
     }
 }
 
-/// Broad grouping of a rule's concern. Variants are added when a rule first
-/// needs them.
+/// Broad grouping of a rule's concern. Each rule takes the first category that
+/// fits every finding it reports.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuleCategory {
-    /// Code that is wrong or useless.
+    /// Code that is wrong, or a variable, declaration, or statement that does
+    /// nothing and does not write out what Java does implicitly.
     Correctness,
-    /// Consistency and readability concerns with no behavioral risk.
-    Style,
-    /// Constructs that are legal but commonly indicate stale or misleading code.
+    /// Code that is probably wrong but can be intended.
     Suspicious,
+    /// A declaration or statement that writes out what Java does implicitly.
+    Pedantic,
+    /// Code that Java can write in a shorter or more conventional form.
+    Style,
 }
 
 impl RuleCategory {
     /// Every category, in declaration order, for frontends that list them.
-    pub const ALL: [Self; 3] = [Self::Correctness, Self::Style, Self::Suspicious];
+    pub const ALL: [Self; 4] = [Self::Correctness, Self::Suspicious, Self::Pedantic, Self::Style];
 
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Correctness => "correctness",
-            Self::Style => "style",
             Self::Suspicious => "suspicious",
+            Self::Pedantic => "pedantic",
+            Self::Style => "style",
         }
     }
 
     pub const fn description(self) -> &'static str {
         match self {
-            Self::Correctness => "Code that is wrong or useless.",
-            Self::Style => "Consistency and readability concerns with no behavioral risk.",
-            Self::Suspicious => "Constructs that commonly indicate stale or misleading code.",
+            Self::Correctness => {
+                "Code that is wrong, or a variable, declaration, or statement that does nothing and does not write out what Java does implicitly."
+            }
+            Self::Suspicious => "Code that is probably wrong but can be intended.",
+            Self::Pedantic => {
+                "A declaration or statement that writes out what Java does implicitly."
+            }
+            Self::Style => "Code that Java can write in a shorter or more conventional form.",
         }
     }
 
@@ -100,8 +109,9 @@ impl fmt::Display for RuleCategory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Correctness => "Correctness",
-            Self::Style => "Style",
             Self::Suspicious => "Suspicious",
+            Self::Pedantic => "Pedantic",
+            Self::Style => "Style",
         })
     }
 }

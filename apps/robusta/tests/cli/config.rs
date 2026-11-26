@@ -459,13 +459,13 @@ lint:
     lint:
       categories: {}
       rules:
-        broken-null-check: allow
-        duplicate-import: allow
+        broken-null-check: warn
+        duplicate-import: warn
         modifier-order: warn
         prefer-expression-lambda: allow
         redundant-lambda-parameter-parentheses: allow
         redundant-return: allow
-        redundant-semicolons: allow
+        redundant-semicolons: warn
         redundant-super-call: allow
         unused-import: warn
         unused-local-variable: warn

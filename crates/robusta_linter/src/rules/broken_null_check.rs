@@ -53,7 +53,7 @@ declare_robusta_lint! {
         id: BROKEN_NULL_CHECK_ID = "broken-null-check",
         rule: BROKEN_NULL_CHECK,
         summary: "Reports a null comparison whose short-circuited operand dereferences the value just proved null.",
-        category: Suspicious,
+        category: Correctness,
         fix: RuleFixMeta::None,
         node_types: [BinaryExpression],
     }
