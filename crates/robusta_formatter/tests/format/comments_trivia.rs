@@ -2154,12 +2154,14 @@ fn multiline_blocks_lead_reference_operands_and_array_lengths() {
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        r = Foo::/* a
+        r =
+          Foo::/* a
                    b */ <T>bar;
         r = Outer.super
           ::/* a
                    b */ m;
-        r = Foo::/* a
+        r =
+          Foo::/* a
                    b */ new;
         m = new int[
           /* a

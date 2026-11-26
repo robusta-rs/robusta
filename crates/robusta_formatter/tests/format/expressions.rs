@@ -5,7 +5,7 @@ use insta::assert_snapshot;
 use robusta_formatter::{JavadocOptions, Options};
 
 use crate::fixtures::{
-    check_contract_at_widths_and_modes, check_formatter_contract_with_options,
+    check_contract_at_widths_and_modes, check_formatter_contract_with_options, format_stable,
     format_stable_with_options,
 };
 use crate::fixtures::{format_source as fmt, format_source_with_options as fmt_with_options};
@@ -2435,6 +2435,28 @@ this.orders()
           // Skip refunds.
           .filter(total -> total > 0)
           .count();
+      }
+    }
+    ");
+}
+
+#[test]
+fn a_line_comment_after_a_members_object_breaks_its_assignment_after_the_operator() {
+    let source = "class Order { void f() {
+int timeout = config.defaults() // read at startup
+.timeout;
+Supplier<Order> next = queue // oldest first
+::poll;
+} }";
+    assert_snapshot!(format_stable(source), @"
+    class Order {
+      void f() {
+        int timeout =
+          config.defaults() // read at startup
+            .timeout;
+        Supplier<Order> next =
+          queue // oldest first
+            ::poll;
       }
     }
     ");

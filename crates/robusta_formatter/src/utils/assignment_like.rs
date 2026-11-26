@@ -425,6 +425,12 @@ fn is_poorly_breakable_member_or_call_chain<'a>(
             Expression::ArrayAccess(_) => {
                 expression.as_array_access().unwrap().in_arena(allocator).array()
             }
+            // `a.b::c` is a member access on `a.b`, unless its target is a type.
+            Expression::MethodReference(_) => {
+                let reference = expression.as_method_reference().unwrap().in_arena(allocator);
+                let Some(target) = reference.target().as_expression() else { break };
+                target
+            }
             _ => break,
         };
         is_member_access = true;
