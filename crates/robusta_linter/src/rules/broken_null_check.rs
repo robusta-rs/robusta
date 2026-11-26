@@ -35,7 +35,7 @@ use robusta_semantic::{AstNode, NodeId, ReferenceKind, SymbolId, SymbolKind};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::operator::{BinaryOp, UnaryOp};
 
-use crate::{LintContext, Rule, RuleFixMeta, utils::imports_java_lang_type};
+use crate::{LintContext, Rule, RuleFixMeta, utils::names_java_lang_type};
 
 declare_robusta_lint! {
     /// Reports `x == null && x.m()` and `x != null || x.m()` for a local
@@ -407,8 +407,7 @@ fn declared_type(symbol: SymbolId, context: &LintContext<'_, '_, '_>) -> Operand
 }
 
 /// Whether `ty` is a `java.lang` wrapper class, written in full or by a simple
-/// name that no type in the file shadows or that the file imports from
-/// `java.lang`.
+/// name that names it.
 fn is_wrapper(ty: &ClassType<'_>, context: &LintContext<'_, '_, '_>) -> bool {
     const WRAPPERS: [&str; 8] =
         ["Boolean", "Byte", "Character", "Double", "Float", "Integer", "Long", "Short"];
@@ -416,15 +415,7 @@ fn is_wrapper(ty: &ClassType<'_>, context: &LintContext<'_, '_, '_>) -> bool {
         return false;
     }
     match ty {
-        ClassType::Simple(simple) => {
-            let scoping = context.scoping();
-            scoping.reference(simple.name.reference_id()).symbol_id().is_none_or(|symbol| {
-                matches!(
-                    context.nodes().kind(scoping.symbol(symbol).declaration_node_id()),
-                    AstKind::ImportDeclaration(import) if imports_java_lang_type(import)
-                )
-            })
-        }
+        ClassType::Simple(simple) => names_java_lang_type(context.semantic(), &simple.name),
         ClassType::Qualified(_) => {
             ty.self_and_qualifiers().skip(1).map(ClassType::name).eq(["lang", "java"])
         }
@@ -770,6 +761,9 @@ mod tests {
         );
         tester()
             .passes("class A { <Integer> boolean f(Integer n) { return n == null && n > 0; } }");
+        tester().passes(
+            "class B { class Integer {} } class A extends B { boolean f(Integer n) { return n == null && n > 0; } }",
+        );
         tester().passes("class A { boolean f(p.Integer n) { return n == null && n > 0; } }");
     }
 

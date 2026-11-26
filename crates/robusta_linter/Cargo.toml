@@ -27,6 +27,7 @@ robusta_lexer.workspace = true
 robusta_macros.workspace = true
 robusta_semantic.workspace = true
 robusta_span.workspace = true
+robusta_str.workspace = true
 robusta_syntax.workspace = true
 rust-lapper.workspace = true
 rustc-hash.workspace = true
