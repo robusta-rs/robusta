@@ -1,5 +1,4 @@
 use robusta_ast::{KeywordModifier, MethodReference, SwitchBlockStatementGroup, SwitchRule};
-use robusta_syntax::node::NodeId;
 
 use super::*;
 
