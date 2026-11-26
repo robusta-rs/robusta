@@ -37,19 +37,12 @@ class GoalSurfaceFunctionalTest {
     private static final Pattern DESCRIPTION = Pattern.compile("<description>(.*?)</description>", Pattern.DOTALL);
     private static final Pattern GOAL_PREFIX = Pattern.compile("<goalPrefix>([^<]+)</goalPrefix>");
 
-    /**
-     * The pass-through goal, which is not a fixed command: it interprets no command line of its
-     * own, so it has no row in the shared table and is named here instead.
-     */
-    private static final String PASS_THROUGH_GOAL = "run";
-
     @Test
     void publishesExactlyTheGoalsTheSharedCommandTableNames() throws Exception {
         List<String> expected = new ArrayList<>();
         for (RobustaFixedCommand command : RobustaFixedCommand.values()) {
             expected.add(command.mavenGoalName());
         }
-        expected.add(PASS_THROUGH_GOAL);
         expected.sort(String::compareTo);
 
         List<String> actual = new ArrayList<>(publishedMojos().keySet());

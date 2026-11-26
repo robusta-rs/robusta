@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -35,7 +34,7 @@ abstract class AbstractRobustaMojo extends AbstractMojo {
     @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
     private MojoExecution mojoExecution;
 
-    /** Arguments appended to fixed goals, or the complete command for the run goal. */
+    /** Arguments appended to the goal's own. */
     @Parameter(property = "robusta.args", defaultValue = "")
     private String args;
 
@@ -46,17 +45,11 @@ abstract class AbstractRobustaMojo extends AbstractMojo {
      */
     protected final void run(RobustaFixedCommand command)
             throws MojoExecutionException, MojoFailureException {
-        String verb = command.arguments().get(0);
-        boolean source = verb.equals("check") || verb.equals("format") || verb.equals("lint");
+        boolean source = command.readsSources();
         boolean commandLine = mojoExecution.getSource() == MojoExecution.Source.CLI;
         if (!RobustaReactor.get(session).skips(project, commandLine, source)) {
             run(command.arguments(), source);
         }
-    }
-
-    /** Runs the command supplied through {@code robusta.args}. */
-    protected final void run() throws MojoExecutionException, MojoFailureException {
-        run(Collections.emptyList(), false);
     }
 
     private void run(List<String> arguments, boolean source) throws MojoExecutionException, MojoFailureException {

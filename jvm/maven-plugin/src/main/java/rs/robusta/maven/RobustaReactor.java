@@ -38,7 +38,8 @@ final class RobustaReactor {
             }
         }
         sourceDirectories = outermost(selected, SourceDirectories::covers);
-        // The enclosing module's configuration file also applies inside it.
+        // An enclosing module's run serves the modules inside it: its configuration file applies
+        // there too, and it reports the same CLI version.
         configDirectories = outermost(selected, (outer, inner) -> inner.toPath().startsWith(outer.toPath()));
     }
 
