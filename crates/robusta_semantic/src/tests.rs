@@ -320,6 +320,43 @@ fn a_member_name_is_not_looked_up() {
 }
 
 #[test]
+fn a_variable_is_written_only_as_the_operand_of_an_assignment_or_update() {
+    use ReferenceKind::{Read, ReadWrite, Write};
+    for (statement, kinds) in [
+        ("a = b;", &[("a", Write), ("b", Read)][..]),
+        ("a += b;", &[("a", ReadWrite), ("b", Read)]),
+        ("a = b = c;", &[("a", Write), ("b", Write), ("c", Read)]),
+        ("a = (b += c);", &[("a", Write), ("b", ReadWrite), ("c", Read)]),
+        ("a++; b--;", &[("a", ReadWrite), ("b", ReadWrite)]),
+        ("++a; --b;", &[("a", ReadWrite), ("b", ReadWrite)]),
+        ("a = -b + ~c;", &[("a", Write), ("b", Read), ("c", Read)]),
+        ("(a)++; --((b));", &[("a", ReadWrite), ("b", ReadWrite)]),
+        ("(a = b).hashCode();", &[("a", Write), ("b", Read)]),
+        ("x.f = a; x.f++;", &[("x", Read), ("a", Read), ("x", Read)]),
+        ("y[a] = b; y[c]++;", &[("y", Read), ("a", Read), ("b", Read), ("y", Read), ("c", Read)]),
+        ("y[a = b] = c;", &[("y", Read), ("a", Write), ("b", Read), ("c", Read)]),
+        ("a = a + 1;", &[("a", Write), ("a", Read)]),
+    ] {
+        let source = format!(
+            "class C {{ int f; void m(Integer a, int b, int c, C x, int[] y) {{ {statement} }} }}"
+        );
+        let allocator = Allocator::new();
+        let parsed = parse(&allocator, &source);
+        assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
+        let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+        let found = semantic
+            .scoping()
+            .references()
+            .iter()
+            .filter(|reference| reference.kind() != ReferenceKind::Type)
+            .filter(|reference| reference.kind() != ReferenceKind::Method)
+            .map(|reference| (reference.name(), reference.kind()))
+            .collect::<Vec<_>>();
+        assert_eq!(found, kinds, "{statement}");
+    }
+}
+
+#[test]
 fn an_annotation_element_value_is_looked_up_as_a_variable() {
     let source = "import a.X; class C { static final int X = 1; @B(X) @D(X.y) int z; }";
     let allocator = Allocator::new();
