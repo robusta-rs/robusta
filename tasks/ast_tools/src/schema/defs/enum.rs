@@ -9,7 +9,9 @@ use crate::utils::{pluralize, snake_case};
 use super::{
     super::{
         FileId,
-        extensions::{content_eq::ContentEqType, layout::Layout, visit::VisitEnum},
+        extensions::{
+            content_eq::ContentEqType, dummy::DummyEnum, layout::Layout, visit::VisitEnum,
+        },
     },
     Def, Schema, TypeDef, TypeId,
 };
@@ -35,6 +37,7 @@ pub struct EnumDef {
     /// [`inherits`]: EnumDef::inherits
     pub inherited_by: Vec<TypeId>,
     pub layout: Layout,
+    pub dummy: DummyEnum,
     pub content_eq: ContentEqType,
 }
 

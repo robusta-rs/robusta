@@ -3,7 +3,7 @@ use super::*;
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(Dummy, ContentEq, GetSpan)]
 pub struct CompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
@@ -18,7 +18,7 @@ pub struct CompilationUnit<'a> {
 /// The three mutually exclusive compilation-unit forms (JLS §19).
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(Dummy, ContentEq, GetSpan)]
 pub enum CompilationUnitContent<'a> {
     Ordinary(OrdinaryCompilationUnit<'a>) = 0,
     Compact(CompactCompilationUnit<'a>) = 1,
@@ -30,7 +30,7 @@ pub enum CompilationUnitContent<'a> {
 /// Only this form admits a package declaration.
 #[ast(visit)]
 #[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan)]
+#[generate_derive(Dummy, ContentEq, GetSpan)]
 pub struct OrdinaryCompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,

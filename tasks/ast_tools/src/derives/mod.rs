@@ -17,9 +17,11 @@ use crate::{
 };
 
 mod content_eq;
+mod dummy;
 mod get_span;
 
 pub use content_eq::DeriveContentEq;
+pub use dummy::DeriveDummy;
 pub use get_span::DeriveGetSpan;
 
 /// Trait to define a derive.
@@ -60,6 +62,11 @@ pub trait Derive: Runner {
     fn prelude(&self) -> TokenStream {
         quote!()
     }
+
+    /// Prepare for generation, modifying schema.
+    ///
+    /// Runs before any `generate` or `derive` method runs.
+    fn prepare(&self, _schema: &mut Schema) {}
 
     /// Generate trait implementation for a type.
     fn derive(&self, type_def: StructOrEnum<'_>, schema: &Schema) -> TokenStream;

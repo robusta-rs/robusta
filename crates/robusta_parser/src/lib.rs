@@ -18,7 +18,7 @@
 //!
 //! <https://github.com/robusta-rs/robusta/blob/main/crates/robusta_parser/examples/visitor.rs>
 
-use robusta_allocator::{Allocator, Box, GetAllocator, Vec};
+use robusta_allocator::{Allocator, Box, Dummy, GetAllocator, Vec};
 use robusta_ast::{
     Annotation, AnnotationArgument, AnnotationInterfaceBody, AnnotationInterfaceDeclaration,
     AnnotationInterfaceElementDeclaration, AnnotationInterfaceMemberDeclaration, ArrayDimension,
@@ -38,7 +38,7 @@ use robusta_ast::{
     SwitchCase, SwitchLabel, SwitchRuleBody, Type, TypeArgument, TypeArguments, TypeDeclaration,
     TypeName, TypeParameter, TypeParameters, TypePattern, VariableDeclarator, VariableInitializer,
     VariableType, WildcardBound, WildcardBoundKind,
-    builder::{AstBuilder, GetAstBuilder},
+    builder::{AstBuild, AstBuilder, GetAstBuilder},
 };
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_lexer::{Token, TokenKind};
@@ -141,15 +141,12 @@ pub fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> ParseResult<'a> {
 
 /// Build an empty fatal unit retaining lexed comments.
 fn empty_unit<'a>(allocator: &'a Allocator, comments: &[Comment]) -> CompilationUnit<'a> {
-    let comments = Vec::from_iter_in(comments.iter().copied(), &allocator);
-    let content = CompilationUnitContent::new_ordinary_compilation_unit(
-        Span::empty(0),
-        None,
-        [],
-        [],
-        &ParserAstBuilder::new(allocator),
-    );
-    CompilationUnit::new(Span::new(0, 0), comments, content, &AstBuilder::new(allocator))
+    let mut unit = CompilationUnit::dummy(allocator);
+    unit.comments = Vec::from_iter_in(comments.iter().copied(), &allocator);
+    // The unit keeps `NodeId::ROOT`. Its form takes the first ID the parser
+    // assigns, keeping the two distinct.
+    unit.content.set_node_id(ParserAstBuilder::new(allocator).node_id());
+    unit
 }
 
 struct Parser<'a> {
