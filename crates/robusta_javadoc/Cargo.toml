@@ -1,11 +1,16 @@
 [package]
 name = "robusta_javadoc"
 version.workspace = true
+authors.workspace = true
+categories.workspace = true
 edition.workspace = true
+homepage.workspace = true
+keywords.workspace = true
 license.workspace = true
-rust-version.workspace = true
-description = "Shared Javadoc recognition and structure for robusta."
 publish = false
+repository.workspace = true
+rust-version.workspace = true
+description.workspace = true
 
 [lints]
 workspace = true
