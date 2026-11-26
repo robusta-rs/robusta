@@ -16,7 +16,7 @@ final class BundledRobustaExecutable {
 
     /**
      * Returns the binary matching {@code osName}/{@code osArchitecture} under {@code cacheRoot},
-     * extracting it when absent and verifying it against its bundled checksum on every call.
+     * extracting it when it is missing or does not match its bundled checksum.
      */
     static File obtain(Path cacheRoot, String osName, String osArchitecture, String version) {
         try {
