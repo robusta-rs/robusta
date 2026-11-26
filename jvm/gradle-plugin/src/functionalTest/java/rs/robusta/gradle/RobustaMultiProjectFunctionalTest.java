@@ -21,7 +21,6 @@ import java.util.List;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import rs.robusta.plugin.common.FakeRobusta;
 import rs.robusta.plugin.common.FakeRobusta.Invocation;
@@ -29,7 +28,7 @@ import rs.robusta.plugin.common.FakeRobusta.Invocation;
 class RobustaMultiProjectFunctionalTest {
     private static final String CONFIGURATION_CACHE = "--configuration-cache";
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @Test
     void settingsRegistersEverySourceTaskAndUnqualifiedRequestsRunOnce() throws Exception {

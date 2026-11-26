@@ -17,7 +17,6 @@ import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.gradle.util.GradleVersion;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -26,7 +25,7 @@ import rs.robusta.plugin.common.FakeRobusta;
 class GradleCompatibilityFunctionalTest {
     private static final String VERSIONS_PROPERTY = "robusta.test.gradleVersions";
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @ParameterizedTest(name = "Gradle {0}")
     @MethodSource("gradleVersions")

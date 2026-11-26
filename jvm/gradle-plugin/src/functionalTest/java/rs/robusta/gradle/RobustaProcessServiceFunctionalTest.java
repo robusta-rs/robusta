@@ -14,7 +14,6 @@ import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,7 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Timeout(120)
 class RobustaProcessServiceFunctionalTest {
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @ParameterizedTest(name = "{0} and {1}")
     @MethodSource("taskPairs")

@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.gradle.util.GradleVersion;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -38,7 +37,7 @@ class JvmCompatibilityFunctionalTest {
     private static final String BUILD_SCRIPT = "plugins { id(\"rs.robusta\") }\n"
             + "println(\"" + REPORTED_JVM + "\" + System.getProperty(\"java.specification.version\"))\n";
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @ParameterizedTest(name = "Java {0} on Gradle {1}")
     @MethodSource("targets")

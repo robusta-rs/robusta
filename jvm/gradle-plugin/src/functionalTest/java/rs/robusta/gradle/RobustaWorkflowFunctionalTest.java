@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import rs.robusta.plugin.common.FakeRobusta;
 import rs.robusta.plugin.common.FakeRobusta.Invocation;
@@ -103,7 +102,7 @@ class RobustaWorkflowFunctionalTest {
         new WorkflowScope("Lint", "lint", "fixable")
     );
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @Test
     void fixedTasksPassExactArgumentsFromTheOwningProjectAndForwardOutput() throws Exception {

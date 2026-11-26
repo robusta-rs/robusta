@@ -20,7 +20,6 @@ import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Document;
 
 import rs.robusta.plugin.common.RobustaPlatform;
@@ -29,7 +28,7 @@ class PublishedPluginFunctionalTest {
     private static final String REPOSITORY_PROPERTY = "robusta.published.repository";
     private static final String VERSION_PROPERTY = "robusta.published.version";
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     // A fresh TestKit directory has empty caches, so each first run resolves the plugin and its
     // binary jar from the rehearsal repository alone.
