@@ -14,7 +14,10 @@ use robusta_syntax::{
     line_terminator::{is_line_terminator, line_content_end, line_span, terminator_len},
 };
 
-use crate::{FixKind, LintDiagnostic, RuleId, suppression_pruner, utils::removal_span};
+use crate::{
+    FixKind, LintDiagnostic, RuleId, suppression_pruner,
+    utils::{imports_java_lang_type, removal_span},
+};
 
 const SUPPRESS_WARNINGS: &str = "SuppressWarnings";
 const ROBUSTA_RULE_PREFIX: &str = "robusta:";
@@ -338,9 +341,7 @@ fn declares_type(semantic: &Semantic<'_>, name: &str) -> bool {
                 SymbolKind::Type => true,
                 SymbolKind::Import(ImportKind::SingleType | ImportKind::SingleStatic) => !matches!(
                     semantic.nodes().kind(symbol.declaration_node_id()),
-                    AstKind::ImportDeclaration(import)
-                        if import.kind == ImportKind::SingleType
-                            && import.name.names_from_last().skip(1).eq(["lang", "java"])
+                    AstKind::ImportDeclaration(import) if imports_java_lang_type(import)
                 ),
                 _ => false,
             }

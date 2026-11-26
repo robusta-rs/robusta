@@ -21,9 +21,11 @@
 //!
 //! Unboxing calls a method on the wrapper, so it is a dereference too. The rule
 //! has no type inference, so it sees unboxing only where declarations show it:
-//! the variable is declared with a `java.lang` wrapper type, and the operator
-//! decides alone, or the other operand is a literal, a primitive-valued
-//! operator, or a variable declared with a primitive or wrapper type.
+//! the variable is declared with a `java.lang` wrapper type, and it is a
+//! primitive cast's operand, a conditional's condition, or an array index, or
+//! the operator decides alone, or the other operand is a literal, a
+//! primitive-valued operator, or a variable declared with a primitive or
+//! wrapper type.
 
 use robusta_allocator::GetAddress;
 use robusta_ast::{AstKind, BinaryExpression, ClassType, Expression, IdentifierReference, Type};
@@ -33,7 +35,7 @@ use robusta_semantic::{AstNode, NodeId, ReferenceKind, SymbolId, SymbolKind};
 use robusta_span::{GetSpan, Span};
 use robusta_syntax::operator::{BinaryOp, UnaryOp};
 
-use crate::{LintContext, Rule, RuleFixMeta};
+use crate::{LintContext, Rule, RuleFixMeta, utils::imports_java_lang_type};
 
 declare_robusta_lint! {
     /// Reports `x == null && x.m()` and `x != null || x.m()` for a local
@@ -42,13 +44,14 @@ declare_robusta_lint! {
     ///
     /// When `x` is declared with a `java.lang` wrapper type, such as `Integer`
     /// or `Boolean`, unboxing it is a dereference too. The rule takes `x` as
-    /// unboxed when it is the operand of a unary operator, of a binary operator
-    /// other than `==`, `!=`, and `+`, of `==` or `!=` with a primitive other
-    /// operand, or of `+` with a primitive or wrapper other operand. The other
-    /// operand's type is known only when it is a literal, an operator with a
-    /// primitive result, such as `-1` or `i * 2`, or a local variable or
-    /// parameter whose declaration shows it, so `x + y` with an unknown `y`
-    /// may be string concatenation and is not reported.
+    /// unboxed when it is cast to a primitive type, is the condition of `?:` or
+    /// an array index, or is the operand of a unary operator, of a binary
+    /// operator other than `==`, `!=`, and `+`, of `==` or `!=` with a primitive
+    /// other operand, or of `+` with a primitive or wrapper other operand. The
+    /// other operand's type is known only when it is a literal, an operator
+    /// with a primitive result, such as `-1` or `i * 2`, or a local variable or
+    /// parameter whose declaration shows it, so `x + y` with an unknown `y` may
+    /// be string concatenation and is not reported.
     BrokenNullCheck {
         id: BROKEN_NULL_CHECK_ID = "broken-null-check",
         rule: BROKEN_NULL_CHECK,
@@ -275,6 +278,24 @@ fn dereference_at(
             {
                 return Some(reference.span);
             }
+            // A primitive cast unboxes its operand (JLS 5.5).
+            AstKind::CastExpression(cast)
+                if unboxable && cast.operand.address() == target.address() =>
+            {
+                return Some(name.span);
+            }
+            // A `Boolean` condition is unboxed (JLS 15.25).
+            AstKind::ConditionalExpression(conditional)
+                if unboxable && conditional.condition.address() == target.address() =>
+            {
+                return Some(name.span);
+            }
+            // An index is promoted to `int` (JLS 15.10.3).
+            AstKind::ArrayAccess(access)
+                if unboxable && access.index.address() == target.address() =>
+            {
+                return Some(name.span);
+            }
             // Every unary operator takes a primitive operand (JLS 15.15).
             AstKind::UnaryExpression(_) if unboxable => return Some(name.span),
             AstKind::BinaryExpression(binary) if unboxable => {
@@ -368,7 +389,8 @@ fn declared_type(symbol: SymbolId, context: &LintContext<'_, '_, '_>) -> Operand
 }
 
 /// Whether `ty` is a `java.lang` wrapper class, written in full or by a simple
-/// name no type in the file shadows.
+/// name that no type in the file shadows or that the file imports from
+/// `java.lang`.
 fn is_wrapper(ty: &ClassType<'_>, context: &LintContext<'_, '_, '_>) -> bool {
     const WRAPPERS: [&str; 8] =
         ["Boolean", "Byte", "Character", "Double", "Float", "Integer", "Long", "Short"];
@@ -377,7 +399,13 @@ fn is_wrapper(ty: &ClassType<'_>, context: &LintContext<'_, '_, '_>) -> bool {
     }
     match ty {
         ClassType::Simple(simple) => {
-            context.scoping().reference(simple.name.reference_id()).symbol_id().is_none()
+            let scoping = context.scoping();
+            scoping.reference(simple.name.reference_id()).symbol_id().is_none_or(|symbol| {
+                matches!(
+                    context.nodes().kind(scoping.symbol(symbol).declaration_node_id()),
+                    AstKind::ImportDeclaration(import) if imports_java_lang_type(import)
+                )
+            })
         }
         ClassType::Qualified(_) => {
             ty.self_and_qualifiers().skip(1).map(ClassType::name).eq(["lang", "java"])
@@ -625,6 +653,46 @@ mod tests {
         10:34: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
         11:34: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
         "#);
+    }
+
+    #[test]
+    fn reports_unboxing_by_a_primitive_cast_a_condition_or_an_index() {
+        let source = r"class A {
+    void f(java.lang.Integer n, Boolean b, int[] a) {
+        boolean t = n == null && (int) n > 0;
+        boolean u = n == null && (long) (n) > 0;
+        boolean v = b == null && (b ? true : false);
+        boolean w = n == null && new int[] {1}[n] > 0;
+        boolean x = n != null || a[(n)] > 0;
+    }
+}
+";
+        insta::assert_snapshot!(tester().reports(source), @r#"
+        3:40: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
+        4:42: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
+        5:35: warning[broken-null-check]: `b` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("b")
+        6:48: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
+        7:37: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")
+        "#);
+    }
+
+    #[test]
+    fn declines_a_wrapper_where_its_position_does_not_unbox_it() {
+        tester().passes(
+            "class A { boolean f(Integer n, Integer m, boolean c) { return n == null && (c ? n : m) == null; } }",
+        );
+        tester().passes(
+            "class A { boolean f(Integer n) { return n == null && new Integer[] {n}.length > 0; } }",
+        );
+        tester().passes(
+            "class A { boolean f(Integer n, Object o) { return n == null && (Object) n == o; } }",
+        );
+    }
+
+    #[test]
+    fn reports_a_wrapper_imported_from_java_lang() {
+        let source = "import java.lang.Integer; class A { boolean f(Integer n) { return n == null && n > 0; } }";
+        insta::assert_snapshot!(tester().reports(source), @r#"1:80: warning[broken-null-check]: `n` is compared to null, then dereferenced in the operand that runs only when that comparison holds ("n")"#);
     }
 
     #[test]

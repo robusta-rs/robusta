@@ -93,13 +93,14 @@ dereference only when `x` is null.
 
 When `x` is declared with a `java.lang` wrapper type, such as `Integer`
 or `Boolean`, unboxing it is a dereference too. The rule takes `x` as
-unboxed when it is the operand of a unary operator, of a binary operator
-other than `==`, `!=`, and `+`, of `==` or `!=` with a primitive other
-operand, or of `+` with a primitive or wrapper other operand. The other
-operand's type is known only when it is a literal, an operator with a
-primitive result, such as `-1` or `i * 2`, or a local variable or
-parameter whose declaration shows it, so `x + y` with an unknown `y`
-may be string concatenation and is not reported.
+unboxed when it is cast to a primitive type, is the condition of `?:` or
+an array index, or is the operand of a unary operator, of a binary
+operator other than `==`, `!=`, and `+`, of `==` or `!=` with a primitive
+other operand, or of `+` with a primitive or wrapper other operand. The
+other operand's type is known only when it is a literal, an operator
+with a primitive result, such as `-1` or `i * 2`, or a local variable or
+parameter whose declaration shows it, so `x + y` with an unknown `y` may
+be string concatenation and is not reported.
 
 ## How to use
 <RuleHowToUse />
