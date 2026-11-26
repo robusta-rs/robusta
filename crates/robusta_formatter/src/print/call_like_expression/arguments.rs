@@ -75,11 +75,11 @@ pub fn format_arguments<'p, 'a, T: Argument<'a>>(
         return;
     }
 
-    // Two line breaks between arguments, as a blank line has, put every argument on its own line.
+    // A blank line (two line breaks) after the comma between arguments puts every argument on
+    // its own line. Line breaks before the comma don't count, as printing drops them.
     let has_empty_line = arguments.windows(2).any(|pair| {
-        line_breaks(f.source_text().slice_range(pair[0].span().end, pair[1].span().start))
-            .nth(1)
-            .is_some()
+        let comma = f.comments().position_after_character(pair[0].span().end, b',');
+        line_breaks(f.source_text().slice_range(comma, pair[1].span().start)).nth(1).is_some()
     });
 
     if has_empty_line || T::is_function_composition(arguments) {

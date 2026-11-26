@@ -172,70 +172,57 @@ fn blank_lines_between_arguments_break_the_list() {
     ");
 }
 
-/// Two line breaks between arguments break the list, as in oxfmt, though
-/// neither makes a blank line. The broken list has only one, so the second
-/// pass joins it.
 #[test]
-fn separator_on_its_own_line_breaks_the_list_until_a_second_pass() {
-    let source = "class C { void f() { call(first\n,\nsecond); } }";
-    assert_snapshot!(fmt(source), @"
+fn only_a_blank_line_after_the_comma_breaks_the_arguments() {
+    let source = r#"class C { void f() {
+List<String> regions = List.of(
+  "north",
+  "south"
+
+  ,
+
+  "east",
+  "west"
+);
+List<String> zones = List.of(
+  "inner"
+
+  , "outer"
+);
+} }"#;
+    assert_snapshot!(fmt(source), @r#"
     class C {
       void f() {
-        call(
-          first,
-          second
+        List<String> regions = List.of(
+          "north",
+          "south",
+
+          "east",
+          "west"
         );
+        List<String> zones = List.of("inner", "outer");
       }
     }
-    ---------- Not idempotent (second pass) ----------
+    "#);
+}
+
+#[test]
+fn line_breaks_before_an_argument_comma_keep_the_list_together() {
+    let source = "class C { void f() { call(first\n,\nsecond); \
+                  call(first /* a */\n\n, second, x -> { return x; }); } \
+                  @A(x = 1\n,\ny = 2) void g() {} }";
+    assert_snapshot!(fmt(source), @"
     class C {
       void f() {
         call(first, second);
-      }
-    }
-    ");
-}
-
-/// The blank line before the `,` breaks the list, but no blank line prints
-/// before `second`, so the second pass groups the last argument, as oxfmt does.
-#[test]
-fn block_comment_before_a_comma_after_a_blank_line_regroups_on_a_second_pass() {
-    let source = "class C { void f() { call(first /* a */\n\n, second, x -> { return x; }); } }";
-    assert_snapshot!(fmt(source), @"
-    class C {
-      void f() {
-        call(
-          first /* a */,
-          second,
-          x -> {
-            return x;
-          }
-        );
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class C {
-      void f() {
         call(first /* a */, second, x -> {
           return x;
         });
       }
-    }
-    ");
-}
 
-#[test]
-fn line_breaks_around_an_annotation_comma_rejoin_on_a_second_pass() {
-    let source = "@A(x = 1\n,\ny = 2) class C {}";
-    assert_snapshot!(fmt(source), @"
-    @A(
-      x = 1,
-      y = 2
-    )
-    class C {}
-    ---------- Not idempotent (second pass) ----------
-    @A(x = 1, y = 2)
-    class C {}
+      @A(x = 1, y = 2)
+      void g() {}
+    }
     ");
 }
 
