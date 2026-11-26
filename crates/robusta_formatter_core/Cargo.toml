@@ -1,11 +1,16 @@
 [package]
 name = "robusta_formatter_core"
 version.workspace = true
+authors.workspace = true
+categories.workspace = true
 edition.workspace = true
+homepage.workspace = true
+keywords.workspace = true
 license.workspace = true
-rust-version.workspace = true
-description = "Language-agnostic flat formatting IR and width-driven printer shared by robusta's formatters."
 publish = false
+repository.workspace = true
+rust-version.workspace = true
+description.workspace = true
 
 [lints]
 workspace = true
