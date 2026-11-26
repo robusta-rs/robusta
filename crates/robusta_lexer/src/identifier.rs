@@ -1,13 +1,34 @@
+// Adapted from https://github.com/oxc-project/oxc/blob/777d2d1b5cb7845740dd734bf85f420bc5c3e3a5/crates/oxc_parser/src/lexer/identifier.rs
 use robusta_syntax::identifier::{
     IdentifierPart, identifier_part, is_ascii_ident_continue, is_ascii_ident_ignorable,
     remove_ignorable_characters,
 };
 
-use crate::{Lexer, TokenKind, offset32};
+use crate::{
+    Lexer, TokenKind, offset32,
+    search::{SafeByteMatchTable, safe_byte_match_table},
+};
+
+static NOT_ASCII_ID_CONTINUE_TABLE: SafeByteMatchTable =
+    safe_byte_match_table!(|b| !(b.is_ascii_alphanumeric() || matches!(b, b'_' | b'$')));
 
 impl Lexer<'_> {
     pub(super) fn scan_ident_or_keyword(&mut self) -> TokenKind {
         let start = self.pos;
+        // Consume the ASCII letters, digits, `_` and `$` that make up most identifiers.
+        // Unicode characters and ignorable ASCII controls take the uncommon path.
+        let next_byte = self.byte_search(&NOT_ASCII_ID_CONTINUE_TABLE);
+        if next_byte.is_some_and(|byte| !byte.is_ascii() || is_ascii_ident_ignorable(byte)) {
+            self.scan_ident_uncommon(start);
+        }
+        keyword_kind(&self.src[start..self.pos]).unwrap_or(TokenKind::Identifier)
+    }
+
+    /// Finish an identifier which contains a Unicode character or an ignorable character.
+    /// The current position must be on that character.
+    #[cold]
+    #[inline(never)]
+    fn scan_ident_uncommon(&mut self, start: usize) {
         let mut first_ignorable = None;
         while let Some(&byte) = self.src.get(self.pos) {
             if byte.is_ascii() {
@@ -34,7 +55,6 @@ impl Lexer<'_> {
             let name = remove_ignorable_characters(&self.text[start..self.pos], first - start);
             self.identifier_names.insert(offset32(start), name);
         }
-        keyword_kind(&self.src[start..self.pos]).unwrap_or(TokenKind::Identifier)
     }
 }
 
@@ -124,7 +144,7 @@ mod tests {
 
     use robusta_syntax::identifier::identifier_name;
 
-    use crate::tokenize;
+    use crate::{TokenKind, tokenize};
 
     #[test]
     fn identifier_identity_removes_bmp_java_ignorable_characters() {
@@ -138,6 +158,27 @@ mod tests {
             assert!(result.errors.is_empty(), "{:?}", result.errors);
             assert_eq!(result.identifier_names[&0], "count");
             assert_eq!(result.tokens[0].span.source_text(&source), source);
+        }
+    }
+
+    #[test]
+    fn identifier_ends_do_not_depend_on_search_batches() {
+        for len in [1, 15, 16, 17, 40] {
+            let prefix: String = "aZ_$9".chars().cycle().take(len).collect();
+            for (continuation, cooked) in
+                [("", None), ("é1", None), ("\u{1}z", Some("z")), ("\u{200b}z", Some("z"))]
+            {
+                let identifier = format!("{prefix}{continuation}");
+                for delimiter in ["", "(", " x"] {
+                    let source = format!("{identifier}{delimiter}");
+                    let result = tokenize(&source);
+                    assert!(result.errors.is_empty(), "{:?}", result.errors);
+                    assert_eq!(result.tokens[0].kind, TokenKind::Identifier, "{source:?}");
+                    assert_eq!(result.tokens[0].span.source_text(&source), identifier);
+                    let expected = cooked.map(|rest| format!("{prefix}{rest}"));
+                    assert_eq!(result.identifier_names.get(&0), expected.as_ref(), "{source:?}");
+                }
+            }
         }
     }
 
