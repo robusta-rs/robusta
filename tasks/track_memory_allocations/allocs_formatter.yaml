@@ -16,6 +16,6 @@ RetryPolicy.java:
   sys deallocs: 31
   sys alloc bytes: 7257 # 7.26 kB
   sys peak growth: 5912 # 5.91 kB
-  arena allocs: 94
+  arena allocs: 95
   arena reallocs: 1
   arena size: 144040 # 144.04 kB

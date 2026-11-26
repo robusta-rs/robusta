@@ -1421,9 +1421,8 @@ fn a_cast_before_a_member_breaks_inside_its_parentheses() {
             MethodBinding[] commentedBindings = (
               (ReferenceBinding) this.parent1.type.resolvedType // resolved
             ).availableMethods();
-            MethodBinding[] uncastBindings = (
-              ReferenceBinding
-            ) this.parent1.type.resolvedType.availableMethods();
+            MethodBinding[] uncastBindings =
+              (ReferenceBinding) this.parent1.type.resolvedType.availableMethods();
             int n = ((String) o).length();
           }
         }
@@ -2311,15 +2310,13 @@ fn fields_break_after_a_parenthesized_object_but_not_in_a_chain_head() {
     assert_snapshot!(format_stable_with_options(source, &options), @"
     class C {
       void f() {
-        Binding binding = (
-          Binding
-        ) this.environment.create(ref);
+        Binding binding =
+          (Binding) this.environment.create(ref);
         Binding created = (
           (Binding) other
         ).environment.create(ref);
-        Binding indexed = (Binding) this.bindings[
-          index
-        ].create(ref);
+        Binding indexed =
+          (Binding) this.bindings[index].create(ref);
         Binding[] types = ((Binding) binding)
           .argumentTypes;
       }
@@ -2387,6 +2384,60 @@ fn operators_break_before_the_operator() {
           & Cloneable
       > T largest(List<T> items) {
         return Collections.max(items);
+      }
+    }
+    ");
+}
+
+/// A cast is placed as a prefix operator, so the line breaks after `=` first,
+/// then after the cast's `)`, and never inside its parentheses.
+#[test]
+fn casts_break_after_the_operator_then_after_their_closing_paren() {
+    let source = "class Example { void run() { \
+        int total = (int) totalFor(order, customer, region); \
+        String nameForTheInvoice = (String) store.get(KEY); \
+        Map<String, List<OrderLine>> lines = (Map<String, List<OrderLine>>) session.getAttribute(LINES_KEY); \
+        Runnable undo = (Runnable & Serializable) () -> { lines.clear(); }; } }";
+    // The class and method add 4 columns to the design's 50-column example.
+    let options =
+        Options { line_width: line_width(54), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class Example {
+      void run() {
+        int total = (int) totalFor(
+          order,
+          customer,
+          region
+        );
+        String nameForTheInvoice =
+          (String) store.get(KEY);
+        Map<String, List<OrderLine>> lines =
+          (Map<String, List<OrderLine>>)
+            session.getAttribute(LINES_KEY);
+        Runnable undo = (Runnable & Serializable) () -> {
+          lines.clear();
+        };
+      }
+    }
+    ");
+}
+
+/// The break after a cast's `)` does not stand in for the break after `=`:
+/// the line breaks after `=` when it does not fit up to the operand's `(`.
+#[test]
+fn a_cast_of_a_call_breaks_after_the_operator_before_its_closing_paren() {
+    let source = "class Example { void run() { \
+        InvoiceSummary summary = (InvoiceSummary) invoiceRepository.findSummary(customer, region); } }";
+    let options =
+        Options { line_width: line_width(54), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class Example {
+      void run() {
+        InvoiceSummary summary =
+          (InvoiceSummary) invoiceRepository.findSummary(
+            customer,
+            region
+          );
       }
     }
     ");
@@ -2477,10 +2528,9 @@ fn qualified_names_wrap_after_enclosing_breaks() {
       }
 
       Object cast(Object o) {
-        return (
-          java.util.concurrent
-            .ConcurrentMap
-        ) o;
+        return (java.util
+          .concurrent
+          .ConcurrentMap) o;
       }
 
       boolean check(Object o) {
