@@ -21,17 +21,13 @@ defaults:
     shell: bash
 
 jobs:
-  test:
-    name: Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    env:
+  test-ubuntu:
+    name: Test Linux
+    runs-on: ubuntu-latest
+    env: &test-env
       INSTA_UPDATE: new
       RUST_BACKTRACE: 1
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
+    steps: &test-steps
       - name: Checkout
         id: checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -91,7 +87,7 @@ jobs:
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-diagnostics-${{ matrix.os }}
+          name: test-diagnostics-${{ runner.os }}
           include-hidden-files: true
           path: |
             ${{ runner.temp }}/robusta-*-tests.log
@@ -99,6 +95,20 @@ jobs:
             jvm/*/build/reports/tests/**
             **/*.snap.new
             **/*.pending-snap
+
+  test-mac: # Separate job to save a job on PRs
+    if: ${{ github.ref_name == 'main' }}
+    name: Test Mac
+    runs-on: macos-latest
+    env: *test-env
+    steps: *test-steps
+
+  test-windows:
+    if: ${{ github.ref_name == 'main' || github.event_name == 'workflow_dispatch' }}
+    name: Test Windows
+    runs-on: windows-latest
+    env: *test-env
+    steps: *test-steps
 
   test-linux-arm64:
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
@@ -208,7 +218,7 @@ jobs:
       # product binary as a child (ENOEXEC -> /bin/sh fallback on the ARM ELF),
       # so `robusta_cli`, whose integration suite (apps/robusta/tests/cli.rs)
       # spawns CARGO_BIN_EXE_robusta, is excluded here. It runs natively in
-      # `Test Linux ARM64` and the x86 `Test` matrix. So does `robusta_ast_tools`,
+      # `Test Linux ARM64` and the other `Test` jobs. So does `robusta_ast_tools`,
       # a host-side generator whose tests spawn the pinned toolchain's rustfmt.
       - name: Test workspace on ARMv7 (in-process targets)
         run: cross test --workspace --exclude robusta_cli --exclude robusta_ast_tools --lib --bins --tests --all-features --locked --target armv7-unknown-linux-gnueabihf
@@ -393,7 +403,7 @@ jobs:
           save-if: ${{ github.ref_name == 'main' }}
 
       # A compatibility guard against a dependency or API silently raising the
-      # effective MSRV; the stable three-OS job still owns current-toolchain testing.
+      # effective MSRV; the stable `Test` jobs still own current-toolchain testing.
       - name: Check workspace on MSRV
         run: cargo "+$MSRV" check --workspace --all-targets --all-features --locked
 
