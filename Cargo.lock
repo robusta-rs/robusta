@@ -1201,6 +1201,7 @@ dependencies = [
  "robusta_ast",
  "robusta_config",
  "robusta_diagnostics",
+ "robusta_lexer",
  "robusta_macros",
  "robusta_parser",
  "robusta_semantic",

@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{borrow::Cow, cell::Cell};
 
 use rust_lapper::{Interval, Lapper};
 
@@ -101,7 +101,7 @@ impl<'source> Suppressions<'source> {
                 !suppression.used.get()
                     // `"all"` is shared with other tools.
                     && !matches!(
-                        (suppression.rule, suppression.origin),
+                        (&suppression.rule, suppression.origin),
                         (SuppressedRule::All, SuppressionOrigin::Annotation(_))
                     )
             })
@@ -111,7 +111,7 @@ impl<'source> Suppressions<'source> {
             .into_iter()
             .zip(edits)
             .map(|(suppression, edit)| {
-                let message = match suppression.rule {
+                let message = match &suppression.rule {
                     SuppressedRule::All => "unused suppression".to_string(),
                     SuppressedRule::Rule(rule) => format!("unused suppression for rule `{rule}`"),
                 };
@@ -185,17 +185,24 @@ impl RuleComment<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum SuppressedRule<'source> {
     All,
-    Rule(&'source str),
+    Rule(Cow<'source, str>),
 }
 
 impl SuppressedRule<'_> {
     fn matches(&self, rule_id: RuleId) -> bool {
         match self {
             Self::All => true,
-            Self::Rule(rule) => *rule == rule_id.as_str(),
+            Self::Rule(rule) => rule == rule_id.as_str(),
+        }
+    }
+
+    fn into_owned(self) -> SuppressedRule<'static> {
+        match self {
+            Self::All => SuppressedRule::All,
+            Self::Rule(rule) => SuppressedRule::Rule(Cow::Owned(rule.into_owned())),
         }
     }
 }
@@ -257,7 +264,7 @@ fn parse_comment_suppression(source: &str, comment: Comment) -> Vec<Suppression<
             .map(|(rule, directive)| Suppression {
                 scope,
                 directive,
-                rule: SuppressedRule::Rule(rule),
+                rule: SuppressedRule::Rule(Cow::Borrowed(rule)),
                 origin: SuppressionOrigin::Comment(rule_comment),
                 used: Cell::new(false),
             })
@@ -356,14 +363,8 @@ fn collect_suppressed_rules<'source>(
 ) {
     match value {
         ElementValue::StringLiteral(literal) => {
-            if let Some(value) = string_literal_value(literal) {
-                if value == "all" {
-                    rules.push((SuppressedRule::All, literal.span));
-                } else if let Some(rule) = value.strip_prefix(ROBUSTA_RULE_PREFIX)
-                    && !rule.is_empty()
-                {
-                    rules.push((SuppressedRule::Rule(rule), literal.span));
-                }
+            if let Some(rule) = string_literal_rule(literal) {
+                rules.push((rule, literal.span));
             }
         }
         ElementValue::Array(array) => {
@@ -375,9 +376,27 @@ fn collect_suppressed_rules<'source>(
     }
 }
 
-fn string_literal_value<'source>(literal: &StringLiteral<'source>) -> Option<&'source str> {
-    let value = literal.raw.strip_prefix('"')?.strip_suffix('"')?;
-    (!value.starts_with("\"\"") && !value.contains('\\')).then_some(value)
+/// The rule a string literal names, read after Unicode escape translation,
+/// which can spell any of its characters (JLS §3.3).
+fn string_literal_rule<'source>(
+    literal: &StringLiteral<'source>,
+) -> Option<SuppressedRule<'source>> {
+    match robusta_lexer::translate(literal.raw).cooked {
+        Cow::Borrowed(raw) => quoted_rule(raw),
+        Cow::Owned(raw) => quoted_rule(&raw).map(SuppressedRule::into_owned),
+    }
+}
+
+fn quoted_rule(raw: &str) -> Option<SuppressedRule<'_>> {
+    let value = raw.strip_prefix('"')?.strip_suffix('"')?;
+    if value.starts_with("\"\"") || value.contains('\\') {
+        return None;
+    }
+    if value == "all" {
+        return Some(SuppressedRule::All);
+    }
+    let rule = value.strip_prefix(ROBUSTA_RULE_PREFIX).filter(|rule| !rule.is_empty())?;
+    Some(SuppressedRule::Rule(Cow::Borrowed(rule)))
 }
 
 fn annotated_declaration_span(kind: AstKind<'_>) -> Option<Span> {
@@ -430,10 +449,14 @@ mod tests {
             Span::new(u32::MAX - 1, u32::MAX),
             Span::new(u32::MAX, u32::MAX),
         ];
-        let rules = [SuppressedRule::Rule("a"), SuppressedRule::All, SuppressedRule::Rule("b")];
+        let rules = [
+            SuppressedRule::Rule("a".into()),
+            SuppressedRule::All,
+            SuppressedRule::Rule("b".into()),
+        ];
         let entries = scopes
             .into_iter()
-            .flat_map(|scope| rules.map(|rule| (scope, rule)))
+            .flat_map(|scope| rules.clone().map(|rule| (scope, rule)))
             .enumerate()
             .map(|(index, (scope, rule))| Suppression {
                 scope,
@@ -506,6 +529,46 @@ mod tests {
     fn escaped_annotation_and_element_names_select_the_same_suppression() {
         let source = r#"class A { @SuppressWarn\u0069ngs(v\u0061lue = "robusta:uppercase-long-suffix") long x = 1l; }"#;
         assert!(lint(source).is_empty());
+    }
+
+    #[test]
+    fn unicode_escaped_values_suppress_like_their_plain_spelling() {
+        for value in [
+            r#""\u0072obusta:uppercase-long-suffix""#,
+            r#""robusta:uppercase-long-suff\u0069x""#,
+            r#""robusta\uuu003auppercase-long-suffix""#,
+            r"\u0022robusta:uppercase-long-suffix\u0022",
+            r#""\u0061ll""#,
+            r#"{"unchecked", "robusta:uppercase\u002dlong-suffix"}"#,
+        ] {
+            let source = format!("class A {{ @SuppressWarnings({value}) long value = 1l; }}");
+            assert!(lint(&source).is_empty(), "{source}");
+        }
+        for value in [
+            r#""robusta:uppercase-long-suffix\t""#,
+            r#""robusta:uppercase-long-suffix\u005c\u005c""#,
+            r#""\u0072obusta:""#,
+        ] {
+            let source = format!("class A {{ @SuppressWarnings({value}) long value = 1l; }}");
+            assert_eq!(rule_ids(&lint(&source)), ["uppercase-long-suffix"], "{source}");
+        }
+    }
+
+    #[test]
+    fn unused_unicode_escaped_values_are_reported_on_their_source_spelling() {
+        let source = concat!(
+            "class A {\n",
+            r#"@SuppressWarnings({"unchecked", "robusta:modifier\u002dorder"})"#,
+            "\nint value;\n}\n",
+        );
+        let diagnostics = audit(source, &RULES);
+        assert_eq!(messages(&diagnostics), ["unused suppression for rule `modifier-order`"]);
+        assert_eq!(diagnostics[0].span().source_text(source), r#""robusta:modifier\u002dorder""#);
+        assert_eq!(prune(source), "class A {\n@SuppressWarnings({\"unchecked\"})\nint value;\n}\n");
+
+        let sole =
+            "class A {\n@SuppressWarnings(\"\\u0072obusta:modifier-order\")\nint value;\n}\n";
+        assert_eq!(prune(sole), "class A {\nint value;\n}\n");
     }
 
     fn lint_with_options(source: &str, options: LintOptions<'_>) -> Vec<crate::LintDiagnostic> {
