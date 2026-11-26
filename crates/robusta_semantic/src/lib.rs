@@ -7,7 +7,7 @@ mod node;
 mod pattern_scope;
 mod scoping;
 
-use std::cell::OnceCell;
+use std::{cell::OnceCell, ops::RangeBounds};
 
 pub use ast_types_bitset::AstTypesBitset;
 pub use builder::SemanticBuilder;
@@ -41,6 +41,11 @@ impl<'a> Semantic<'a> {
     /// The unit's comments in source order.
     pub const fn comments(&self) -> &'a [Comment] {
         self.comments
+    }
+
+    /// The comments that start within `range`, in source order.
+    pub fn comments_range<R: RangeBounds<u32>>(&self, range: R) -> &'a [Comment] {
+        robusta_ast::comments_range(self.comments, range)
     }
 
     /// Whether any comment starts within `span`.

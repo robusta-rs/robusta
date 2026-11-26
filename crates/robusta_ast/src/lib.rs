@@ -30,7 +30,7 @@ mod generated {
 pub use ast::*;
 pub use ast_kind_impl::TypeDeclarationKind;
 pub use generated::ast_kind::{AstKind, AstType};
-pub use trivia::has_comments_between;
+pub use trivia::{comments_range, has_comments_between};
 
 // Arena teardown skips destructors. Heap-owning fields would leak.
 const _: () = assert!(

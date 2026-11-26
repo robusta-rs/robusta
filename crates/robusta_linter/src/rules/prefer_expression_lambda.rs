@@ -1,9 +1,11 @@
-use robusta_ast::{AstKind, Expression, LambdaBody, Statement};
+use robusta_ast::{AstKind, Comment, Expression, LambdaBody, ReturnStatement, Statement};
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
-use robusta_semantic::AstNode;
+use robusta_semantic::{AstNode, Semantic};
 use robusta_span::{GetSpan, Span};
+use robusta_syntax::unicode_escape::skip_whitespace;
 
+use crate::fixer::Fix;
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 
 declare_robusta_lint! {
@@ -36,7 +38,7 @@ impl Rule for PreferExpressionLambda {
         let LambdaBody::Block(block) = &lambda.body else {
             return;
         };
-        let Some(value) = returned_value(&block.statements) else {
+        let Some((statement, value)) = returned_value(&block.statements) else {
             return;
         };
         // A statement expression's expression form is also void-compatible, so
@@ -47,37 +49,68 @@ impl Rule for PreferExpressionLambda {
         let message = "lambda block only returns a value";
         let diagnostic = RobustaDiagnostic::warning(message, block.span)
             .with_help("Replace the block with its returned expression.");
-        let replacement = replacement(context, block.span, value.span());
+        let deletions = frame_deletions(context, block.span, statement.span, value.span());
         context.diagnostic_with_fix_of_kind(diagnostic, fix_kind, |fixer| {
-            replacement.map_or_else(|| fixer.noop(), |text| fixer.replace(block.span, text))
+            fixer.noop().extend(Vec::from(deletions.map(Fix::delete)))
         });
     }
 }
 
-/// The expression of a block's lone `return Expression;`, if that is all it is.
-/// A no-value `return` yields none: it is void-compatible only, so no
+/// A block's lone `return Expression;` and its expression, if that is all it
+/// is. A no-value `return` yields none: it is void-compatible only, so no
 /// expression body can replace it.
-fn returned_value<'a, 'ast>(statements: &'a [Statement<'ast>]) -> Option<&'a Expression<'ast>> {
+fn returned_value<'a, 'ast>(
+    statements: &'a [Statement<'ast>],
+) -> Option<(&'a ReturnStatement<'ast>, &'a Expression<'ast>)> {
     match statements {
-        [Statement::Return(statement)] => statement.value.as_ref(),
+        [Statement::Return(statement)] => Some((statement, statement.value.as_ref()?)),
         _ => None,
     }
 }
 
-/// The returned expression's own source text, which replaces the whole block.
+/// The spans deleting the `{`, `return`, `;`, and `}` around `value`, each with
+/// the whitespace between it and the expression.
 ///
-/// The expression is copied verbatim, so it keeps the parentheses, spacing, and
-/// any interior comments it was written with, and needs none synthesized. Only
-/// the discarded `{ return` and `; }` frames are checked for comments: a comment
-/// there has no home in the expression form, so the finding keeps its diagnostic
-/// and forfeits the fix rather than deleting the comment.
-fn replacement(context: &LintContext<'_, '_, '_>, block: Span, value: Span) -> Option<String> {
-    let opening = Span::new(block.start, value.start);
-    let closing = Span::new(value.end, block.end);
-    if context.has_comments_between(opening) || context.has_comments_between(closing) {
-        return None;
+/// A deletion stops at the comment nearest the expression, so every comment
+/// stays in order around the expression. After a `//` comment, the deletion
+/// starts at the token itself, keeping the line break that stops the comment
+/// from swallowing the tokens after the lambda. The spans come from the
+/// statement and expression bounds, so a delimiter spelled with a Unicode
+/// escape goes as a whole.
+fn frame_deletions(
+    semantic: &Semantic<'_>,
+    block: Span,
+    statement: Span,
+    value: Span,
+) -> [Span; 4] {
+    // Where the comments starting in `start..end` begin, or `end` without any.
+    let comments_start = |start, end| {
+        semantic.comments_range(start..end).first().map_or(end, |comment| comment.span.start)
+    };
+    // Where a deletion after the comments starting in `start..end` starts, or
+    // `start` without any.
+    let comments_end = |start, end| {
+        semantic
+            .comments_range(start..end)
+            .last()
+            .map_or(start, |comment| deletion_start(semantic.source_text(), comment))
+    };
+    [
+        Span::new(block.start, comments_start(block.start, statement.start)),
+        Span::new(statement.start, comments_start(statement.start, value.start)),
+        Span::new(comments_end(value.end, statement.end), statement.end),
+        Span::new(comments_end(statement.end, block.end), block.end),
+    ]
+}
+
+/// Where the deletion after `comment` starts: at its end, or at the next token
+/// after a `//` comment, whose line break must stay.
+fn deletion_start(source: &str, comment: &Comment) -> u32 {
+    if comment.is_line() {
+        skip_whitespace(source, comment.span.end, |byte| byte.is_ascii_whitespace())
+    } else {
+        comment.span.end
     }
-    Some(value.source_text(context.source_text()).to_owned())
 }
 
 #[cfg(test)]
@@ -182,11 +215,49 @@ mod tests {
     }
 
     #[test]
-    fn reports_without_a_fix_when_a_frame_comment_has_no_home() {
-        tester()
-            .reports_without_fix("class A { void f() { g(x -> { /* why */ return x + 1; }); } }");
-        tester()
-            .reports_without_fix("class A { void f() { g(x -> { return x + 1; // why\n }); } }");
+    fn keeps_comments_written_around_the_deleted_tokens() {
+        tester().fixes(
+            "class A { IntSupplier f = () -> { return /* units */ 1; }; }",
+            "class A { IntSupplier f = () -> /* units */ 1; }",
+        );
+        tester().fixes(
+            "class A { void f() { g(x -> { /* a */ return /* b */ x + 1 /* c */; /* d */ }); } }",
+            "class A { void f() { g(x -> /* a */ /* b */ x + 1 /* c */ /* d */); } }",
+        );
+    }
+
+    #[test]
+    fn keeps_the_line_break_that_ends_a_line_comment() {
+        tester().fixes(
+            "void configure() {
+    choose(x -> { // a
+        return x + 1; // b
+    });
+    choose(x -> {
+        // c
+        return x + 1 // d
+        ;
+    });
+}
+",
+            "void configure() {
+    choose(x -> // a
+        x + 1 // b
+    );
+    choose(x -> // c
+        x + 1 // d
+        );
+}
+",
+        );
+    }
+
+    #[test]
+    fn deletes_unicode_escaped_delimiters_whole() {
+        tester().fixes(
+            r"class A { void f() { g(x -> \u007b \u0072eturn /* c */ x \u003b \uu007d); } }",
+            "class A { void f() { g(x -> /* c */ x); } }",
+        );
     }
 
     #[test]
