@@ -190,8 +190,8 @@ pub trait NameContext<'a> {
     }
 }
 
-/// Resolves no name, for jumps that never test a constant.
-struct Unresolved;
+/// Resolves no name, leaving each one possibly a constant.
+pub struct Unresolved;
 
 impl NameContext<'_> for Unresolved {}
 
@@ -249,7 +249,8 @@ pub fn can_complete_normally<'a>(statement: &Statement<'a>, names: &impl NameCon
     }
 }
 
-fn block_can_complete_normally<'a>(
+/// Whether a block holding `statements` is known to complete normally (JLS 14.22).
+pub fn block_can_complete_normally<'a>(
     statements: &[Statement<'a>],
     names: &impl NameContext<'a>,
 ) -> bool {

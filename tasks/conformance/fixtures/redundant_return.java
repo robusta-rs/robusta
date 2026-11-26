@@ -49,6 +49,16 @@ class RedundantReturn {
         }
     }
 
+    void labels(int mode) {
+        switch (mode) {
+            case 1:
+                System.out.println("one");
+                return;
+            case 2:
+            default:
+        }
+    }
+
     void labeled(boolean ready) {
         done:
         if (ready) return;
@@ -58,6 +68,17 @@ class RedundantReturn {
         return () -> {
             System.out.println("run");
             return;
+        };
+    }
+
+    Runnable cleanup() {
+        return () -> {
+            try {
+                System.out.println("run");
+                return;
+            } finally {
+                System.out.println("done");
+            }
         };
     }
 }
