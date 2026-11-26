@@ -30,7 +30,7 @@ class A {
   }
 
   enum E {
-    A,;
+    A;
 
     ;
 

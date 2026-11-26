@@ -474,7 +474,7 @@ record R() { static int first; static int second; }
 
     enum E {
       A,
-      B,;
+      B;
 
       int first;
       int second;
@@ -1487,7 +1487,7 @@ fn fixed_enum_member_blank_lines() {
     assert_snapshot!(fmt_with_options("enum E { A, B; int first; int second; void one() {} void two() {} }", &Options::default()), @"
     enum E {
       A,
-      B,;
+      B;
 
       int first;
       int second;

@@ -918,7 +918,7 @@ fn braced_bodies_join_their_entries_alike() {
       A, // first
 
       // second
-      B,;
+      B;
 
       int f;
 
@@ -990,7 +990,7 @@ fn enum_bodies_join_constants_semicolon_and_members() {
 
     assert_snapshot!(fmt("enum E { A; int f; }"), @"
     enum E {
-      A,;
+      A;
 
       int f;
     }

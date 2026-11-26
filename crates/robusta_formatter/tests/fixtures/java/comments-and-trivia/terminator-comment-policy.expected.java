@@ -19,7 +19,7 @@ abstract class TerminatorCommentPolicy {
   abstract void bodyless(List<String> values); /* body-less method */
 
   enum Constants {
-    ONLY,; /* before the enum terminator */
+    ONLY; /* before the enum terminator */
 
     int member;
   }

@@ -10,7 +10,7 @@ enum Op {
       return a * b;
     }
   },
-  UNIT() {},;
+  UNIT() {};
 
   abstract int apply(int a, int b);
 }

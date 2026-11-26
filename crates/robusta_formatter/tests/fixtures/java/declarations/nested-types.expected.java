@@ -27,7 +27,7 @@ public class Outer {
 
   private enum State implements Marker {
     NEW(1),
-    DONE(2),;
+    DONE(2);
 
     private final int code;
 
