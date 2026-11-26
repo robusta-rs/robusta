@@ -18,9 +18,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ThrowStatement<'a>> {
     }
 }
 
-/// Formats a `return`, `throw`, or `yield` statement. The same-line comments
-/// before its `;` print after it as the statement's dangling comments, so a
-/// line comment among them does not break the group around the statement.
+/// Formats a `return`, `throw`, or `yield` statement.
 pub fn format_keyword_expression_statement<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     keyword: &'static str,
@@ -37,8 +35,7 @@ pub fn format_keyword_expression_statement<'ast>(
     });
     let content_end =
         value.map_or_else(|| keyword_end(f, span.start, keyword), |value| value.span().end);
-    let format =
-        FormatContentWithSemicolon::new(&content, content_end, span.end).with_dangling_comments();
+    let format = FormatContentWithSemicolon::new(&content, content_end, span.end);
     // The `;` of a switch rule's `throw` ends the rule (JLS 14.11.1).
     if matches!(statement.parent(), AstNodes::SwitchRule(_)) {
         format.moving_documentation_comments().fmt(f);

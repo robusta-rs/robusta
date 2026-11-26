@@ -271,6 +271,14 @@ fn documentation_comments_stay_before_a_terminator_a_declaration_could_follow() 
             "class A {\n  void f() {\n    g() /** doc */;\n  }\n}\n",
         ),
         (
+            "class A { void f() { while (a) continue /** doc */; } }",
+            "class A {\n  void f() {\n    while (a) continue /** doc */;\n  }\n}\n",
+        ),
+        (
+            "class A { void f() { if (a) g() /** doc */ // c\n; int y; } }",
+            "class A {\n  void f() {\n    if (a) g() /** doc */; // c\n    int y;\n  }\n}\n",
+        ),
+        (
             "class A { void f() { for (;;) g() /// doc\n; } }",
             "class A {\n  void f() {\n    for (;;)\n      g() /// doc\n      ;\n  }\n}\n",
         ),
@@ -377,10 +385,43 @@ fn a_documentation_comment_after_a_moved_line_comment_goes_to_what_follows_a_bod
 
     for (input, expected) in [
         // The next statement leads with it, as if written on a line of its own.
+        ("if (c) foo() // x\n; /// d\n\nbar();", "if (c) foo(); // x\n/// d\n\nbar();\n"),
+        ("if (c) foo() // x\n; /** d */\n\nbar();", "if (c) foo(); // x\n/** d */\n\nbar();\n"),
+        (
+            "if (c) a(); else foo() // x\n; /// d\n\nbar();",
+            "if (c) a();\nelse foo(); // x\n/// d\n\nbar();\n",
+        ),
+        ("while (c) foo() // x\n; /// d\n\nbar();", "while (c) foo(); // x\n/// d\n\nbar();\n"),
+        ("for (;;) foo() // x\n; /// d\n\nbar();", "for (;;) foo(); // x\n/// d\n\nbar();\n"),
+        (
+            "for (int i : a) foo() // x\n; /// d\n\nbar();",
+            "for (int i : a) foo(); // x\n/// d\n\nbar();\n",
+        ),
         ("l: foo() // x\n; /// d\n\nbar();", "l:\nfoo(); // x\n/// d\n\nbar();\n"),
+        (
+            "l: while (c) if (e) foo() // x\n; /// d\n\nbar();",
+            "l:\nwhile (c) if (e) foo(); // x\n/// d\n\nbar();\n",
+        ),
+        (
+            r"if (c) foo() // x
+\u003b /// d
+
+bar();",
+            "if (c) foo(); // x\n/// d\n\nbar();\n",
+        ),
         // No declaration can follow the semicolon before a continuation keyword.
         ("do foo() // x\n; /// d\nwhile (c);", "do\n  foo(); // x /// d\nwhile (c);\n"),
         ("do foo() // x\n; /** d */\nwhile (c);", "do\n  foo(); // x\n/** d */\nwhile (c);\n"),
+        ("if (c) foo() // x\n; /// d\nelse bar();", "if (c) foo(); // x /// d\nelse bar();\n"),
+        ("if (c) foo() // x\n; /** d */ else bar();", "if (c) foo(); // x\n/** d */ else bar();\n"),
+        (
+            "if (c) foo() // x\n; /* c */ /// d\n\nelse bar();",
+            "if (c) foo(); // x\n/* c */ /// d\n\nelse bar();\n",
+        ),
+        (
+            "if (c) while (a) foo(1l) /* note */ // robusta-disable-line\n; /// d\nelse bar();",
+            "if (c) while (a) foo(1l); /* note */ // robusta-disable-line\n/// d\nelse bar();\n",
+        ),
         (
             "do foo() // robusta-disable-next-line -- reason\n; /// d\nwhile (c);",
             "do\n  foo(); // robusta-disable-next-line -- reason\n/// d\nwhile (c);\n",
@@ -389,6 +430,10 @@ fn a_documentation_comment_after_a_moved_line_comment_goes_to_what_follows_a_bod
         (
             "switch (x) { case 1: foo() // x\n; /// d\ncase 2: bar(); }",
             "switch (x) {\n  case 1:\n    foo(); // x\n  /// d\n  case 2:\n    bar();\n}\n",
+        ),
+        (
+            "switch (x) { case 1: if (c) foo() // x\n; /// d\ncase 2: bar(); }",
+            "switch (x) {\n  case 1:\n    if (c) foo(); // x\n  /// d\n  case 2:\n    bar();\n}\n",
         ),
         (
             "switch (x) { case 1 -> foo() // x\n; /// d\n\ndefault -> {} }",
@@ -408,6 +453,7 @@ fn a_documentation_comment_after_a_moved_line_comment_goes_to_what_follows_a_bod
             "switch (x) {\n  case 1 -> foo(); /// D\n  /** d */\n  default -> {}\n}\n",
         ),
         // With nothing to lead, it follows the entry that ends the body.
+        ("if (c) foo() // x\n; /// d\n", "if (c) foo(); // x\n/// d\n"),
         ("foo() // x\n; /* c */ /// d\n", "foo(); // x\n/* c */ /// d\n"),
         ("l: foo() // x\n; /// d\n", "l:\nfoo(); // x\n/// d\n"),
         (
@@ -565,6 +611,10 @@ fn multiline_block_comments_after_a_line_comment_moved_behind_a_semicolon_start_
         (
             "class A { void f() { int value = 42 // c\n; /* t\n * u */\n} }",
             "class A {\n  void f() {\n    int value = 42; // c\n    /* t\n     * u */\n  }\n}\n",
+        ),
+        (
+            "class A { void f() { if (a) x = 1 // c\n; /* t\n u */ else y(); } }",
+            "class A {\n  void f() {\n    if (a) x = 1; // c\n    /* t\n u */ else y();\n  }\n}\n",
         ),
     ] {
         for (line_ending, newline) in [(LineEnding::Lf, "\n"), (LineEnding::Crlf, "\r\n")] {
@@ -798,6 +848,12 @@ fn trailing_comments_before_a_semicolon_follow_it_unless_they_document() {
     let source = r"class Order {
   void f() {
     foo() /* c */;
+    while (pending()) poll() // retry
+    ;
+    int n = switch (k) {
+      case 1 -> k /* f */;
+      default -> 0;
+    };
   }
 
   int x /* d */;
@@ -807,6 +863,11 @@ fn trailing_comments_before_a_semicolon_follow_it_unless_they_document() {
     class Order {
       void f() {
         foo(); /* c */
+        while (pending()) poll(); // retry
+        int n = switch (k) {
+          case 1 -> k; /* f */
+          default -> 0;
+        };
       }
 
       int x; /* d */
@@ -863,8 +924,8 @@ fn multiline_block_comments_after_a_moved_package_or_import_line_comment_start_t
     }
 }
 
-/// A bare `break`, `continue`, or `return` writes its `;` directly, so the
-/// statement's trailing pass prints the comments around it in source order.
+/// The comments around the `;` of a bare `break`, `continue`, or `return` keep
+/// their source order.
 #[test]
 fn comments_after_a_bare_keyword_statement_keep_their_order() {
     let source = "class A { void f() { return // c\n; /* t\n u */ } }";
@@ -1068,286 +1129,4 @@ fn instance_creation_keyword_comments_lead_what_follows_them() {
         assert_eq!(fmt(&source), format!("class A {{\n  Object x = {expected};\n}}\n"));
         check_contract_at_widths_and_modes(&source);
     }
-}
-
-/// A line comment before the `;` ending an unbraced body moves behind the `;`
-/// inside the statement's group, so the statement breaks. The second pass reads
-/// the comment after the `;` and joins the statement again. The comments after
-/// the `;` keep their places on both passes.
-#[test]
-fn line_comments_moved_behind_an_unbraced_body_semicolon_break_its_statement_on_a_first_pass() {
-    let statements = [
-        "if (a) g() /** doc */ // c\n; int y;",
-        "if (c) foo() // x\n; /// d\n\nbar();",
-        "if (c) foo() // x\n; /** d */\n\nbar();",
-        "if (c) a(); else foo() // x\n; /// d\n\nbar();",
-        "while (c) foo() // x\n; /// d\n\nbar();",
-        "for (;;) foo() // x\n; /// d\n\nbar();",
-        "for (int i : a) foo() // x\n; /// d\n\nbar();",
-        "l: while (c) if (e) foo() // x\n; /// d\n\nbar();",
-        "if (c) foo() // x\n\\u003b /// d\n\nbar();",
-        "if (c) foo() // x\n; /// d\nelse bar();",
-        "if (c) foo() // x\n; /** d */ else bar();",
-        "if (c) foo() // x\n; /* c */ /// d\n\nelse bar();",
-        "if (c) while (a) foo(1l) /* note */ // robusta-disable-line\n; /// d\nelse bar();",
-        "switch (x) { case 1: if (c) foo() // x\n; /// d\ncase 2: bar(); }",
-        "if (c) foo() // x\n; /// d\n",
-        "if (a) x = 1 // c\n; /* t\n u */ else y();",
-    ];
-    let outputs: Vec<String> = statements
-        .iter()
-        .map(|statement| fmt(&format!("class A {{ void g() {{ {statement} }} }}")))
-        .collect();
-    assert_snapshot!(outputs.join("\n"), @"
-    class A {
-      void g() {
-        if (a)
-          g() /** doc */; // c
-        int y;
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (a) g() /** doc */; // c
-        int y;
-      }
-    }
-
-    class A {
-      void g() {
-        if (c)
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c)
-          foo(); // x
-        /** d */
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /** d */
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c) a();
-        else
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (c) a();
-        else foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        while (c)
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        while (c) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        for (;;)
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        for (;;) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        for (int i : a)
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        for (int i : a) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        l:
-        while (c)
-          if (e)
-            foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        l:
-        while (c) if (e) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c)
-          foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /// d
-
-        bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c) foo(); // x /// d
-        else bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /** d */ else bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /* c */ /// d
-
-        else bar();
-      }
-    }
-
-    class A {
-      void g() {
-        if (c) while (a) foo(1l); /* note */ // robusta-disable-line
-        /// d
-        else bar();
-      }
-    }
-
-    class A {
-      void g() {
-        switch (x) {
-          case 1:
-            if (c)
-              foo(); // x
-          /// d
-          case 2:
-            bar();
-        }
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        switch (x) {
-          case 1:
-            if (c) foo(); // x
-          /// d
-          case 2:
-            bar();
-        }
-      }
-    }
-
-    class A {
-      void g() {
-        if (c)
-          foo(); // x
-        /// d
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
-    class A {
-      void g() {
-        if (c) foo(); // x
-        /// d
-      }
-    }
-
-    class A {
-      void g() {
-        if (a) x = 1; // c
-        /* t
-     u */ else y();
-      }
-    }
-    ");
 }

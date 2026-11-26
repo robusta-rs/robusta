@@ -397,27 +397,20 @@ fn unbraced_body_that_breaks_starts_an_indented_line() {
     ");
 }
 
-/// The moved line comment breaks the statement's group, and the second pass
-/// reads it after the `;`, outside the group.
+/// The moved line comment ends the line without breaking the statement's group.
 #[test]
-fn line_comments_moved_behind_an_unbraced_body_semicolon_break_its_group_on_a_first_pass() {
+fn line_comments_moved_behind_an_unbraced_body_semicolon_keep_its_group_flat() {
     let source = "class A { void f() { while (a) x = 1 // c\n; \
-                  if (a) while (b) x = 1 // d\n; } }";
+                  if (a) while (b) x = 1 // d\n; \
+                  while (a) break // e\n; if (a) continue // f\n; else break; } }";
     assert_snapshot!(fmt(source), @"
-    class A {
-      void f() {
-        while (a)
-          x = 1; // c
-        if (a)
-          while (b)
-            x = 1; // d
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
     class A {
       void f() {
         while (a) x = 1; // c
         if (a) while (b) x = 1; // d
+        while (a) break; // e
+        if (a) continue; // f
+        else break;
       }
     }
     ");

@@ -657,7 +657,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, BreakStatement<'a>> {
             let content = format_with(|f| write!(f, ["break", space(), label]));
             FormatContentWithSemicolon::new(&content, label.span.end, self.span.end).fmt(f);
         } else {
-            write!(f, ["break", ";"]);
+            let end = keyword_end(f, self.span.start, "break");
+            FormatContentWithSemicolon::new(&"break", end, self.span.end).fmt(f);
         }
     }
 }
@@ -668,7 +669,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ContinueStatement<'a>> {
             let content = format_with(|f| write!(f, ["continue", space(), label]));
             FormatContentWithSemicolon::new(&content, label.span.end, self.span.end).fmt(f);
         } else {
-            write!(f, ["continue", ";"]);
+            let end = keyword_end(f, self.span.start, "continue");
+            FormatContentWithSemicolon::new(&"continue", end, self.span.end).fmt(f);
         }
     }
 }

@@ -55,7 +55,7 @@ fn formatter_contract() {
 /// so a snapshot can pin it. Fixing the input fails this test.
 #[test]
 fn an_unstable_input_shows_its_second_pass() {
-    let source = "class A { void g() { if (a) g() /** doc */ // c\n; int y; } }";
+    let source = "class A { void g() { while (a) throw e /* first\n * second */; } }";
     assert!(check_formatter_contract(source).unwrap_err().starts_with("second pass differs"));
     assert!(fmt(source).contains("---------- Not idempotent (second pass) ----------"));
 }
