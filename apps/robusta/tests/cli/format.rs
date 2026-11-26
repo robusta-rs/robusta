@@ -817,7 +817,6 @@ format:
 fn format_reports_malformed_config() {
     let source = "class Example { int value; }\n";
     let temp = TempJava::new(source);
-    // spellchecker:disable-next-line
     std::fs::write(temp.dir.join("robusta.yaml"), "format:\n  line_widht: 100\n")
         .expect("failed to write config");
 
@@ -827,7 +826,7 @@ fn format_reports_malformed_config() {
     assert_eq!(output.status.code(), Some(2));
     assert_eq!(output.stdout.len(), 0);
     assert!(stderr.contains("robusta.yaml"));
-    assert!(stderr.contains("line_widht")); // spellchecker:disable-line
+    assert!(stderr.contains("line_widht"));
     assert_eq!(std::fs::read_to_string(&temp.file).unwrap(), source);
 }
 
@@ -835,7 +834,6 @@ fn format_reports_malformed_config() {
 fn format_rejects_unknown_config_root_without_processing_files() {
     let source = "class Example { int value ; }\n";
     let temp = TempJava::new(source);
-    // spellchecker:disable-next-line
     std::fs::write(temp.dir.join("robusta.yaml"), "foramt:\n  line-width: 100\n")
         .expect("failed to write config");
 
@@ -845,7 +843,7 @@ fn format_rejects_unknown_config_root_without_processing_files() {
     assert_eq!(output.status.code(), Some(2));
     assert_eq!(output.stdout.len(), 0);
     assert!(stderr.contains("robusta.yaml"));
-    assert!(stderr.contains("unknown field `foramt`")); // spellchecker:disable-line
+    assert!(stderr.contains("unknown field `foramt`"));
     assert_eq!(std::fs::read_to_string(&temp.file).unwrap(), source);
 }
 

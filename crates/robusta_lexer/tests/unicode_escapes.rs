@@ -13,13 +13,13 @@ fn kinds(source: &str) -> Vec<TokenKind> {
 
 #[test]
 fn raw_and_escaped_identifiers_preserve_source_spans() {
-    let source = r"𝒂 Caf\u00e9 \uD835\uDC82 int \u0061"; // spellchecker:disable-line
+    let source = r"𝒂 Caf\u00e9 \uD835\uDC82 int \u0061";
     let result = tokenize(source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
     assert_eq!(kinds(source), [Identifier, Identifier, Identifier, Int, Identifier]);
     assert_eq!(
         result.tokens.iter().map(|token| token.span.source_text(source)).collect::<Vec<_>>(),
-        ["𝒂", r"Caf\u00e9", r"\uD835\uDC82", "int", r"\u0061", ""] // spellchecker:disable-line
+        ["𝒂", r"Caf\u00e9", r"\uD835\uDC82", "int", r"\u0061", ""]
     );
 }
 

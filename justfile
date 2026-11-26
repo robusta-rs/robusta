@@ -15,7 +15,7 @@ alias f := fix
 
 # Install the developer tooling used by the recipes below.
 init:
-  cargo binstall watchexec-cli cargo-insta typos-cli cargo-deny cargo-shear@1.13.1 -y
+  cargo binstall watchexec-cli cargo-insta cargo-deny cargo-shear@1.13.1 -y
 
 # Install git pre-commit hook to format files
 install-hook:
@@ -27,7 +27,6 @@ install-hook:
 # Run the local Rust gate before pushing; CI adds plugin, conformance, allocation, MSRV, unused-dependency, and cross-platform jobs.
 ready:
   git diff --exit-code --quiet
-  typos
   just fmt
   just check
   just test
@@ -83,11 +82,10 @@ doc *args:
 deny:
   cargo deny check
 
-# Auto-fix formatting, clippy, and typos where possible.
+# Auto-fix formatting and clippy where possible.
 fix:
   cargo clippy --fix --allow-staged --no-deps
   just fmt
-  typos -w
   git status
 
 # ==================== DEVELOPMENT TOOLS ====================

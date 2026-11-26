@@ -51,7 +51,7 @@ Prerequisites: Rust (MSRV: 1.97), JDK 17, CMake and a C/C++ toolchain, just, car
 
 **Setup Notes:**
 
-- `just init` installs `watchexec`, `cargo-insta`, `typos`, `cargo-deny`, and `cargo-shear`
+- `just init` installs `watchexec`, `cargo-insta`, `cargo-deny`, and `cargo-shear`
 - Use Conventional Commits for commit messages, like `fix(parser): recover after a malformed member`
 - Choose verification from the changed code; reserve `just ready` for an optional broad checkpoint as described below
 
