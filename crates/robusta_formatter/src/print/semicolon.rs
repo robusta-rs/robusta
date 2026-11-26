@@ -25,6 +25,8 @@ pub fn trailing_comments_to_move_behind_semicolon<'a>(
 
 /// Formats `content` followed by a `;`, printing the content's same-line
 /// trailing comments behind the `;`: `int x /* c */;` becomes `int x; /* c */`.
+/// A line comment among them does not break the group around the statement:
+/// `while (a) x = 1 // c` + `;` prints `while (a) x = 1; // c`.
 ///
 /// Documentation comments stay before a `;` that could precede a declaration.
 /// A trailing `///` can move when `else` or a `do`'s `while` follows instead.
@@ -37,13 +39,11 @@ pub struct FormatContentWithSemicolon<'b, T> {
     node_end: u32,
     /// Whether documentation comments before the `;` stay before it.
     keeps_documentation_comments: bool,
-    /// Whether the moved comments print as the statement's dangling comments.
-    dangling: bool,
 }
 
 impl<'b, T> FormatContentWithSemicolon<'b, T> {
     pub fn new(content: &'b T, content_end: u32, node_end: u32) -> Self {
-        Self { content, content_end, node_end, keeps_documentation_comments: true, dangling: false }
+        Self { content, content_end, node_end, keeps_documentation_comments: true }
     }
 
     /// For a `;` no declaration can follow, as one ending a module directive
@@ -54,15 +54,8 @@ impl<'b, T> FormatContentWithSemicolon<'b, T> {
         self
     }
 
-    /// For a `return`, `throw`, or `yield`: the moved comments print as the
-    /// statement's dangling comments, so a line comment among them does not
-    /// break the group around the statement.
-    pub fn with_dangling_comments(mut self) -> Self {
-        self.dangling = true;
-        self
-    }
-
-    /// Keep a postfix operand's moved line comment outside the body's layout.
+    /// Moves a line comment between a postfix operand and its operator behind
+    /// the `;`: `k // c` + `++;` prints `k++; // c`.
     pub fn with_postfix_comments(
         mut self,
         expression: &Expression<'_>,
@@ -75,7 +68,6 @@ impl<'b, T> FormatContentWithSemicolon<'b, T> {
                 == Some(comment)
         {
             self.content_end = comment.span.start;
-            self.dangling = true;
         }
         self
     }
@@ -107,11 +99,7 @@ where
             }
         }
         ";".fmt(f);
-        if self.dangling || before_continuation {
-            FormatTrailingComments::Dangling(comments).fmt(f);
-        } else {
-            FormatTrailingComments::Comments(comments).fmt(f);
-        }
+        FormatTrailingComments::Dangling(comments).fmt(f);
         if let Some(comment) = comments.last().filter(|comment| comment.is_line()) {
             f.comments().mark_line_comment_moved_behind(self.node_end, comment);
         }

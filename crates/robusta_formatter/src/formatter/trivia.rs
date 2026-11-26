@@ -140,9 +140,9 @@ pub enum FormatTrailingComments<'c> {
     Node((Span, Span, u32)),
     /// Comments a printer selected.
     Comments(&'c [Comment]),
-    /// The same-line comments a `return`, `throw`, or `yield` moved behind its
-    /// `;`, printed as the statement's dangling comments: a line comment among
-    /// them ends the line without expanding the group around the statement.
+    /// The same-line comments moved behind the `;` that ends a statement or
+    /// declaration, printed as its dangling comments: a line comment among them
+    /// ends the line without expanding the group around it.
     Dangling(&'c [Comment]),
     /// Block comments a printer keeps on its current line, wherever they
     /// started: those after an assignment's operator.
