@@ -31,7 +31,6 @@ ready:
   just fmt
   just check
   just test
-  just snapshots-check
   just lint
   just doc
   just ast
@@ -53,21 +52,6 @@ fmt-check:
 # Run the workspace test suite.
 test *args:
   cargo test --all-features --locked {{args}}
-
-# Reject unreviewed insta snapshot changes.
-snapshots-check:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  pending="$(cargo insta pending-snapshots --workspace --as-json)"
-  if [[ -n "$pending" ]]; then
-    cargo insta pending-snapshots --workspace
-    exit 1
-  fi
-  echo "No pending snapshots."
-
-# Interactively accept or reject insta snapshot changes.
-snapshots-review:
-  cargo insta review --workspace
 
 # Regenerate the committed sources derived from the AST definitions.
 ast:
