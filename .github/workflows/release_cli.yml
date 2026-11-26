@@ -256,6 +256,7 @@ jobs:
           ./gradlew clean :gradle-plugin:check :check \
             :gradle-plugin:publicationTest :gradle-plugin:validatePlugins \
             :gradle-plugin:assembleBundledPlugin \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
             -Drobusta.real.bundled=true \
@@ -312,6 +313,7 @@ jobs:
         working-directory: jvm
         run: |
           ./gradlew clean :maven-plugin:check :maven-plugin:assembleBundledPlugin \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native" \
             "-ProbustaFakeExecutable=$GITHUB_WORKSPACE/target/debug/robusta_plugin_fake" \
             -Drobusta.real.bundled=true
@@ -368,6 +370,7 @@ jobs:
         working-directory: jvm
         run: |
           ./gradlew :gradle-plugin:assembleBundledPlugin :maven-plugin:assembleBundledPlugin \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
 
       - name: Upload Maven Central deployments
@@ -388,8 +391,10 @@ jobs:
           fi
           # One invocation per plugin, so each uploads its own deployment.
           ./gradlew :gradle-plugin:publishToMavenCentral \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
           ./gradlew :maven-plugin:publishToMavenCentral \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
 
       - name: Validate and publish Gradle plugin
@@ -404,8 +409,10 @@ jobs:
             exit 1
           fi
           ./gradlew :gradle-plugin:publishPlugins --validate-only \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
           ./gradlew :gradle-plugin:publishPlugins \
+            -Prelease=true \
             "-ProbustaBinariesDirectory=$GITHUB_WORKSPACE/dist/native"
 
   github-release:

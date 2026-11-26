@@ -67,10 +67,11 @@ public final class BundledExecutable {
     }
 
     /**
-     * Verifies the binary at {@code destination}, extracting it first when it is absent.
+     * Returns the binary at {@code destination}, extracting it when it is missing or does not
+     * match its bundled checksum.
      *
-     * @throws RobustaPluginException when the binary cannot be extracted or does not match its
-     *     bundled checksum
+     * @throws RobustaPluginException when the bundled binary does not match its checksum or
+     *     cannot be installed at {@code destination}
      */
     public Path extract(RobustaPlatform platform, Path destination) throws RobustaPluginException {
         String binaryResource = RESOURCE_ROOT + platform.bundledBinaryName();
@@ -88,12 +89,10 @@ public final class BundledExecutable {
                         throw new RobustaPluginException(
                                 "Robusta cache path is not a regular file: " + destination);
                     }
-                    String actual = sha256(destination);
-                    if (!actual.equals(expected)) {
-                        throw checksumFailure(destination.toString(), expected, actual);
+                    if (sha256(destination).equals(expected)) {
+                        makeExecutable(destination, platform);
+                        return destination;
                     }
-                    makeExecutable(destination, platform);
-                    return destination;
                 }
                 return extractLocked(binaryResource, destination, platform, expected);
             }

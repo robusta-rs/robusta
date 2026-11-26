@@ -1,5 +1,6 @@
 package rs.robusta.maven;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,17 +47,16 @@ class BundledRobustaExecutableTest {
     }
 
     @Test
-    void rejectsAndDoesNotSilentlyReplaceACorruptedCacheEntry() throws Exception {
+    void replacesACacheEntryThatDoesNotMatchItsChecksum() throws Exception {
         Path extracted = BundledRobustaExecutable.obtain(
                 cacheRoot, System.getProperty("os.name"), System.getProperty("os.arch"), "1.0.0");
+        byte[] verified = Files.readAllBytes(extracted);
         Files.writeString(extracted, "corrupted", StandardCharsets.UTF_8);
 
-        MojoExecutionException failure = assertThrows(
-                MojoExecutionException.class,
-                () -> BundledRobustaExecutable.obtain(
-                        cacheRoot, System.getProperty("os.name"), System.getProperty("os.arch"), "1.0.0"));
-        assertTrue(failure.getMessage().contains("checksum mismatch"), failure.getMessage());
-        assertEquals("corrupted", Files.readString(extracted, StandardCharsets.UTF_8));
+        Path replaced = BundledRobustaExecutable.obtain(
+                cacheRoot, System.getProperty("os.name"), System.getProperty("os.arch"), "1.0.0");
+        assertEquals(extracted, replaced);
+        assertArrayEquals(verified, Files.readAllBytes(replaced));
     }
 
     @Test
