@@ -5,15 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import rs.robusta.plugin.common.BundledExecutable;
 import rs.robusta.plugin.common.RobustaPlatform;
 
 class BundledRobustaExecutableTest {
@@ -51,6 +57,24 @@ class BundledRobustaExecutableTest {
                         cacheRoot, System.getProperty("os.name"), System.getProperty("os.arch"), "1.0.0"));
         assertTrue(failure.getMessage().contains("checksum mismatch"), failure.getMessage());
         assertEquals("corrupted", Files.readString(extracted, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void waitsOutAnExtractionLockThisJvmAlreadyHolds() throws Exception {
+        RobustaPlatform platform =
+                RobustaPlatform.detect(System.getProperty("os.name"), System.getProperty("os.arch"));
+        Path destination = BundledExecutable.destination(cacheRoot, "1.0.0", platform);
+        Files.createDirectories(destination.getParent());
+        Path lock = destination.resolveSibling(destination.getFileName() + ".lock");
+        FutureTask<Path> extraction = new FutureTask<>(() -> BundledRobustaExecutable.obtain(
+                cacheRoot, System.getProperty("os.name"), System.getProperty("os.arch"), "1.0.0"));
+        try (FileChannel channel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                FileLock ignored = channel.lock()) {
+            new Thread(extraction).start();
+            Thread.sleep(200);
+            assertFalse(extraction.isDone());
+        }
+        assertEquals(destination, extraction.get(10, TimeUnit.SECONDS));
     }
 
     @Test

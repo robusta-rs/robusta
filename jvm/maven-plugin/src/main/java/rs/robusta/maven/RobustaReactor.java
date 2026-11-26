@@ -3,7 +3,9 @@ package rs.robusta.maven;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiPredicate;
 
 import org.apache.maven.execution.MavenSession;
@@ -60,11 +62,19 @@ final class RobustaReactor {
     static RobustaReactor get(MavenSession session) throws MojoExecutionException {
         MavenProject owner = session.getTopLevelProject();
         synchronized (owner) {
-            String key = RobustaReactor.class.getName();
-            RobustaReactor reactor = (RobustaReactor) owner.getContextValue(key);
+            // Modules whose plugin declarations differ load this class in separate realms, so the
+            // shared project holds a JDK map with one reactor per realm's own class.
+            String key = RobustaReactor.class.getName() + ".byRealm";
+            @SuppressWarnings("unchecked")
+            Map<Class<?>, Object> reactors = (Map<Class<?>, Object>) owner.getContextValue(key);
+            if (reactors == null) {
+                reactors = new HashMap<>();
+                owner.setContextValue(key, reactors);
+            }
+            RobustaReactor reactor = (RobustaReactor) reactors.get(RobustaReactor.class);
             if (reactor == null) {
                 reactor = new RobustaReactor(session);
-                owner.setContextValue(key, reactor);
+                reactors.put(RobustaReactor.class, reactor);
             }
             return reactor;
         }

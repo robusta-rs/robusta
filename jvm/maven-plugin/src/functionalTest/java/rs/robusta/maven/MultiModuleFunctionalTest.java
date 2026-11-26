@@ -201,6 +201,25 @@ class MultiModuleFunctionalTest {
     }
 
     @Test
+    void coveredModuleWithItsOwnPluginRealmStillSkips() throws Exception {
+        Path root = reactor();
+        Path app = root.resolve("app/pom.xml");
+        String plugin = """
+                <build><plugins><plugin><groupId>rs.robusta</groupId><artifactId>robusta-maven-plugin</artifactId>
+                <version>%s</version>%s</plugin></plugins></build></project>
+                """.formatted(pluginVersion(), separateRealmDependencies(temporaryDirectory.resolve("local-repo")));
+        Files.writeString(app, Files.readString(app).replace("</project>", plugin));
+        Path wrapper = wrapper();
+        Path record = temporaryDirectory.resolve("calls.txt");
+        writeBehavior(temporaryDirectory, record, 0);
+        for (String goal : List.of("format", "config-show")) {
+            Files.deleteIfExists(record);
+            run(root, wrapper, goalCoordinate(goal));
+            assertEquals(List.of(root.toRealPath().toString()), workingDirectories(record), goal);
+        }
+    }
+
+    @Test
     void disjointAndPrunedModuleDirectoriesAreNotSkipped() throws Exception {
         Path root = reactor();
         project(root.resolve(".svn/generated"));
