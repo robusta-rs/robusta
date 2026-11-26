@@ -222,7 +222,7 @@ fn lint_fix_removes_write_only_identifier_ignorable_bindings() {
         assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
         assert!(output.stderr.is_empty(), "{}", stderr(&output));
         assert!(stdout(&output).contains("\"diagnostics\": 0"));
-        assert_eq!(std::fs::read_to_string(&temp.file).unwrap(), "class A { void f() {   } }");
+        assert_eq!(std::fs::read_to_string(&temp.file).unwrap(), "class A { void f() { } }");
     }
 }
 
@@ -579,11 +579,9 @@ fn lint_fix_applies_enabled_safe_fixes_without_formatting() {
     assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
     assert_eq!(stdout_without_summary(&output), "");
     assert!(output.stderr.is_empty(), "{}", stderr(&output));
-    // Exact comparison: the fix output begins and ends in whitespace that an
-    // inline snapshot cannot pin.
     assert_eq!(
         std::fs::read_to_string(&temp.file).unwrap(),
-        " public static class Example { long value = 10L; } \n"
+        "public static class Example { long value = 10L; }\n"
     );
 }
 
@@ -949,9 +947,9 @@ fn lint_unsafe_fixes_widen_writes_and_previews() {
     // One rule, three arms: `a` is a safe delete, and `b` and `c` are unsafe.
     const SOURCE: &str = "class Example { void f(int[] data) { int a; int b = send(); int c = send() + 1; }\n\
          int send() { return 1; } }\n";
-    const SAFE: &str = "class Example { void f(int[] data) {  int b = send(); int c = send() + 1; }\n\
+    const SAFE: &str = "class Example { void f(int[] data) { int b = send(); int c = send() + 1; }\n\
          int send() { return 1; } }\n";
-    const UNSAFE: &str = "class Example { void f(int[] data) {  send();  }\n\
+    const UNSAFE: &str = "class Example { void f(int[] data) { send(); }\n\
          int send() { return 1; } }\n";
     const RULES: [&str; 4] = ["-A", "all", "-D", "unused-local-variable"];
 
@@ -1026,7 +1024,7 @@ fn lint_preview_and_write_use_the_same_safe_fix_candidate() {
 #[test]
 fn coordinated_unused_local_fixes_match_stdin_and_disk_tiers() {
     const SOURCE: &str = "class Example { void f() { int unused = 0; unused++; } }";
-    const FIXED: &str = "class Example { void f() {   } }";
+    const FIXED: &str = "class Example { void f() { } }";
     for (flags, expected) in [(&["--fix"][..], SOURCE), (&["--fix", "--unsafe-fixes"], FIXED)] {
         let temp = TempJava::new(SOURCE);
         let rules = ["lint", "-A", "all", "-W", "unused-local-variable"];
