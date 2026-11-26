@@ -180,7 +180,7 @@ tasks.withType<PublishToMavenRepository>().configureEach {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     // TestKit daemons outlive individual JUnit tests. Keep their working state in the
-    // task-owned temporary directory so JUnit can safely delete each test project on Windows.
+    // task-owned temporary directory so each test project can be deleted on Windows.
     systemProperty("robusta.testkit.root", temporaryDir)
     // TestKit captures build output in the test JVM's default charset, which
     // Java 17 takes from the Windows ANSI code page.

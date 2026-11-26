@@ -20,7 +20,6 @@ import java.util.List;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import rs.robusta.plugin.common.FakeRobusta;
 import rs.robusta.plugin.common.FakeRobusta.Invocation;
@@ -33,7 +32,7 @@ class RobustaConfigFunctionalTest {
     private static final String INIT_DESCRIPTION =
         "Creates a starter robusta.yaml in this project directory.";
 
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @Test
     void fixedConfigTasksPassExactArgumentsFromTheOwningProjectAndForwardOutput()

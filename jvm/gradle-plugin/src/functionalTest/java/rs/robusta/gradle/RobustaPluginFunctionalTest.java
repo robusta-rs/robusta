@@ -16,10 +16,9 @@ import java.util.List;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 class RobustaPluginFunctionalTest {
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @Test
     void passesArgumentsWorkingDirectoryAndStreamsOutput() throws Exception {

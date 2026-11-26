@@ -23,13 +23,12 @@ import java.util.concurrent.TimeUnit;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import rs.robusta.plugin.common.RobustaPlatform;
 
 // Each repository here holds only the running platform's jar, so a task needs no other.
 class RobustaBinaryFunctionalTest {
-    @TempDir Path temporaryDirectory;
+    @TestKitTempDir Path temporaryDirectory;
 
     @Test
     void executesTheResolvedBinaryAndReusesOnlyAVerifiedExtraction() throws Exception {
