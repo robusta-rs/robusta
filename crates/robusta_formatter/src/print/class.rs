@@ -456,22 +456,16 @@ fn format_type_clauses<'ast>(
 }
 
 /// One clause of a type declaration. After split `components`, the clause stays
-/// on the `)` line and wraps as a `throws` clause does.
+/// on the `)` line, as a `throws` clause does.
 fn format_type_clause<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     components: Option<GroupId>,
     owes_separator: bool,
     clause: FormatDeclarationClause<'_, 'ast>,
 ) {
-    let keyword_comment = clause
-        .entries
-        .first_start()
-        .is_some_and(|first_start| f.comments().has_comment_before(first_start));
     let Some(components) = components else {
         let entries = format_once(|f| format_clause_entries(f, clause.entries));
-        let content = format_once(|f| {
-            format_filled_clause_content(f, clause, keyword_comment, &entries);
-        });
+        let content = format_once(|f| format_clause_content(f, clause, &entries));
         group(&wrapped_indent(true, &content)).fmt(f);
         return;
     };
@@ -482,51 +476,39 @@ fn format_type_clause<'ast>(
         .expect("a clause has entries");
     f.context_mut().set_record_components_group(None);
     let entries = format_with(|f| f.write_element(interned.clone()));
+    let content = format_with(|f| format_clause_content(f, clause, &entries));
+    let on_own_line = format_with(|f| group(&wrapped_indent(true, &content)).fmt(f));
     let after_split = format_with(|f| {
-        let content = format_with(|f| format_dart_clause_content(f, clause, &entries));
         if owes_separator {
-            write!(f, [space(), content]);
+            write!(f, [space(), group(&content)]);
         } else {
-            wrapped_indent(true, &content).fmt(f);
+            on_own_line.fmt(f);
         }
-    });
-    let otherwise = format_with(|f| {
-        let content =
-            format_with(|f| format_filled_clause_content(f, clause, keyword_comment, &entries));
-        group(&wrapped_indent(true, &content)).fmt(f);
     });
     write!(
         f,
         [
             if_group_breaks(&after_split).with_group_id(Some(components)),
-            if_group_fits_on_line(&otherwise).with_group_id(Some(components)),
+            if_group_fits_on_line(&on_own_line).with_group_id(Some(components)),
         ]
     );
 }
 
-/// A clause's keyword and entries as dart format wraps them: entries that do not
-/// fit after the keyword all move off its line.
-fn format_dart_clause_content<'ast>(
-    f: &mut JavaFormatter<'_, 'ast>,
-    clause: FormatDeclarationClause<'_, 'ast>,
-    entries: &impl Format<'ast, JavaFormatContext<'ast>>,
-) {
-    clause.keyword.fmt(f);
-    write!(f, [group(&wrapped_indent(true, &format_args!(soft_line_break_or_space(), entries)))]);
-}
-
 /// A clause's keyword and entries as google-java-format wraps them: the first
 /// stays after the keyword and each other takes its own line. A first entry that
-/// cannot fit there moves off the line, unless `keyword_comment`, a comment after
-/// the keyword, fixes where it starts.
-fn format_filled_clause_content<'ast>(
+/// cannot fit there moves off the line, unless a comment after the keyword fixes
+/// where it starts.
+fn format_clause_content<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     clause: FormatDeclarationClause<'_, 'ast>,
-    keyword_comment: bool,
     entries: &impl Format<'ast, JavaFormatContext<'ast>>,
 ) {
     clause.keyword.fmt(f);
     let single = clause.entries.len() == 1;
+    let keyword_comment = clause
+        .entries
+        .first_start()
+        .is_some_and(|first_start| f.comments().has_comment_before(first_start));
     if keyword_comment {
         space().fmt(f);
         if single {
@@ -559,7 +541,8 @@ fn format_declaration_clause<'ast>(
 ) {
     let owes_separator = format_clause_comments(f, previous_end, clause.keyword);
     let entries = format_once(|f| format_clause_entries(f, clause.entries));
-    let content = format_once(|f| format_dart_clause_content(f, clause, &entries));
+    let content = format_once(|f| format_clause_content(f, clause, &entries));
+    let content = group(&content);
     if let Some(list) = list.filter(|_| owes_separator) {
         // A clause after a split list stays on the `)` line.
         let interned = f.intern(&content).expect("a clause has a keyword");
