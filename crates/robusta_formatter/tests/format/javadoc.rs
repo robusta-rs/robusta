@@ -1068,7 +1068,7 @@ fn trailing_spaces_before_syntax_or_a_comment_leave_no_blank_line() {
     let options = Options { javadoc: Some(JavadocOptions::default()), ..Options::default() };
     assert_eq!(
         fmt_with_options(resource, &options),
-        "class A {\n  void m() {\n    try (\n      // a\n      /** */\n      // b\n      Foo f = open()\n    ) {}\n  }\n}\n"
+        "class A {\n  void m() {\n    try ( // a\n      /** */\n      // b\n      Foo f = open()\n    ) {}\n  }\n}\n"
     );
 }
 

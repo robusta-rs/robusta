@@ -167,20 +167,16 @@ fn parenthesized_statement_heads_keep_boundary_comments_inside() {
     assert_snapshot!(fmt(source), @"
     class A {
       void f() {
-        if (
-          // if-open
+        if ( // if-open
           ready // if-close
         ) {}
-        while (
-          // while-open
+        while ( // while-open
           ready // while-close
         ) {}
-        synchronized (
-          // synchronized-open
+        synchronized ( // synchronized-open
           lock // synchronized-close
         ) {}
-        switch (
-          // switch-open
+        switch ( // switch-open
           value // switch-close
         ) {}
       }

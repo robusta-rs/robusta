@@ -222,7 +222,7 @@ fn a_line_comment_inside_a_member_may_precede_a_multibyte_token() {
     for (input, expected) in [
         (
             "class B { void f( // c\né x) {} void g() {} }",
-            "class B {\n  void f(\n    // c\n    é x\n  ) {}\n\n  void g() {}\n}\n",
+            "class B {\n  void f( // c\n    é x\n  ) {}\n\n  void g() {}\n}\n",
         ),
         (
             "class B { void f(int a // c\n, é x) {} void g() {} }",

@@ -371,6 +371,15 @@ pub fn format_documentation_comments_before(
     comments.last().map_or(from, |comment| comment.span.end)
 }
 
+/// Print a line comment on the line of the `(` just printed, before `pos`, as
+/// trailing the `(`, so it keeps that line. Returns whether there was one: the
+/// parentheses then break, with `)` on a line of its own.
+pub fn format_opening_paren_comment(pos: u32, f: &mut JavaFormatter<'_, '_>) -> bool {
+    let comments = f.comments().opening_paren_line_comment(pos);
+    format_trailing_comments_impl(comments, TrailingRun::Trailing, f);
+    !comments.is_empty()
+}
+
 /// After a line comment moved behind the semicolon ending at `node_end`, a
 /// documentation comment on the semicolon's line would become part of it, so
 /// the run starts on a new line. Returns where the printed comments end.

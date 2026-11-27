@@ -30,9 +30,10 @@ pub mod variable_declaration;
 
 use crate::formatter::comments::stays_on_operator_line;
 use crate::formatter::prelude::*;
-use crate::formatter::separated::argument_list_end;
+use crate::formatter::separated::{argument_list_end, format_after_opening_paren_comment};
 use crate::formatter::trivia::{
-    FormatLeadingComments, FormatTrailingComments, format_trailing_comments,
+    FormatLeadingComments, FormatTrailingComments, format_opening_paren_comment,
+    format_trailing_comments,
 };
 use crate::print::annotations::{format_modifiers_inline, format_type_annotations};
 use crate::print::array_dimension::{
@@ -404,8 +405,9 @@ fn write_type_name_separator(name_start: u32, f: &mut JavaFormatter<'_, '_>) {
 /// A cast, binary, or `instanceof` expression that is a member's object
 /// breaks inside the parentheses instead, with its comments, as does a
 /// conditional where [`should_extra_indent`] holds, and a binary,
-/// `instanceof`, or conditional expression that is a conditional's test.
-/// Apart from a cast, these keep the layout of a header's condition.
+/// `instanceof`, or conditional expression that is a conditional's test, and
+/// any expression after a line comment on the `(`'s line. Apart from a cast,
+/// these keep the layout of a header's condition.
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ParenthesizedExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let parent = self.parent();
@@ -424,10 +426,14 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ParenthesizedExpression<'a>> {
             }
             _ => false,
         };
-        if breaks_inside {
-            write!(f, ["(", group(&soft_block_indent(&self.expression())), ")"]);
+        "(".fmt(f);
+        let expression = self.expression();
+        if format_after_opening_paren_comment(f, self.expression.span().start, &expression) {
+            ")".fmt(f);
+        } else if breaks_inside {
+            write!(f, [group(&soft_block_indent(&expression)), ")"]);
         } else {
-            write!(f, ["(", self.expression(), line_suffix_boundary(), ")"]);
+            write!(f, [expression, line_suffix_boundary(), ")"]);
         }
     }
 }
@@ -435,7 +441,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ParenthesizedExpression<'a>> {
 /// A header's `(condition)` from `header_start`.
 ///
 /// A condition that can break keeps the parentheses on its first and last
-/// tokens. One that cannot breaks inside them instead.
+/// tokens. One that cannot breaks inside them instead, as does one after a
+/// line comment on the `(`'s line.
 pub fn format_header_condition<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     header_start: u32,
@@ -443,6 +450,17 @@ pub fn format_header_condition<'ast>(
 ) {
     let condition_span = condition.span();
     let close_end = f.comments().position_after_character(condition_span.end, b')');
+    let trailing = format_trailing_comments(Span::new(header_start, close_end), condition_span, 0);
+    "(".fmt(f);
+    let after_comment = format_once(|f| {
+        format_node_leading_comments(condition.parent(), condition_span.start, f);
+        format_content_without_comments_after(condition, condition_span.end, f);
+        trailing.fmt(f);
+    });
+    if format_after_opening_paren_comment(f, condition_span.start, &after_comment) {
+        ")".fmt(f);
+        return;
+    }
     // The leading comments are formatted apart, so their breaks do not count
     // as the condition's.
     let leading = f.format_to_vec(|f| {
@@ -455,12 +473,12 @@ pub fn format_header_condition<'ast>(
         for element in leading.into_iter().chain(formatted) {
             f.write_element(element);
         }
-        format_trailing_comments(Span::new(header_start, close_end), condition_span, 0).fmt(f);
+        trailing.fmt(f);
     });
     if can_break {
-        write!(f, ["(", content, line_suffix_boundary(), ")"]);
+        write!(f, [content, line_suffix_boundary(), ")"]);
     } else {
-        write!(f, ["(", group(&soft_block_indent(&content)), ")"]);
+        write!(f, [group(&soft_block_indent(&content)), ")"]);
     }
 }
 
@@ -600,10 +618,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
         if comments.first().is_some_and(|comment| comment.span.start > variable_end) {
             FormatLeadingComments::Comments(comments).fmt(f);
         }
-        let content = format_once(|f| {
-            "for".fmt(f);
-            space().fmt(f);
-            "(".fmt(f);
+        let variable_start = node
+            .modifiers
+            .first()
+            .map_or_else(|| node.ty.span().start, |modifier| modifier.span().start);
+        let head = format_once(|f| {
             format_modifiers_inline(f, &self.modifiers());
             format_content_without_comments_after(&self.ty(), node.ty.span().end, f);
             wrapped_indent(
@@ -646,7 +665,14 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
             let close_end = f.comments().position_after_character(iterable_span.end, b')');
             format_trailing_comments(Span::new(node.span.start, close_end), iterable_span, 0)
                 .fmt(f);
-            write!(f, [line_suffix_boundary(), ")"]);
+        });
+        let content = format_once(|f| {
+            write!(f, ["for", space(), "("]);
+            if format_after_opening_paren_comment(f, variable_start, &head) {
+                ")".fmt(f);
+            } else {
+                write!(f, [head, line_suffix_boundary(), ")"]);
+            }
             FormatStatementBody::new(&self.body()).fmt(f);
         });
         group(&content).fmt(f);
@@ -749,7 +775,14 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
             let open_end = f.comments().position_after_character(for_end, b'(');
             space().fmt(f);
             "(".fmt(f);
-            group(&soft_block_indent(&format_once(|f| {
+            let init_start = self.init().map_or_else(
+                || f.comments().position_after_character(open_end, b';') - 1,
+                |init| init.span().start,
+            );
+            let comments = format_with(|f| {
+                format_opening_paren_comment(init_start, f);
+            });
+            let clauses = format_once(|f| {
                 // Each clause keeps the comments before its closing `;` or `)`. Those
                 // after the `)` lead the body.
                 let init_end = if let Some(init) = self.init() {
@@ -793,9 +826,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
                     // A line comment flushes at the head's closing break, before the `)`.
                     let _ = write_trailing_comments_before(cursor, b')', f);
                 }
-            })))
-            .fmt(f);
-            ")".fmt(f);
+            });
+            write!(f, [group(&format_args!(comments, soft_block_indent(&clauses))), ")"]);
             FormatStatementBody::new(&self.body()).fmt(f);
         });
         group(&content).fmt(f);
