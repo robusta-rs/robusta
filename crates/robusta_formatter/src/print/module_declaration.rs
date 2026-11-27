@@ -6,8 +6,7 @@ use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{format_attached_braced_body, write_comments_between_blocks};
 use robusta_ast::{
-    ModuleDeclaration, PackageDirective, ProvidesDirective, RequiresDirective, RequiresModifier,
-    UsesDirective,
+    ModuleDeclaration, PackageDirective, ProvidesDirective, RequiresDirective, UsesDirective,
 };
 use robusta_formatter_core::write;
 use robusta_span::GetSpan;
@@ -37,12 +36,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RequiresDirective<'a>> {
         FormatContentWithSemicolon::new(&content, self.name.span().end, self.span.end)
             .moving_documentation_comments()
             .fmt(f);
-    }
-}
-
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RequiresModifier> {
-    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        self.kind.as_str().fmt(f);
     }
 }
 

@@ -133,6 +133,20 @@ fn contextual_keywords_still_carry_their_keyword_roles() {
     assert!(matches!(local.ty, VariableType::Var(_)), "`var` must still infer");
 }
 
+/// `transitive` is a modifier only in a `requires` directive (JLS §7.7.1), so
+/// before a field name it is the field's type.
+#[test]
+fn transitive_is_not_a_declaration_modifier() {
+    let allocator = Allocator::new();
+    let result = parse(&allocator, "class C { transitive t; }");
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    let ClassMember::Field(field) = &only_class(&result.unit, "transitive").body.members[0] else {
+        panic!("expected a field declaration");
+    };
+    assert!(field.modifiers.is_empty());
+    assert_eq!(field.declarators[0].name.name, "t");
+}
+
 /// `non-sealed` is one contextual keyword, but `non` and `sealed` are ordinary
 /// identifiers, so the same three characters are subtraction between two
 /// variables. Both spellings compile under `javac 26.0.2`; the lexer therefore

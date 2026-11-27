@@ -47,8 +47,8 @@ list_elements!(false;
     AnnotationArgument<'_>, AnnotationInterfaceMemberDeclaration<'_>, Annotation<'_>,
     ArrayDimension<'_>, ArrayTypeDimension<'_>, CatchClause<'_>, ClassMember<'_>,
     ComponentPattern<'_>, ElementValue<'_>, Expression<'_>, FormalParameter<'_>,
-    InterfaceMember<'_>, Modifier<'_>, ModuleDirective<'_>, Name<'_>,
-    RecordComponent<'_>, RequiresModifier, Resource<'_>, Statement<'_>,
+    InterfaceMember<'_>, KeywordModifier, Modifier<'_>, ModuleDirective<'_>, Name<'_>,
+    RecordComponent<'_>, Resource<'_>, Statement<'_>,
     SwitchItem<'_>, Type<'_>, TypeArgument<'_>, TypeDeclaration<'_>, TypeName<'_>,
     TypeParameter<'_>, VariableDeclarator<'_>, VariableInitializer<'_>,
 );

@@ -86,11 +86,6 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_requires_modifier(&mut self, it: &'a RequiresModifier) {
-        walk_requires_modifier(self, it);
-    }
-
-    #[inline]
     fn visit_package_directive(&mut self, it: &'a PackageDirective<'a>) {
         walk_package_directive(self, it);
     }
@@ -831,8 +826,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_requires_modifiers(&mut self, it: &'a Vec<'a, RequiresModifier>) {
-        walk_requires_modifiers(self, it);
+    fn visit_keyword_modifiers(&mut self, it: &'a Vec<'a, KeywordModifier>) {
+        walk_keyword_modifiers(self, it);
     }
 
     #[inline]
@@ -1081,14 +1076,9 @@ pub mod walk {
     ) {
         let kind = AstKind::RequiresDirective(it);
         visitor.enter_node(kind);
-        visitor.visit_requires_modifiers(&it.modifiers);
+        visitor.visit_keyword_modifiers(&it.modifiers);
         visitor.visit_name(&it.name);
         visitor.leave_node(kind);
-    }
-
-    #[inline]
-    pub fn walk_requires_modifier<'a, V: Visit<'a>>(visitor: &mut V, it: &'a RequiresModifier) {
-        // No `AstKind` for this type
     }
 
     #[inline]
@@ -2688,12 +2678,12 @@ pub mod walk {
     }
 
     #[inline]
-    pub fn walk_requires_modifiers<'a, V: Visit<'a>>(
+    pub fn walk_keyword_modifiers<'a, V: Visit<'a>>(
         visitor: &mut V,
-        it: &'a Vec<'a, RequiresModifier>,
+        it: &'a Vec<'a, KeywordModifier>,
     ) {
         for el in it {
-            visitor.visit_requires_modifier(el);
+            visitor.visit_keyword_modifier(el);
         }
     }
 

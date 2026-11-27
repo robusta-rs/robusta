@@ -88,13 +88,6 @@ impl GetSpan for RequiresDirective<'_> {
     }
 }
 
-impl GetSpan for RequiresModifier {
-    #[inline]
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 impl GetSpan for PackageDirective<'_> {
     #[inline]
     fn span(&self) -> Span {

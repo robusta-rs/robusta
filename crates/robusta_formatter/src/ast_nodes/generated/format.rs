@@ -141,17 +141,6 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, RequiresDirective
         self.format_trailing_comments(f);
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, RequiresModifier> {
-    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
-        self.write(f);
-        self.format_trailing_comments(f);
-    }
-}
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, PackageDirective<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {

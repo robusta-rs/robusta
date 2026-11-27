@@ -268,7 +268,7 @@ impl<'a> ModuleDirective<'a> {
     #[inline]
     pub fn new_requires_directive(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, RequiresModifier>>,
+        modifiers: impl IntoIn<'a, Vec<'a, KeywordModifier>>,
         name: Name<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
@@ -334,7 +334,7 @@ impl<'a> RequiresDirective<'a> {
     #[inline]
     pub fn new(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, RequiresModifier>>,
+        modifiers: impl IntoIn<'a, Vec<'a, KeywordModifier>>,
         name: Name<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
@@ -345,24 +345,6 @@ impl<'a> RequiresDirective<'a> {
             modifiers: modifiers.into_in(builder.allocator()),
             name,
         }
-    }
-}
-
-impl RequiresModifier {
-    /// Build a [`RequiresModifier`].
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `kind`
-    #[expect(unused_variables)]
-    #[inline]
-    pub fn new<'a>(
-        span: Span,
-        kind: RequiresModifierKind,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        let builder = builder.builder();
-        RequiresModifier { span, kind }
     }
 }
 

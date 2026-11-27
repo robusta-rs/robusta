@@ -97,15 +97,6 @@ const _: () = {
     assert!(offset_of!(RequiresDirective, name) == 40);
 
     // Padding: 3 bytes
-    assert!(size_of::<RequiresModifier>() == 12);
-    assert!(align_of::<RequiresModifier>() == 4);
-    assert!(offset_of!(RequiresModifier, span) == 0);
-    assert!(offset_of!(RequiresModifier, kind) == 8);
-
-    assert!(size_of::<RequiresModifierKind>() == 1);
-    assert!(align_of::<RequiresModifierKind>() == 1);
-
-    // Padding: 3 bytes
     assert!(size_of::<PackageDirective>() == 56);
     assert!(align_of::<PackageDirective>() == 8);
     assert!(offset_of!(PackageDirective, span) == 0);
@@ -1280,15 +1271,6 @@ const _: () = {
     assert!(offset_of!(RequiresDirective, node_id) == 8);
     assert!(offset_of!(RequiresDirective, modifiers) == 12);
     assert!(offset_of!(RequiresDirective, name) == 28);
-
-    // Padding: 3 bytes
-    assert!(size_of::<RequiresModifier>() == 12);
-    assert!(align_of::<RequiresModifier>() == 4);
-    assert!(offset_of!(RequiresModifier, span) == 0);
-    assert!(offset_of!(RequiresModifier, kind) == 8);
-
-    assert!(size_of::<RequiresModifierKind>() == 1);
-    assert!(align_of::<RequiresModifierKind>() == 1);
 
     // Padding: 3 bytes
     assert!(size_of::<PackageDirective>() == 40);

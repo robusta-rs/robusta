@@ -144,24 +144,8 @@ pub struct RequiresDirective<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
     /// `transitive`/`static` modifiers in source order, including duplicates.
-    pub modifiers: Vec<'a, RequiresModifier>,
+    pub modifiers: Vec<'a, KeywordModifier>,
     pub name: Name<'a>,
-}
-
-#[ast(visit)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct RequiresModifier {
-    pub span: Span,
-    pub kind: RequiresModifierKind,
-}
-
-#[ast]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[generate_derive(ContentEq)]
-pub enum RequiresModifierKind {
-    Transitive = 0,
-    Static = 1,
 }
 
 /// An `exports` or `opens` directive. Empty `targets` means unqualified.
