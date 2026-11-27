@@ -10,7 +10,8 @@ use crate::print::{FormatWrite, format_dot_before_nodeless_operand};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::member_chain::format_member_chain;
 use crate::utils::statement_body::{
-    format_callee, format_head_body, write_comments_between_blocks,
+    comment_ends_line_before_opener, format_callee, format_head_body, format_on_wrapped_line,
+    write_comments_between_blocks,
 };
 use robusta_allocator::Vec;
 use robusta_ast::{
@@ -50,26 +51,20 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, QualifiedClassInstanceCreation<'a>>
     }
 }
 
-/// Whether a comment before the type arguments of the class that `creation`
-/// creates ends its line, so the code after them is a wrapped line.
-fn comment_ends_line_before_type_args(
-    f: &JavaFormatter<'_, '_>,
-    creation: &AstNodes<'_, '_>,
-) -> bool {
-    let (name_end, type_args) = match creation {
+/// Whether a comment that ends its line comes before the type arguments of the
+/// class that `creation` creates, so the code after them continues a wrapped
+/// line.
+fn created_class_wraps_line(f: &JavaFormatter<'_, '_>, creation: &AstNodes<'_, '_>) -> bool {
+    let (name_end, has_type_args) = match creation {
         AstNodes::ClassInstanceCreation(creation) => {
-            (creation.ty.name_span().end, creation.ty.type_arguments())
+            (creation.ty.name_span().end, creation.ty.type_arguments().is_some())
         }
         AstNodes::QualifiedClassInstanceCreation(creation) => {
-            (creation.name.span.end, creation.type_args.as_deref())
+            (creation.name.span.end, creation.type_args.is_some())
         }
         _ => unreachable!("only a class instance creation creates a class"),
     };
-    type_args.is_some_and(|args| {
-        f.comments()
-            .all_comments_in_range(name_end, args.span.start)
-            .any(|comment| comment.is_line() || comment.preceded_by_newline())
-    })
+    has_type_args && comment_ends_line_before_opener(name_end, f)
 }
 
 /// `new` and its constructor type arguments, up to the class.
@@ -120,11 +115,7 @@ fn format_creation<'a>(
             format_head_body(body, f);
         }
     });
-    if comment_ends_line_before_type_args(f, args.parent()) {
-        indent(&rest).fmt(f);
-    } else {
-        rest.fmt(f);
-    }
+    format_on_wrapped_line(created_class_wraps_line(f, args.parent()), &rest, f);
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodCall<'a>> {
