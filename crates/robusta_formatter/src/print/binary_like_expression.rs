@@ -135,8 +135,11 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for BinaryLikeExpression<'a, '_> {
         let right_sides =
             format_once(|f| format_right_sides(innermost, depth, is_header_condition, f));
 
-        // The parentheses of a member's object group and indent it: `(a + b).c`.
-        if parent.is_parenthesized_member_object() && !is_header_condition {
+        // The parentheses of a member's object or a prefix operator's operand
+        // group and indent it: `(a + b).c`, `!(a || b)`.
+        if (parent.is_parenthesized_member_object() || parent.is_parenthesized_unary_operand())
+            && !is_header_condition
+        {
             write!(f, [left, right_sides]);
         } else if should_not_indent_if_parent_indents(parent)
             || should_indent_if_parent_inlines(parent)
