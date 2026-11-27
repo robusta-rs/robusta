@@ -159,16 +159,14 @@ fn markdown_java_fences_open_at_the_end_of_a_quote_close_after_its_last_line() {
     );
 }
 
-/// The formatted snippet's lines take the opening line's indentation, which moves the comment's
-/// common indentation, and the second pass removes it.
+/// The formatted snippet's lines take the opening line's indentation, so the comment drops the
+/// indentation all its lines then share, as javadoc does when it reads them.
 #[test]
-fn markdown_java_fences_after_an_indented_quote_marker_dedent_on_a_second_pass() {
+fn markdown_java_fences_after_an_indented_quote_marker_keep_the_comment_margin() {
     let source = "///   > ```java\n/// > int  x;\nclass A {}\n";
     assert_eq!(
-        format_source_with_options(source, &options()),
-        "///   > ```java\n///   > int x;\n///   > ```\nclass A {}\n\
-         ---------- Not idempotent (second pass) ----------\n\
-         /// > ```java\n/// > int x;\n/// > ```\nclass A {}\n"
+        format_stable_with_options(source, &options()),
+        "/// > ```java\n/// > int x;\n/// > ```\nclass A {}\n"
     );
 }
 

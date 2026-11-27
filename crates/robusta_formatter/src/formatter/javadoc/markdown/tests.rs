@@ -324,6 +324,8 @@ fn quoted_blocks_are_normalized() {
             "> > ```` text\n> > has ``` inside\n> > ````",
         ),
         ("> ~~~ text\n> raw", "> ``` text\n> raw\n> ```"),
+        // The fenced lines take the first marker's indentation, which the comment drops.
+        ("  >     raw\n>     more", "> ```\n> raw\n> more\n> ```"),
     ] {
         assert_eq!(normalized(source), expected, "{source}");
     }
