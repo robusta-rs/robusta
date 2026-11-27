@@ -1,4 +1,5 @@
 use crate::ast_nodes::AstNode;
+use crate::ast_nodes::impls::ast_nodes::format_node_leading_comments;
 use crate::formatter::prelude::*;
 use crate::formatter::trivia::format_documentation_comments_before;
 use crate::print::annotations::format_modifiers_stacked;
@@ -16,6 +17,7 @@ use robusta_ast::{
     ConstructorDeclaration, FormalParameters, MethodDeclaration, MethodResult, Modifier, Type,
     TypeParameters,
 };
+use robusta_formatter_core::{format_args, write};
 use robusta_span::GetSpan;
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodDeclaration<'a>> {
@@ -91,17 +93,63 @@ where
     AstNode<'parent, 'a, Name>: Format<'a, JavaFormatContext<'a>>,
 {
     format_modifiers_stacked(f, &signature.modifiers);
-    if let Some(type_params) = &signature.type_params {
-        type_params.fmt(f);
-        space().fmt(f);
-    }
     let Some(return_type) = signature.return_type else {
+        if let Some(type_params) = &signature.type_params {
+            type_params.fmt(f);
+            space().fmt(f);
+        }
         return format_name_through_throws(f, signature);
     };
-    format_content_without_comments_after(&return_type, return_type.span().end, f);
     let mut header_end = 0;
-    let rest = format_once(|f| header_end = format_name_through_throws(f, signature));
-    format_name_after_type_with_indent(signature.name.span().start, &rest, true, f);
+    // Measured flat, the return type and name reach the `(`, so a break after
+    // the type parameters comes before one inside the return type.
+    let measure_flat = signature.type_params.is_some();
+    let result_through_throws = format_once(|f| {
+        let ty = format_once(|f| {
+            format_content_without_comments_after(&return_type, return_type.span().end, f);
+        });
+        if measure_flat {
+            // Outside the group, a comment that starts a line does not break the type.
+            format_node_leading_comments(return_type.parent(), return_type.span().start, f);
+            group(&ty).measure_flat().fmt(f);
+        } else {
+            ty.fmt(f);
+        }
+        let rest = format_once(|f| header_end = format_name_through_throws(f, signature));
+        let name_start = signature.name.span().start;
+        format_name_after_type_with_indent(name_start, &rest, measure_flat, true, f);
+    });
+    let Some(type_params) = &signature.type_params else {
+        result_through_throws.fmt(f);
+        return header_end;
+    };
+    // The header breaks after type parameters that fit on their line.
+    let type_params_id = f.state().group_id("type_parameters");
+    let type_params_only = format_once(|f| {
+        format_content_without_comments_after(type_params, type_params.span.end, f);
+    });
+    write!(f, [group(&type_params_only).with_group_id(Some(type_params_id))]);
+    // Outside the group, a line comment after `>` does not break the list.
+    type_params.format_trailing_comments(f);
+    let result_through_throws = result_through_throws.memoized();
+    let return_type_start = return_type.span().start;
+    let broken_after = format_once(|f| {
+        format_name_after_type_with_indent(
+            return_type_start,
+            &result_through_throws,
+            false,
+            true,
+            f,
+        );
+    });
+    write!(
+        f,
+        [
+            if_group_fits_on_line(&broken_after).with_group_id(Some(type_params_id)),
+            if_group_breaks(&format_args!(space(), result_through_throws))
+                .with_group_id(Some(type_params_id)),
+        ]
+    );
     header_end
 }
 

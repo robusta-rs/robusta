@@ -351,14 +351,16 @@ fn format_name_after_type<'a>(
     name: &impl Format<'a, JavaFormatContext<'a>>,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
-    format_name_after_type_with_indent(name_start, name, false, f);
+    format_name_after_type_with_indent(name_start, name, false, false, f);
 }
 
 /// [`format_name_after_type`], indenting a moved name twice when `double` is
 /// set, so a method name does not line up with the body below it.
+/// `measure_flat` is as [`format_wrapped_continuation`] takes it.
 fn format_name_after_type_with_indent<'a>(
     name_start: u32,
     name: &impl Format<'a, JavaFormatContext<'a>>,
+    measure_flat: bool,
     double: bool,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
@@ -375,7 +377,7 @@ fn format_name_after_type_with_indent<'a>(
         });
         wrapped_indent(double, &separated).fmt(f);
     } else {
-        format_wrapped_continuation(soft_line_break_or_space(), name, false, double, f);
+        format_wrapped_continuation(soft_line_break_or_space(), name, measure_flat, double, f);
     }
 }
 
