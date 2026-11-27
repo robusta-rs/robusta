@@ -83,9 +83,9 @@ mod tests {
 
         let allocator = &Allocator::new();
         let builder = AstBuilder::new(allocator);
-        let empty = EmptyDeclaration::new(Span::new(0, 1), &builder);
+        let empty = EmptyStatement::new(Span::new(0, 1), &builder);
         let literal = IntLiteral::new(Span::new(2, 3), "1", &builder);
-        assert_eq!(AstKind::EmptyDeclaration(&empty).ty(), AstType::EmptyDeclaration);
+        assert_eq!(AstKind::EmptyStatement(&empty).ty(), AstType::EmptyStatement);
         assert_eq!(AstKind::IntLiteral(&literal).ty(), AstType::IntLiteral);
     }
 
@@ -93,10 +93,10 @@ mod tests {
     fn ast_kind_preserves_typed_nodes_and_spans() {
         let allocator = &Allocator::new();
         let builder = AstBuilder::new(allocator);
-        let empty = EmptyDeclaration::new(Span::new(4, 5), &builder);
+        let empty = EmptyStatement::new(Span::new(4, 5), &builder);
         let literal = IntLiteral::new(Span::new(9, 12), "10L", &builder);
 
-        let empty_kind = AstKind::EmptyDeclaration(&empty);
+        let empty_kind = AstKind::EmptyStatement(&empty);
         let literal_kind = AstKind::IntLiteral(&literal);
 
         assert_eq!(empty_kind.span(), Span::new(4, 5));

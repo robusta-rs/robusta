@@ -415,13 +415,13 @@ impl<'a> ProvidesDirective<'a> {
 impl<'a> TypeDeclaration<'a> {
     /// Build a [`TypeDeclaration::Empty`].
     ///
-    /// This node contains an [`EmptyDeclaration`] that will be stored in the memory arena.
+    /// This node contains an [`EmptyStatement`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     #[inline]
-    pub fn new_empty_declaration(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        Self::Empty(EmptyDeclaration::boxed(span, builder.builder()))
+    pub fn new_empty_statement(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
+        Self::Empty(EmptyStatement::boxed(span, builder.builder()))
     }
 
     /// Build a [`TypeDeclaration::AnnotationInterface`].
@@ -724,34 +724,6 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
             body,
             builder.builder(),
         ))
-    }
-}
-
-impl EmptyDeclaration {
-    /// Build an [`EmptyDeclaration`].
-    ///
-    /// If you want the built node to be allocated in the memory arena,
-    /// use [`EmptyDeclaration::boxed`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    #[inline]
-    pub fn new<'a>(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        let builder = builder.builder();
-        EmptyDeclaration { node_id: Cell::new(builder.node_id()), span }
-    }
-
-    /// Build an [`EmptyDeclaration`], and store it in the memory arena.
-    ///
-    /// Returns a [`Box`] containing the newly-allocated node.
-    /// If you want a stack-allocated node, use [`EmptyDeclaration::new`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    #[inline]
-    pub fn boxed<'a>(span: Span, builder: &impl GetAstBuilder<'a>) -> Box<'a, Self> {
-        let builder = builder.builder();
-        Box::new_in(Self::new(span, builder), &builder.allocator())
     }
 }
 
@@ -1328,13 +1300,13 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
 
     /// Build an [`AnnotationInterfaceMemberDeclaration::Empty`].
     ///
-    /// This node contains an [`EmptyDeclaration`] that will be stored in the memory arena.
+    /// This node contains an [`EmptyStatement`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     #[inline]
-    pub fn new_empty_declaration(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        Self::Empty(EmptyDeclaration::boxed(span, builder.builder()))
+    pub fn new_empty_statement(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
+        Self::Empty(EmptyStatement::boxed(span, builder.builder()))
     }
 
     /// Build an [`AnnotationInterfaceMemberDeclaration::AnnotationInterface`].
@@ -1709,13 +1681,13 @@ impl<'a> ClassMember<'a> {
 
     /// Build a [`ClassMember::Empty`].
     ///
-    /// This node contains an [`EmptyDeclaration`] that will be stored in the memory arena.
+    /// This node contains an [`EmptyStatement`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     #[inline]
-    pub fn new_empty_declaration(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        Self::Empty(EmptyDeclaration::boxed(span, builder.builder()))
+    pub fn new_empty_statement(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
+        Self::Empty(EmptyStatement::boxed(span, builder.builder()))
     }
 
     /// Build a [`ClassMember::AnnotationInterface`].
@@ -1946,13 +1918,13 @@ impl<'a> InterfaceMember<'a> {
 
     /// Build an [`InterfaceMember::Empty`].
     ///
-    /// This node contains an [`EmptyDeclaration`] that will be stored in the memory arena.
+    /// This node contains an [`EmptyStatement`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     #[inline]
-    pub fn new_empty_declaration(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        Self::Empty(EmptyDeclaration::boxed(span, builder.builder()))
+    pub fn new_empty_statement(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
+        Self::Empty(EmptyStatement::boxed(span, builder.builder()))
     }
 
     /// Build an [`InterfaceMember::AnnotationInterface`].

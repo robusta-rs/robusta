@@ -19,24 +19,28 @@ declare_robusta_lint! {
         summary: "Reports empty declarations and redundant empty statements.",
         category: Correctness,
         fix: RuleFixMeta::Fixable(FixKind::SAFE_FIX),
-        node_types: [EmptyDeclaration, EmptyStatement],
+        node_types: [EmptyStatement],
     }
 }
 
 impl Rule for RedundantSemicolons {
     fn run(&self, node: &robusta_semantic::AstNode<'_>, context: &mut LintContext<'_, '_, '_>) {
-        let span = match node.kind() {
-            AstKind::EmptyDeclaration(declaration) => declaration.span,
-            AstKind::EmptyStatement(statement)
-                if matches!(
-                    context.nodes().parent_kind(node.id()),
-                    AstKind::Block(_) | AstKind::SwitchCase(_)
-                ) =>
-            {
-                statement.span
-            }
-            _ => return,
-        };
+        let AstKind::EmptyStatement(statement) = node.kind() else { return };
+        // Outside a list of statements or declarations, a `;` is a statement's body.
+        if !matches!(
+            context.nodes().parent_kind(node.id()),
+            AstKind::Block(_)
+                | AstKind::SwitchCase(_)
+                | AstKind::OrdinaryCompilationUnit(_)
+                | AstKind::CompactCompilationUnit(_)
+                | AstKind::ClassBody(_)
+                | AstKind::InterfaceBody(_)
+                | AstKind::EnumBody(_)
+                | AstKind::AnnotationInterfaceBody(_)
+        ) {
+            return;
+        }
+        let span = statement.span;
         if follows_documentation(context.comments(), span) {
             return;
         }
@@ -72,6 +76,16 @@ mod tests {
         1:49: warning[redundant-semicolons]: redundant semicolon (";")
         1:82: warning[redundant-semicolons]: redundant semicolon (";")
         "#);
+    }
+
+    #[test]
+    fn removes_semicolons_among_the_members_of_every_type_body() {
+        let tester = Tester::new(&REDUNDANT_SEMICOLONS);
+        tester.fixes(
+            "interface I { ; } enum E { A; ; } @interface N { ; } record R() { ; }",
+            "interface I { } enum E { A; } @interface N { } record R() { }",
+        );
+        tester.fixes("void main() {} ;", "void main() {}");
     }
 
     #[test]

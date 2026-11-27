@@ -26,7 +26,7 @@ use robusta_ast::{
     CatchClause, ClassBody, ClassDeclaration, ClassMember, ClassType, Comment,
     CompactCompilationUnit, CompactConstructorDeclaration, CompilationUnit, CompilationUnitContent,
     ComponentPattern, ConstructorDeclaration, ConstructorInvocation, ConstructorInvocationKind,
-    ElementValue, ElementValueArrayInitializer, ElementValuePair, EmptyDeclaration, EnumBody,
+    ElementValue, ElementValueArrayInitializer, ElementValuePair, EmptyStatement, EnumBody,
     EnumConstant, EnumDeclaration, Expression, FieldDeclaration, ForInit, FormalParameter,
     FormalParameters, IdentifierName, IdentifierReference, ImportDeclaration, ImportKind,
     InitializerBlock, InstanceofRhs, InterfaceBody, InterfaceDeclaration, InterfaceMember,
@@ -328,7 +328,7 @@ impl<'a> Parser<'a> {
         loop {
             // A lone `;` is an empty declaration (JLS §7.6).
             if let Some(semi) = self.eat(TokenKind::Semicolon) {
-                types.push(TypeDeclaration::new_empty_declaration(semi.span, self));
+                types.push(TypeDeclaration::new_empty_statement(semi.span, self));
                 continue;
             }
             if self.kind() == TokenKind::Eof {

@@ -133,13 +133,6 @@ impl GetSpan for LocalClassOrInterfaceDeclaration<'_> {
     }
 }
 
-impl GetSpan for EmptyDeclaration {
-    #[inline]
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 impl GetSpan for ClassDeclaration<'_> {
     #[inline]
     fn span(&self) -> Span {

@@ -33,8 +33,6 @@ impl UnstableAddress for UsesDirective<'_> {}
 
 impl UnstableAddress for ProvidesDirective<'_> {}
 
-impl UnstableAddress for EmptyDeclaration {}
-
 impl UnstableAddress for ClassDeclaration<'_> {}
 
 impl UnstableAddress for ClassBody<'_> {}

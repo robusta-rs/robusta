@@ -193,7 +193,7 @@ pub struct ProvidesDirective<'a> {
 #[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum TypeDeclaration<'a> {
     /// A preserved `;` among declarations (JLS §7.6, §8.1.7, §9.1.4, §9.6).
-    Empty(Box<'a, EmptyDeclaration>) = 36,
+    Empty(Box<'a, EmptyStatement>) = 36,
     AnnotationInterface(Box<'a, AnnotationInterfaceDeclaration<'a>>) = 37,
     INHERIT(LocalClassOrInterfaceDeclaration<'a>),
 }
@@ -207,14 +207,6 @@ pub enum LocalClassOrInterfaceDeclaration<'a> {
     Interface(Box<'a, InterfaceDeclaration<'a>>) = 33,
     Enum(Box<'a, EnumDeclaration<'a>>) = 34,
     Record(Box<'a, RecordDeclaration<'a>>) = 35,
-}
-
-#[ast(visit)]
-#[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct EmptyDeclaration {
-    pub node_id: Cell<NodeId>,
-    pub span: Span,
 }
 
 #[ast(visit)]
