@@ -2333,7 +2333,7 @@ pub mod walk {
         let kind = AstKind::ArrayType(it);
         visitor.enter_node(kind);
         visitor.visit_type(&it.element);
-        visitor.visit_annotations(&it.annotations);
+        visitor.visit_array_type_dimensions(&it.dims);
         visitor.leave_node(kind);
     }
 

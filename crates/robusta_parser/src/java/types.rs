@@ -3,21 +3,15 @@ use crate::*;
 impl<'a> Parser<'a> {
     pub(crate) fn ty(&mut self) -> Result<Type<'a>> {
         let after_annotations = self.annotations_end_from(0);
-        let mut ty = if self.nth_kind(after_annotations).is_primitive_type() {
+        let element = if self.nth_kind(after_annotations).is_primitive_type() {
             self.primitive_type()?
         } else {
             self.class_type()?
         };
         // Leave annotations before `...` for the varargs parser.
-        for dimension in self.array_type_dimensions()? {
-            ty = Type::new_array_type(
-                ty.span().cover(dimension.span),
-                ty,
-                dimension.annotations,
-                self,
-            );
-        }
-        Ok(ty)
+        let dims = self.array_type_dimensions()?;
+        let Some(last) = dims.last() else { return Ok(element) };
+        Ok(Type::new_array_type(element.span().cover(last.span), element, dims, self))
     }
 
     /// Parse a type or `void`.

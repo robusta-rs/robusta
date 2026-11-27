@@ -848,6 +848,30 @@ fn comments_inside_and_before_dimension_brackets_stay_there() {
 }
 
 #[test]
+fn each_dimension_of_an_array_type_keeps_its_annotations_and_the_comments_before_it() {
+    let source = "class A { String @A [] @B [] a; int @A [] [] @B [] b; \
+                  int /* c */ [] /* d */ [] c; int @A [] /* e */ @B [] e; \
+                  int[]\n// f\n[] f = {}, ff = {}; List<int @A [] @B []> g; \
+                  void h(String @A [] /* i */ [] i, String @A [] @B ... j) {} }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      String @A [] @B [] a;
+      int @A [][] @B [] b;
+      int /* c */[] /* d */[] c;
+      int @A [] /* e */ @B [] e;
+      int[]
+        // f
+        [] f = {},
+          ff = {};
+      List<int @A [] @B []> g;
+
+      void h(String @A [] /* i */[] i, String @A [] @B ... j) {}
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
 fn comments_before_a_first_dimension_annotation_lead_it() {
     let source = "class A { int\n\n// b\n\n@C [] d; int /* e */\n@C [] f; \
                   int g\n/* h */ @C [] = null; int i\n\n// j\n\n@C []; \

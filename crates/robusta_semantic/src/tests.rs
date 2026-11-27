@@ -2210,7 +2210,7 @@ fn flattened_nodes_follow_source_order() {
     // node visited ahead of it. That holds only while every AST field order is
     // the source order, or states its traversal position explicitly. The two
     // families below are the ones whose fields cannot be in source order:
-    // `ArrayType` carries the annotations that follow its element type, and
+    // `ArrayType` holds the dimensions that follow its element type, and
     // `ConstructorInvocation` carries the type arguments that follow its
     // qualifier.
     for source in [

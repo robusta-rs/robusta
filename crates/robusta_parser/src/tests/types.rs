@@ -28,12 +28,10 @@ fn written_type_names_use_decoded_segments_and_retain_array_dimensions() {
         assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
         let TypeDeclaration::Class(class) = &parsed.unit.types()[0] else { panic!("class") };
         let ClassMember::Field(field) = &class.body.members[0] else { panic!("field") };
-        let mut ty = &field.ty;
-        let mut found = 0;
-        while let Type::Array(array) = ty {
-            ty = &array.element;
-            found += 1;
-        }
+        let (ty, found) = match &field.ty {
+            Type::Array(array) => (&array.element, array.dims.len()),
+            ty => (ty, 0),
+        };
         match expected {
             Element::Class(names) => {
                 let Some(class_type) = ty.as_class_type() else { panic!("class type") };
@@ -46,6 +44,28 @@ fn written_type_names_use_decoded_segments_and_retain_array_dimensions() {
         }
         assert_eq!(found, dimensions, "{source}");
     }
+}
+
+#[test]
+fn array_types_hold_their_dimensions_in_source_order() {
+    let allocator = Allocator::new();
+    let source = "class C { int @A [] @B [] x; }";
+    let parsed = parse(&allocator, source);
+    assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
+    let TypeDeclaration::Class(class) = &parsed.unit.types()[0] else { panic!("class") };
+    let ClassMember::Field(field) = &class.body.members[0] else { panic!("field") };
+    let Type::Array(array) = &field.ty else { panic!("array type") };
+    let Type::Primitive(element) = &array.element else { panic!("primitive element type") };
+    assert_eq!(element.kind, PrimitiveTypeKind::Int);
+    let dimensions: std::vec::Vec<_> = array
+        .dims
+        .iter()
+        .map(|dimension| {
+            let [annotation] = &dimension.annotations[..] else { panic!("one annotation") };
+            (type_name_parts(&annotation.name), dimension.span.source_text(source))
+        })
+        .collect();
+    assert_eq!(dimensions, [(vec!["A"], "@A []"), (vec!["B"], "@B []")]);
 }
 
 #[test]
@@ -115,7 +135,8 @@ fn parses_type_use_annotations() {
     let MethodResult::Array(array) = &method.return_type else {
         panic!("expected an array return type");
     };
-    assert_eq!(array.annotations.len(), 1);
+    assert_eq!(array.dims.len(), 1);
+    assert_eq!(array.dims[0].annotations.len(), 1);
     let Type::Primitive(element) = &array.element else {
         panic!("expected a primitive element type");
     };

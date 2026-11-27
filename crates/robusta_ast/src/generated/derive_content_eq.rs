@@ -1242,7 +1242,7 @@ impl ContentEq for QualifiedClassType<'_> {
 impl ContentEq for ArrayType<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.element, &other.element)
-            && ContentEq::content_eq(&self.annotations, &other.annotations)
+            && ContentEq::content_eq(&self.dims, &other.dims)
     }
 }
 

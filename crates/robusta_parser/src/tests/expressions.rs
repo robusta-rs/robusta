@@ -1825,7 +1825,8 @@ fn annotated_method_reference_targets_parse_as_types() {
         let MethodReferenceTarget::Array(array) = &reference.target else {
             panic!("expected an array type target");
         };
-        assert_eq!(array.annotations.len(), 1);
+        assert_eq!(array.dims.len(), 1);
+        assert_eq!(array.dims[0].annotations.len(), 1);
         assert_eq!(leading_annotations(&array.element).len(), element_annotations);
         assert!(reference.method.is_none());
     }

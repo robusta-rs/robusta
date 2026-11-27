@@ -132,18 +132,22 @@ pub struct QualifiedClassType<'a> {
     pub args: Option<Box<'a, TypeArguments<'a>>>,
 }
 
+/// `int[][]` holds `int` and two dimensions (JLS §10.1).
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetSpan, UnstableAddress)]
 pub struct ArrayType<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
+    /// Never an array type.
     pub element: Type<'a>,
-    /// Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
-    pub annotations: Vec<'a, Annotation<'a>>,
+    /// Dimensions in source order. In `int @A [] @B []`, `@A` annotates
+    /// `int[][]` and `@B` its component type `int[]` (JLS §9.7.4).
+    pub dims: Vec<'a, ArrayTypeDimension<'a>>,
 }
 
-/// A detached dimension, e.g. `String value() @A []`.
+/// One `[]` and the annotations before it, e.g. `@A []` in `char @A []` or
+/// `String value() @A []`.
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetSpan, UnstableAddress)]

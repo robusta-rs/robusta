@@ -7569,14 +7569,14 @@ impl<'a> AstNode<'_, 'a, ArrayType<'a>> {
             parent: self.as_ast_nodes(),
             following_span_start: self
                 .inner
-                .annotations
+                .dims
                 .first()
                 .map_or(self.following_span_start, |it| it.span().start),
         }
     }
-    pub fn annotations(&self) -> AstNode<'_, 'a, Vec<'a, Annotation<'a>>> {
+    pub fn dims(&self) -> AstNode<'_, 'a, Vec<'a, ArrayTypeDimension<'a>>> {
         AstNode {
-            inner: &self.inner.annotations,
+            inner: &self.inner.dims,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
         }

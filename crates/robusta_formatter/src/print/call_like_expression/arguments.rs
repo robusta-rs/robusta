@@ -399,7 +399,7 @@ fn should_group_last_argument<'a>(
 /// ```text
 ///     String[]           => String
 ///     String[][]         => String
-///     String[][][]       => String[]
+///     String[][][]       => String[][][]
 ///     List<String>[][]   => String
 ///     List<String[]>[]   => String[]
 ///     List<String[][]>   => String[][]
@@ -408,12 +408,9 @@ fn is_simple_type(ty: &Type<'_>) -> bool {
     // Reach up to two-levels deep into array types:
     //     String[]     => String
     //     String[][]   => String
-    //     String[][][] => String[]
+    //     String[][][] => String[][][]
     let extracted_array_type = match ty {
-        Type::Array(array) => match &array.element {
-            Type::Array(inner_array) => &inner_array.element,
-            element_type => element_type,
-        },
+        Type::Array(array) if array.dims.len() <= 2 => &array.element,
         _ => ty,
     };
 
