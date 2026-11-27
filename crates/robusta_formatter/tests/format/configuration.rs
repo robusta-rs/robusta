@@ -722,24 +722,11 @@ fn block_comment_ending_an_empty_for_slot_line_prints_against_its_semicolon() {
 }
 
 /// The init's line comment rides past the `;`, so the block comment trailing
-/// the `;` starts the next line, and the second pass reads it as leading the
-/// empty slot's `;`.
+/// the `;` starts the next line, where it leads the empty slot's `;`.
 #[test]
-fn block_comment_after_a_riding_for_init_line_comment_moves_on_a_second_pass() {
+fn block_comment_after_a_riding_for_init_line_comment_leads_the_empty_slot() {
     let source = "class A { void f() { for (i = 0 // l\n; /* b */\n; u()) b(); } }";
     assert_snapshot!(fmt_with_options(source, &Options::default()), @"
-    class A {
-      void f() {
-        for (
-          i = 0; // l
-          /* b */
-          ;
-          u()
-        )
-          b();
-      }
-    }
-    ---------- Not idempotent (second pass) ----------
     class A {
       void f() {
         for (
@@ -761,6 +748,8 @@ fn comments_before_empty_for_slots_format_in_one_pass() {
                 format!("i = 0; {comment}\n{separator} u()"),
                 format!("i = 0; {comment}\n{separator}"),
                 format!("; {comment}\n{separator} u()"),
+                format!("i = 0 // l\n{separator} {comment}\n{separator} u()"),
+                format!("i = 0 // l\n{separator} /* a */ {comment}\n{separator}"),
                 format!("i = 0; c{separator} {comment}\n"),
             ] {
                 let source = format!("class A {{ void f() {{ for ({head}) b(); }} }}");

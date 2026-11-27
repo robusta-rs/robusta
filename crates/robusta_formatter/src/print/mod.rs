@@ -798,26 +798,31 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
                     let _line_comment_riding = write_trailing_comments(comments, true, f);
                     open_end
                 };
-                let mut cursor = write_for_head_slot(init_end, f);
+                let (mut cursor, line_comment_riding) = write_for_head_slot(init_end, f);
                 if !is_headless {
                     // A second pass reads a comment trailing the `;` before an empty
-                    // condition's `;`, where it prints against that `;`.
-                    let trailed = f
+                    // condition's `;`, where it prints against that `;`. After a riding
+                    // line comment, such comments start the next line, and the `;`
+                    // follows a block comment there directly.
+                    let trailing = f
                         .comments()
                         .printed_comments()
                         .last()
-                        .is_some_and(|comment| comment.span.start >= cursor);
-                    if trailed && node.condition.is_none() {
-                        soft_line_break().fmt(f);
-                    } else {
-                        soft_line_break_or_space().fmt(f);
+                        .filter(|comment| comment.span.start >= cursor);
+                    match trailing {
+                        Some(comment) if node.condition.is_none() => {
+                            if !(line_comment_riding && comment.is_block()) {
+                                soft_line_break().fmt(f);
+                            }
+                        }
+                        _ => soft_line_break_or_space().fmt(f),
                     }
                 }
                 let condition_end = self.condition().map_or(cursor, |condition| {
                     format_content_without_comments_after(&condition, condition.span().end, f);
                     condition.span().end
                 });
-                cursor = write_for_head_slot(condition_end, f);
+                (cursor, _) = write_for_head_slot(condition_end, f);
                 if let Some(update) = self.update() {
                     soft_line_break_or_space().fmt(f);
                     format_content_without_comments_after(&update, update.span.end, f);
@@ -838,15 +843,16 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ForStatement<'a>> {
 
 /// A basic `for` header clause closed by a `;`, after its content ends at
 /// `anchor`: the comments before the `;`, the `;`, and the comments that end
-/// its line. Returns where the `;` ends.
-fn write_for_head_slot(anchor: u32, f: &mut JavaFormatter<'_, '_>) -> u32 {
+/// its line. Returns where the `;` ends, and whether a line comment rides past
+/// it, which puts the comments ending its line at the start of the next one.
+fn write_for_head_slot(anchor: u32, f: &mut JavaFormatter<'_, '_>) -> (u32, bool) {
     // A line comment riding past the `;` breaks the head group, so a break
     // follows the `;`.
-    let _ = write_trailing_comments_before(anchor, b';', f);
+    let line_comment_riding = write_trailing_comments_before(anchor, b';', f);
     ";".fmt(f);
     let end = f.comments().position_after_character(anchor, b';');
     FormatTrailingComments::Comments(f.comments().end_of_line_comments_after(end)).fmt(f);
-    end
+    (end, line_comment_riding)
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PrimitiveType<'a>> {
