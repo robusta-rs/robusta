@@ -371,6 +371,18 @@ pub fn format_documentation_comments_before(
     comments.last().map_or(from, |comment| comment.span.end)
 }
 
+/// Whether a `///` comment ends the first line of `comments`, the comments
+/// after a declaration's name or a constructor's type parameters. At the end of
+/// that line it would document the declaration that follows, so the comments
+/// cannot trail the code before them as `//` comments do.
+pub fn documentation_comment_ends_line(comments: &[Comment]) -> bool {
+    comments
+        .iter()
+        .take_while(|comment| !comment.preceded_by_newline())
+        .last()
+        .is_some_and(|comment| comment.is_line() && comment.is_documentation())
+}
+
 /// Print a line comment on the line of the `(` just printed, before `pos`, as
 /// trailing the `(`, so it keeps that line. Returns whether there was one: the
 /// parentheses then break, with `)` on a line of its own.

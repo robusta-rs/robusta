@@ -2,6 +2,7 @@ use crate::ast_nodes::AstNode;
 use crate::ast_nodes::impls::ast_nodes::format_node_leading_comments;
 use crate::formatter::prelude::*;
 use crate::formatter::separated::{format_empty_parentheses, format_parenthesized_frame};
+use crate::formatter::trivia::documentation_comment_ends_line;
 use crate::print::annotations::{format_modifiers_inline, format_type_annotations};
 use crate::print::array_dimension::format_array_type_dimensions;
 use crate::print::{FormatWrite, format_name_after_type, format_qualified_keyword};
@@ -23,7 +24,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordHeader<'a>> {
     }
 }
 
-/// A record header's `(…)`, with comments as in [`format_parameter_list`].
+/// A record header's `(…)`, with comments as in [`format_parameter_list`],
+/// except that the comments before the `(` always stay before it.
 ///
 /// Returns the group the components break in, which an empty header does not
 /// have.
@@ -51,9 +53,11 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, FormalParameters<'a>> {
 }
 
 /// A parameter list's `(…)`, or a concise lambda's parameter. The comments
-/// before the `(` stay before it, and an empty list keeps a comment between its
-/// delimiters, so `void i(/* empty */)` does not push the comment into the body.
-/// A line comment right after the `(` stays on its line, and the list breaks.
+/// before the `(` stay before it, unless a `///` comment ends their first line:
+/// they then move after the `(`, as before a call's `(`. An empty list keeps a
+/// comment between its delimiters, so `void i(/* empty */)` does not push the
+/// comment into the body. A line comment right after the `(` stays on its line,
+/// and the list breaks.
 ///
 /// Returns the group the entries break in, which an empty or concise list does
 /// not have.
@@ -61,7 +65,10 @@ pub fn format_parameter_list<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     list: &AstNode<'_, 'ast, FormalParameters<'ast>>,
 ) -> Option<GroupId> {
-    write_comments_between_blocks(f.comments().comments_before(list.span.start), f);
+    let before_paren = f.comments().comments_before(list.span.start);
+    if !documentation_comment_ends_line(before_paren) {
+        write_comments_between_blocks(before_paren, f);
+    }
     let receiver = list.receiver();
     let parameters = list.items();
     if !list.has_parentheses() {

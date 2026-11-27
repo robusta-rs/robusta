@@ -531,7 +531,7 @@ fn line_comments_before_a_declared_list_keep_their_lines() {
 }
 
 /// A method's name takes its trailing comments, so a line comment rides to
-/// the end of the line. A `///` comment stays before the `(`, since behind the
+/// the end of the line. A `///` comment moves after the `(`, since behind the
 /// body it would document the next member.
 #[test]
 fn comments_after_a_method_name_trail_it() {
@@ -543,8 +543,9 @@ fn comments_after_a_method_name_trail_it() {
 
       abstract void n /* d */(); // e
 
-      void o /// f
-      (int a) {}
+      void o( /// f
+        int a
+      ) {}
 
       Z() {}
     }
@@ -721,6 +722,53 @@ fn comments_before_type_parameters_and_inside_a_clause_keep_their_order() {
     check_contract_at_widths_and_modes(source);
 }
 
+/// A `///` run that ends a constructor or method name's line moves after the
+/// `(` as a whole. One after a constructor's type parameters or before a type's
+/// `<` stays, with the next line indented twice, where a `//` comment trails
+/// the header.
+#[test]
+fn documentation_comments_after_a_declaration_name_keep_their_owner() {
+    let source = r"abstract class Order {
+  Order /// q
+  () {}
+
+  <V> /// q
+  Order(V first) {}
+
+  abstract <T> T p /// q
+  /// r
+  (T first, T second);
+
+  interface Box /// c
+  /* d */ <T> extends Base {}
+
+  class Line // c
+  <T> {}
+}";
+    assert_snapshot!(fmt(source), @"
+    abstract class Order {
+      Order( /// q
+      ) {}
+
+      <V> /// q
+          Order(V first) {}
+
+      abstract <T> T p( /// q
+        /// r
+        T first,
+        T second
+      );
+
+      interface Box /// c
+          </* d */ T>
+          extends Base {}
+
+      class Line<T> {} // c
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
 #[test]
 fn comment_before_record_type_parameters_respects_the_component_break() {
     let source = "record Sample // note\n<T>(T firstLongName, T anotherLongName, T thirdLongName) \
@@ -752,7 +800,7 @@ fn documentation_comments_before_type_parameters_keep_their_owner() {
     }
 
     record R /// f
-    <T>(int x) {}
+        <T>(int x) {}
 
     interface I
     /// g
@@ -773,7 +821,7 @@ fn documentation_comments_glued_to_a_name_keep_their_owner() {
     }
 
     interface I ///g
-    <T> {}
+        <T> {}
     ");
     check_contract_at_widths_and_modes(source);
 }
@@ -784,7 +832,7 @@ fn a_documentation_comment_in_an_empty_type_header_does_not_document_the_next_me
     assert_snapshot!(fmt(source), @"
     class Outer {
       class K /// e
-      <T> {}
+          <T> {}
 
       int y;
     }

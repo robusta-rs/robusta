@@ -1,7 +1,9 @@
 use crate::ast_nodes::AstNode;
 use crate::ast_nodes::impls::ast_nodes::format_node_leading_comments;
 use crate::formatter::prelude::*;
-use crate::formatter::trivia::format_documentation_comments_before;
+use crate::formatter::trivia::{
+    documentation_comment_ends_line, format_documentation_comments_before,
+};
 use crate::print::annotations::format_modifiers_stacked;
 use crate::print::array_dimension::format_array_type_dimensions;
 use crate::print::class::{FormatDeclarationClause, format_declaration_header};
@@ -94,11 +96,22 @@ where
 {
     format_modifiers_stacked(f, &signature.modifiers);
     let Some(return_type) = signature.return_type else {
-        if let Some(type_params) = &signature.type_params {
+        let Some(type_params) = &signature.type_params else {
+            return format_name_through_throws(f, signature);
+        };
+        let name_start = signature.name.span().start;
+        let after_params = f.comments().comments_in_range(type_params.span.end, name_start);
+        if !documentation_comment_ends_line(after_params) {
             type_params.fmt(f);
             space().fmt(f);
+            return format_name_through_throws(f, signature);
         }
-        return format_name_through_throws(f, signature);
+        // The name moves to the next line, as after a return type.
+        format_content_without_comments_after(type_params, type_params.span.end, f);
+        let mut header_end = 0;
+        let rest = format_once(|f| header_end = format_name_through_throws(f, signature));
+        format_name_after_type_with_indent(name_start, &rest, false, true, f);
+        return header_end;
     };
     let mut header_end = 0;
     // Measured flat, the return type and name reach the `(`, so a break after
@@ -162,8 +175,14 @@ where
     AstNode<'parent, 'a, Name>: Format<'a, JavaFormatContext<'a>>,
 {
     let name = &signature.name;
-    name.fmt(f);
-    format_documentation_comments_before(name.span().end, signature.parameters.span.start, f);
+    let name_end = name.span().end;
+    let params_start = signature.parameters.span.start;
+    format_content_without_comments_after(name, name_end, f);
+    // Otherwise the parameter list prints the comments after its `(`.
+    if !documentation_comment_ends_line(f.comments().comments_before(params_start)) {
+        name.format_trailing_comments(f);
+        format_documentation_comments_before(name_end, params_start, f);
+    }
     let params_end = signature.parameters.span.end;
     let head_end = signature
         .dimensions

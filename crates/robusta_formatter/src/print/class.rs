@@ -3,7 +3,8 @@ use crate::ast_nodes::impls::ast_nodes::format_node_trailing_comments;
 use crate::formatter::prelude::*;
 use crate::formatter::separated::argument_list_end;
 use crate::formatter::trivia::{
-    format_documentation_comments_before, format_leading_comments, format_trailing_comments,
+    documentation_comment_ends_line, format_documentation_comments_before, format_leading_comments,
+    format_trailing_comments,
 };
 use crate::print::FormatWrite;
 use crate::print::annotations::{format_modifiers_inline, format_modifiers_stacked};
@@ -85,7 +86,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordDeclaration<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, AnnotationInterfaceDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         FormatTypeHead::new("@interface", self.modifiers(), self.name(), None)
-            .format_name(f, false, false);
+            .format_name(f, false);
         format_head_body(&self.body(), f);
     }
 }
@@ -211,16 +212,13 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
         Self { keyword, modifiers, name, type_params }
     }
 
-    fn format_name(&self, f: &mut JavaFormatter<'_, 'ast>, has_clauses: bool, keep_javadoc: bool) {
+    fn format_name(&self, f: &mut JavaFormatter<'_, 'ast>, has_clauses: bool) {
         format_modifiers_stacked(f, &self.modifiers);
         write!(f, [self.keyword, space()]);
         if has_clauses || self.type_params.is_some() {
             self.name.fmt(f);
         } else {
             format_content_without_comments_after(&self.name, self.name.span.end, f);
-        }
-        if keep_javadoc && let Some(params) = &self.type_params {
-            format_documentation_comments_before(self.name.span.end, params.span.start, f);
         }
     }
 
@@ -262,33 +260,49 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
             && (has_clauses || has_documentation && body_starts_with_declaration)
             && (name_has_suffix || params_have_suffix);
         let heritage = grouped.then(|| f.state().group_id("heritage"));
+        // After a `///` comment that ends the name's line, a `<` that starts the
+        // next line is indented twice, as a moved method name is.
+        let indent_head = documentation_comment_ends_line(before_params);
         let header = format_once(|f| {
-            self.format_name(f, has_clauses && record_header.is_none(), keep_javadoc);
+            self.format_name(f, has_clauses && record_header.is_none());
             format_type_clauses(f, head_end, clauses, heritage, |f| {
-                if let Some(params) = &self.type_params {
-                    let parameters =
-                        format_once(|f| format_type_declaration_parameters(f, params, has_clauses));
-                    // Keep an inline block with the name's line comment.
-                    if name_has_suffix
-                        && (has_documentation && keep_javadoc
-                            || before_params.first().is_some_and(Comment::is_block))
-                    {
-                        write!(f, [line_suffix_boundary(), parameters]);
-                    } else if name_has_suffix {
-                        write!(f, [group(&format_args!(soft_line_break(), parameters))]);
-                    } else {
-                        parameters.fmt(f);
+                let mut components = None;
+                let head = format_once(|f| {
+                    if keep_javadoc && let Some(params) = &self.type_params {
+                        format_documentation_comments_before(name_end, params.span.start, f);
                     }
-                    if params_have_suffix {
-                        params.format_trailing_comments(f);
+                    if let Some(params) = &self.type_params {
+                        let parameters = format_once(|f| {
+                            format_type_declaration_parameters(f, params, has_clauses);
+                        });
+                        // Keep an inline block with the name's line comment.
+                        if name_has_suffix
+                            && (has_documentation && keep_javadoc
+                                || before_params.first().is_some_and(Comment::is_block))
+                        {
+                            write!(f, [line_suffix_boundary(), parameters]);
+                        } else if name_has_suffix {
+                            write!(f, [group(&format_args!(soft_line_break(), parameters))]);
+                        } else {
+                            parameters.fmt(f);
+                        }
+                        if params_have_suffix {
+                            params.format_trailing_comments(f);
+                        }
                     }
+                    components = record_header.as_ref().and_then(|header| {
+                        if name_has_suffix {
+                            line_suffix_boundary().fmt(f);
+                        }
+                        format_record_header(f, header)
+                    });
+                });
+                if indent_head {
+                    wrapped_indent(true, &head).fmt(f);
+                } else {
+                    head.fmt(f);
                 }
-                record_header.as_ref().and_then(|header| {
-                    if name_has_suffix {
-                        line_suffix_boundary().fmt(f);
-                    }
-                    format_record_header(f, header)
-                })
+                components
             });
         });
         if let Some(heritage) = heritage {
