@@ -69,6 +69,9 @@ fn adjacent_lists_alternate_their_markers() {
         ("1. a\n1) b", "1. a\n\n1) b"),
         ("+ a\n- b\n+ c", "- a\n\n* b\n\n- c"),
         ("* a\n1) b\n+ c", "- a\n1. b\n- c"),
+        // The blank line is in the fence that the next list closes.
+        ("* ```text\n  a\n\n- b", "- ```text\n  a\n\n  ```\n\n* b"),
+        ("1. ```\n   a\n\n1) b", "1. ```\n   a\n\n   ```\n\n1) b"),
         // Only top-level lists get a blank line, which cannot make an item loose.
         ("- item\n  * a\n  + b", "- item\n  - a\n  * b"),
         ("- item\n\t* a\n  + b", "- item\n\t- a\n  * b"),
