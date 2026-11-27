@@ -3394,6 +3394,13 @@ fn markdown_ordered_lists_reindent_when_numbers_change_width() {
     }
 }
 
+/// A Markdown documentation comment holding the lines of `text`.
+fn markdown_comment(text: &str) -> String {
+    text.split('\n')
+        .map(|line| if line.is_empty() { "///\n".into() } else { format!("/// {line}\n") })
+        .collect()
+}
+
 #[test]
 fn markdown_ordered_lists_normalize_before_closing_empty_fences() {
     let options = settings(JavadocOptions::default());
@@ -3403,29 +3410,29 @@ fn markdown_ordered_lists_normalize_before_closing_empty_fences() {
         ("  - 01.\n* ~j\n\n  01. ```java", "  - 1.\n* ~j\n\n  1. ```java\n     ```"),
         ("  - 01.\n*\n  01. ```java", "  - 1.\n*\n  1. ```java\n     ```"),
     ] {
-        let comment = |text: &str| {
-            text.split('\n')
-                .map(|line| if line.is_empty() { "///\n".into() } else { format!("/// {line}\n") })
-                .collect::<String>()
-        };
-        let source = format!("{}class Example {{}}\n", comment(body));
+        let source = format!("{}class Example {{}}\n", markdown_comment(body));
         assert_eq!(
             format_stable_with_options(&source, &options),
-            format!("{}class Example {{}}\n", comment(expected)),
+            format!("{}class Example {{}}\n", markdown_comment(expected)),
         );
     }
 }
 
 #[test]
-fn markdown_ordered_markers_before_underindented_prose_normalize_on_a_second_pass() {
+fn markdown_ordered_markers_before_underindented_prose_normalize_on_the_first_pass() {
     let options = settings(JavadocOptions::default());
-    let source = "/// 001) a\n///\n///    b\nclass Example {}\n";
-    assert_eq!(
-        fmt_with_options(source, &options),
-        "/// 001) a\n///\n/// b\nclass Example {}\n\
-         ---------- Not idempotent (second pass) ----------\n\
-         /// 1. a\n///\n/// b\nclass Example {}\n"
-    );
+    for (body, expected) in [
+        ("001) a\n\n   b", "1. a\n\nb"),
+        ("01. # H\n   a b", "1. # H\na b"),
+        ("01. ```text\n   a b", "1. ```text\n   ```\na b"),
+        ("01. {@code x}\n\n   a b", "1. {@code x}\n\na b"),
+    ] {
+        let source = format!("{}class Example {{}}\n", markdown_comment(body));
+        assert_eq!(
+            format_stable_with_options(&source, &options),
+            format!("{}class Example {{}}\n", markdown_comment(expected)),
+        );
+    }
 }
 
 #[test]
