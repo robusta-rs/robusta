@@ -575,7 +575,7 @@ mod tests {
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, source);
         assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         Linter::new([
             RuleConfiguration::new(&MODIFIER_ORDER, Severity::Warning),
             RuleConfiguration::new(&REDUNDANT_SEMICOLONS, Severity::Warning),
@@ -591,7 +591,7 @@ mod tests {
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, source);
         assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         Linter::new(rules.iter().map(|rule| RuleConfiguration::new(*rule, Severity::Warning)))
             .lint_with_options(
                 &semantic,

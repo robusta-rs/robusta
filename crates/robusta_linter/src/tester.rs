@@ -140,7 +140,7 @@ fn lint_source(
     let allocator = Allocator::new();
     let parsed = robusta_parser::parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     Linter::new(rules).lint(&semantic)
 }
 

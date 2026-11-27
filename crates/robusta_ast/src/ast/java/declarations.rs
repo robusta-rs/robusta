@@ -7,6 +7,8 @@ use super::*;
 pub struct CompilationUnit<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
+    #[content_eq(skip)]
+    pub source_text: &'a str,
     /// Source-ordered comments, skipped by visitors.
     #[content_eq(skip)]
     pub comments: Vec<'a, Comment>,

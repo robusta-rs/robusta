@@ -475,11 +475,11 @@ mod tests {
     }
 
     #[test]
-    fn content_eq_leaves_comments_out_of_a_compilation_unit() {
+    fn content_eq_leaves_text_and_comments_out_of_a_compilation_unit() {
         let allocator = &Allocator::new();
         let builder = &AstBuilder::new(allocator);
         let span = Span::new(0, 1);
-        let unit = |comments: &[Comment], name| {
+        let unit = |source_text, comments: &[Comment], name| {
             let import = import(span, ImportKind::SingleType, "util", name, builder);
             let content = CompilationUnitContent::new_ordinary_compilation_unit(
                 span,
@@ -489,15 +489,15 @@ mod tests {
                 builder,
             );
             let comments = Vec::from_iter_in(comments.iter().copied(), builder);
-            CompilationUnit::new(span, comments, content, builder)
+            CompilationUnit::new(span, source_text, comments, content, builder)
         };
 
         let comment = Comment::new(0, 2, CommentKind::Line);
-        let commented = unit(&[comment], "List");
-        let bare = unit(&[], "List");
+        let commented = unit("//\nimport util.List;", &[comment], "List");
+        let bare = unit("import util.List;", &[], "List");
         bare.set_scope_id(ScopeId::new(1));
         assert!(commented.content_eq(&bare));
-        assert!(commented.content_ne(&unit(&[comment], "Map")));
+        assert!(commented.content_ne(&unit("//\nimport util.Map;", &[comment], "Map")));
     }
 
     #[test]

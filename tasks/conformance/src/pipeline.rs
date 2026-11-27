@@ -24,7 +24,7 @@ pub fn lint(source: &str) -> Result<Vec<LintDiagnostic>, String> {
         return Err(format!("source did not parse cleanly ({} errors)", result.errors.len()));
     }
 
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let linter = Linter::new(
         rules::builtin_rules().iter().map(|rule| RuleConfiguration::new(*rule, Severity::Warning)),
     );

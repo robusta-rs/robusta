@@ -115,7 +115,7 @@ mod tests {
         const SOURCE: &str = "class A {}";
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, SOURCE);
-        let semantic = SemanticBuilder::new().build(SOURCE, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let suppressions = Suppressions::new(&semantic);
         let mut diagnostics = Vec::new();
         let mut context = LintContext {

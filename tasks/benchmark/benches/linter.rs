@@ -13,7 +13,7 @@ fn bench_linter(criterion: &mut Criterion) {
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, file.source_text);
         let unit = &parsed.unit;
-        let semantic = SemanticBuilder::new().build(file.source_text, unit);
+        let semantic = SemanticBuilder::new().build(unit);
         let linter = Linter::new(
             rules::builtin_rules()
                 .iter()

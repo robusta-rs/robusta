@@ -34,7 +34,7 @@ pub fn format_embedded(allocator: &Allocator, code: String, options: &Options) -
     if !parsed.errors.is_empty() {
         return code;
     }
-    let comments = Comments::new(SourceText::new(&code), &parsed.unit.comments)
+    let comments = Comments::new(SourceText::new(parsed.unit.source_text), &parsed.unit.comments)
         .with_declarations(JavadocDeclarations::collect(&parsed.unit));
     let mut edits = Vec::new();
     let mut pending = &parsed.unit.comments[..];
@@ -335,11 +335,11 @@ fn format_snippet(context: SnippetContext<'_>, code: &str, margin: usize) -> Opt
             continue;
         }
         let root = AstNode::new(&parsed.unit, AstNodes::Dummy);
-        if !prefix.is_empty() && !valid_wrapper(&parsed.unit, source.len(), suffix) {
+        if !prefix.is_empty() && !valid_wrapper(&parsed.unit, suffix) {
             continue;
         }
         let mut context =
-            crate::formatter::JavaFormatContext::new(allocator, &source, &parsed.unit, &options);
+            crate::formatter::JavaFormatContext::new(allocator, &parsed.unit, &options);
         context.is_snippet = true;
         let formatted = crate::format_node(allocator, context, |f| {
             if prefix.is_empty() {
@@ -369,7 +369,8 @@ fn format_snippet(context: SnippetContext<'_>, code: &str, margin: usize) -> Opt
     None
 }
 
-fn valid_wrapper(unit: &robusta_ast::CompilationUnit<'_>, length: usize, suffix: &str) -> bool {
+fn valid_wrapper(unit: &robusta_ast::CompilationUnit<'_>, suffix: &str) -> bool {
+    let length = unit.source_text.len();
     let CompilationUnitContent::Ordinary(unit) = &unit.content else { return false };
     let [TypeDeclaration::Class(class)] = &unit.types[..] else { return false };
     if class.span.end as usize != length {
