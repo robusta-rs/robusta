@@ -357,10 +357,7 @@ pub fn write_comments_after_unbraced_body(
     // Claim earlier pending comments too so the ones after the body stay in order.
     let needs_break = if comments.last().is_none_or(|comment| comment.span.start < body_end) {
         true
-    } else if f.comments().documentation_line_after_moved_comment(body_end, false) > 0
-        || (f.comments().moved_line_comment_at(body_end).is_some()
-            && comments.first().is_some_and(Comment::is_block))
-    {
+    } else if f.comments().line_after_moved_comment(body_end, false) > 0 {
         write_split_comments_between_blocks(comments, 0, f)
     } else {
         write_comments_between_blocks(comments, f)

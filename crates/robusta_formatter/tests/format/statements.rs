@@ -417,9 +417,9 @@ fn line_comments_moved_behind_an_unbraced_body_semicolon_keep_its_group_flat() {
 }
 
 /// A block comment that spans lines, moved behind the `;` of a `return` or
-/// `throw`, breaks the group around the statement, and so does a block comment
-/// after a moved line comment, which starts the next line. The second pass reads
-/// them after the `;`, outside the group.
+/// `throw`, breaks the group around the statement. The second pass reads it
+/// after the `;`, outside the group. A block comment after a moved line comment
+/// starts the next line outside the group on both passes.
 #[test]
 fn comments_moved_behind_a_return_or_throw_semicolon_that_break_a_group() {
     let source = "class A { int f() { while (a) throw e /* first\n * second */; \
@@ -436,8 +436,7 @@ fn comments_moved_behind_a_return_or_throw_semicolon_that_break_a_group() {
           return d; // c
         while (a);
         {
-          if (c)
-            return n; // seed
+          if (c) return n; // seed
           /* counted */
         }
         return switch (x) {

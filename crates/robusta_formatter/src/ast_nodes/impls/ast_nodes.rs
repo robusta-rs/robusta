@@ -2,8 +2,8 @@ use robusta_ast::{Comment, SwitchCase};
 use robusta_span::{GetSpan, Span};
 
 use crate::formatter::trivia::{
-    format_documentation_comments_before, format_documentation_line_after_terminator,
-    format_leading_comments, format_trailing_comments,
+    format_documentation_comments_before, format_leading_comments, format_line_after_moved_comment,
+    format_trailing_comments,
 };
 use crate::formatter::{JavaFormatter, prelude::*};
 use crate::print::FormatWrite;
@@ -30,20 +30,10 @@ impl<'a, T: GetSpan> AstNode<'_, 'a, T> {
     }
 
     pub fn format_trailing_comments(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let mut following_start = self.following_span_start;
-        // Sorting could leave a documentation comment after an import
-        // documenting the declaration after the imports, so it and the comments
-        // after it lead whatever follows the import. After the last import,
-        // with nothing following, the unit prints them.
-        if is_import(self.parent(), self.span())
-            && let Some(comment) = f
-                .comments()
-                .unprinted_comments()
-                .iter()
-                .take_while(|comment| following_start == 0 || comment.span.start < following_start)
-                .find(|comment| comment.is_documentation())
-        {
-            following_start = comment.span.start;
+        let following_start = self.following_span_start;
+        if is_import(self.parent(), self.span()) {
+            format_import_trailing_comments(self.enclosing_span(), self.span(), following_start, f);
+            return;
         }
         if let Some(separator) = separator_before_declaration(self.parent(), following_start) {
             format_trailing_comments_before_separator(
@@ -99,6 +89,30 @@ impl AstNodes<'_, '_> {
             _ => false,
         }
     }
+}
+
+/// The trailing comments of the import at `span`. Sorting moves them with it,
+/// so those on the line of a line comment moved behind its `;` stay its own.
+/// It could leave a documentation comment after an import documenting the
+/// declaration after the imports, though, so it and the comments after it lead
+/// whatever follows the import. After the last import, with nothing following,
+/// the unit prints them.
+fn format_import_trailing_comments(
+    enclosing_span: Span,
+    span: Span,
+    mut following_start: u32,
+    f: &mut JavaFormatter<'_, '_>,
+) {
+    if let Some(comment) = f
+        .comments()
+        .unprinted_comments()
+        .iter()
+        .take_while(|comment| following_start == 0 || comment.span.start < following_start)
+        .find(|comment| comment.is_documentation())
+    {
+        following_start = comment.span.start;
+    }
+    format_trailing_comments(enclosing_span, span, following_start).fmt(f);
 }
 
 /// Whether the child of `parent` at `span` is an import.
@@ -184,10 +198,10 @@ fn format_trailing_comments_before_separator(
 }
 
 /// The trailing comments of the node at `span`, which covers the `;` ending
-/// it, if any. The comments on that `;` line that would join a line comment
-/// moved behind the `;` start lines of their own, as if written there: they go
-/// to whatever follows the node, or follow it at the end of its parent. A node
-/// that ends its parent leaves them to that parent. Unless
+/// it, if any. The comments on the line of a line comment moved behind the
+/// node that cannot join it start lines of their own, as if written there:
+/// they go to whatever follows the node, or follow it at the end of its
+/// parent. A node that ends its parent leaves them to that parent. Unless
 /// `declaration_may_follow`, a lone `///` line may join instead.
 pub fn format_node_trailing_comments(
     enclosing_span: Span,
@@ -196,7 +210,8 @@ pub fn format_node_trailing_comments(
     declaration_may_follow: bool,
     f: &mut JavaFormatter<'_, '_>,
 ) {
-    if f.comments().documentation_line_after_moved_comment(span.end, declaration_may_follow) > 0 {
+    let count = f.comments().line_after_moved_comment(span.end, declaration_may_follow);
+    if count > 0 {
         if following_start != 0 {
             following_start = f
                 .comments()
@@ -204,7 +219,7 @@ pub fn format_node_trailing_comments(
                 .first()
                 .map_or(following_start, |it| it.span.start);
         } else if span.end < enclosing_span.end {
-            span.end = format_documentation_line_after_terminator(span.end, f);
+            span.end = format_line_after_moved_comment(count, f);
         }
     }
     format_trailing_comments(enclosing_span, span, following_start).fmt(f);
