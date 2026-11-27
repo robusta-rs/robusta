@@ -817,6 +817,12 @@ fn documentation_comments_lay_out_as_ordinary_comments_unless_that_changes_what_
     , PAID
   }
 
+  void p /// q
+  (int count) {}
+
+  class Box /// c
+  <T> {}
+
   void f() {} /// m
   /// n
   void g() {}
@@ -836,11 +842,19 @@ fn documentation_comments_lay_out_as_ordinary_comments_unless_that_changes_what_
         PAID,
       }
 
+      void p( /// q
+        int count
+      ) {}
+
+      class Box /// c
+          <T> {}
+
       void f() {} /// m
       /// n
       void g() {}
     }
     ");
+    check_contract_at_widths_and_modes(source);
 }
 
 #[test]
