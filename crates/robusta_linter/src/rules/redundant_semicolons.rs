@@ -14,7 +14,7 @@ declare_robusta_lint! {
     /// a documentation comment, which keeps the comment off the next
     /// declaration, where a `@deprecated` tag would mark it deprecated.
     RedundantSemicolons {
-        id: REDUNDANT_SEMICOLONS_ID = "redundant-semicolons",
+        id: REDUNDANT_SEMICOLONS_ID,
         rule: REDUNDANT_SEMICOLONS,
         summary: "Reports empty declarations and redundant empty statements.",
         category: Correctness,

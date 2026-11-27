@@ -30,7 +30,7 @@ declare_robusta_lint! {
     /// once the return is gone, so in a lambda the walk also stops at a `try`
     /// statement whose `finally` block is not known to complete normally.
     RedundantReturn {
-        id: REDUNDANT_RETURN_ID = "redundant-return",
+        id: REDUNDANT_RETURN_ID,
         rule: REDUNDANT_RETURN,
         summary: "Reports a no-value return that ends a void method, constructor, or void-compatible lambda block.",
         category: Pedantic,

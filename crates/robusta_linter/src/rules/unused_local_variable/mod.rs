@@ -22,7 +22,7 @@ declare_robusta_lint! {
     /// leaves `;`, which keeps the comment off the next declaration, where a
     /// `@deprecated` tag would mark it deprecated.
     UnusedLocalVariable {
-        id: UNUSED_LOCAL_VARIABLE_ID = "unused-local-variable",
+        id: UNUSED_LOCAL_VARIABLE_ID,
         rule: UNUSED_LOCAL_VARIABLE,
         summary: "Reports local variables whose value is never read.",
         category: Correctness,

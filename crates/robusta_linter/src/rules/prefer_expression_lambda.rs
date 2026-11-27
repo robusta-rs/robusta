@@ -21,7 +21,7 @@ declare_robusta_lint! {
     /// an overloaded call ambiguous or select another overload. Any other
     /// expression keeps the same targets, so its fix is safe.
     PreferExpressionLambda {
-        id: PREFER_EXPRESSION_LAMBDA_ID = "prefer-expression-lambda",
+        id: PREFER_EXPRESSION_LAMBDA_ID,
         rule: PREFER_EXPRESSION_LAMBDA,
         summary: "Reports lambda blocks that only return a value.",
         category: Style,

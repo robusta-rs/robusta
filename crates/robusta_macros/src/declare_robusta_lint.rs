@@ -1,5 +1,6 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/f9ed53b1e82cb35a1118de673be637791d60676d/crates/oxc_macros/src/declare_oxc_lint.rs
 
+use convert_case::{Boundary, Case, Converter};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -17,7 +18,6 @@ pub struct LintRuleMeta {
     documentation: String,
     name: Ident,
     id_const: Ident,
-    id: LitStr,
     instance: Ident,
     summary: LitStr,
     category: Ident,
@@ -43,7 +43,7 @@ impl Parse for LintRuleMeta {
         let name: Ident = input.parse()?;
         let content;
         braced!(content in input);
-        let mut id = None;
+        let mut id_const = None;
         let mut instance = None;
         let mut summary = None;
         let mut category = None;
@@ -60,7 +60,7 @@ impl Parse for LintRuleMeta {
             }
             content.parse::<Token![:]>()?;
             match key.to_string().as_str() {
-                "id" => id = Some(assignment(&content)?),
+                "id" => id_const = Some(content.parse()?),
                 "rule" => instance = Some(content.parse()?),
                 "summary" => summary = Some(content.parse()?),
                 "category" => category = Some(content.parse()?),
@@ -75,13 +75,11 @@ impl Parse for LintRuleMeta {
 
         let span = name.span();
         let missing = |key| Error::new(span, format!("missing `{key}` in `declare_robusta_lint!`"));
-        let (id_const, id) = id.ok_or_else(|| missing("id"))?;
         Ok(Self {
             attributes,
             documentation,
             name,
-            id_const,
-            id,
+            id_const: id_const.ok_or_else(|| missing("id"))?,
             instance: instance.ok_or_else(|| missing("rule"))?,
             summary: summary.ok_or_else(|| missing("summary"))?,
             category: category.ok_or_else(|| missing("category"))?,
@@ -92,13 +90,16 @@ impl Parse for LintRuleMeta {
     }
 }
 
+pub fn rule_name_converter() -> Converter {
+    Converter::new().remove_boundary(Boundary::LowerDigit).to_case(Case::Kebab)
+}
+
 pub fn declare_robusta_lint(metadata: LintRuleMeta) -> TokenStream {
     let LintRuleMeta {
         attributes,
         documentation,
         name,
         id_const,
-        id,
         instance,
         summary,
         category,
@@ -107,6 +108,7 @@ pub fn declare_robusta_lint(metadata: LintRuleMeta) -> TokenStream {
         settings,
     } = metadata;
 
+    let id = rule_name_converter().convert(name.to_string());
     let (fields, value) = match &settings {
         Some((settings, default)) => {
             (quote! { { settings: #settings } }, quote! { #name { settings: #default } })

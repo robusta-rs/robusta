@@ -21,5 +21,6 @@ test = false
 doctest = false
 
 [dependencies]
+convert_case.workspace = true
 quote.workspace = true
 syn = { workspace = true, features = ["full", "parsing", "printing", "proc-macro"] }

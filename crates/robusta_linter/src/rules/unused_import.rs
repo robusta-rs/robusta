@@ -17,7 +17,7 @@ declare_robusta_lint! {
     /// class-path or module-graph resolution to decide, so this file-local rule
     /// deliberately leaves them alone.
     UnusedImport {
-        id: UNUSED_IMPORT_ID = "unused-import",
+        id: UNUSED_IMPORT_ID,
         rule: UNUSED_IMPORT,
         summary: "Reports single imports whose imported name is never referenced.",
         category: Correctness,

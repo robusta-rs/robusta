@@ -15,8 +15,7 @@ declare_robusta_lint! {
     /// multi-parameter lists stay parenthesized because they use different
     /// grammar productions.
     RedundantLambdaParameterParentheses {
-        id: REDUNDANT_LAMBDA_PARAMETER_PARENTHESES_ID =
-            "redundant-lambda-parameter-parentheses",
+        id: REDUNDANT_LAMBDA_PARAMETER_PARENTHESES_ID,
         rule: REDUNDANT_LAMBDA_PARAMETER_PARENTHESES,
         summary: "Reports parentheses around one concise lambda parameter.",
         category: Style,

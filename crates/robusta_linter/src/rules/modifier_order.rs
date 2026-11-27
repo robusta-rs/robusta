@@ -12,7 +12,7 @@ declare_robusta_lint! {
     /// google-java-format's discipline of reordering modifier tokens without
     /// moving annotations or the trivia between modifier positions.
     ModifierOrder {
-        id: MODIFIER_ORDER_ID = "modifier-order",
+        id: MODIFIER_ORDER_ID,
         rule: MODIFIER_ORDER,
         summary: "Reports keyword modifiers that are not in Java's customary order.",
         category: Style,
