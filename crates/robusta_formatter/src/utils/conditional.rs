@@ -229,7 +229,6 @@ pub fn should_extra_indent(mut parent: &AstNodes<'_, '_>, mut span: Span) -> boo
         AstNodes::VariableDeclarator(declarator) => {
             declarator.init.as_ref().is_some_and(|init| init.span() == span)
         }
-        AstNodes::ResourceDeclaration(resource) => resource.init.span() == span,
         AstNodes::AssignmentExpression(assignment) => assignment.value.span() == span,
         AstNodes::ReturnStatement(statement) => {
             statement.value.as_ref().is_some_and(|value| value.span() == span)

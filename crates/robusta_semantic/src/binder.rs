@@ -1,15 +1,15 @@
 //! Declare symbols for Java declarations.
 
 use robusta_ast::{
-    AnnotationInterfaceElementDeclaration, AstKind, CatchClause, CompactConstructorDeclaration,
-    EnhancedForStatement, EnumConstant, FormalParameter, ImportDeclaration, MethodDeclaration,
-    Modifier, ModifierKind, RecordComponent, ResourceDeclaration, TypeDeclarationKind,
-    TypeParameter, TypePattern, VariableDeclarator,
+    AnnotationInterfaceElementDeclaration, AstKind, BindingIdentifier, CatchClause,
+    CompactConstructorDeclaration, EnumConstant, FormalParameter, ImportDeclaration,
+    MethodDeclaration, Modifier, ModifierKind, RecordComponent, TypeDeclarationKind, TypeParameter,
+    VariableDeclarator,
 };
 use robusta_span::{GetSpan, Span};
 
 use crate::{
-    SemanticBuilder, SymbolKind,
+    NodeId, SemanticBuilder, SymbolKind,
     pattern_scope::{PatternScope, pattern_scope},
 };
 
@@ -95,9 +95,33 @@ impl<'a> Binder<'a> for VariableDeclarator<'a> {
                 }
             }
             AstKind::LocalVariableDeclaration(_) => {
-                let scope_end = builder.scoping.scope(builder.current_scope_id).span.end;
-                let window = Span::new(self.name.span.start, scope_end);
-                builder.declare_symbol_within(&self.name, SymbolKind::LocalVariable, window);
+                let declaration_id = builder.nodes.parent_id(builder.current_node_id);
+                match builder.nodes.parent_kind(declaration_id) {
+                    AstKind::EnhancedForStatement(statement) => {
+                        builder.declare_symbol_within(
+                            &self.name,
+                            SymbolKind::EnhancedForVariable,
+                            statement.body.span(),
+                        );
+                    }
+                    AstKind::TryStatement(statement) => {
+                        let window = Span::new(self.name.span.start, statement.block.span.end);
+                        builder.declare_symbol_within(&self.name, SymbolKind::Resource, window);
+                    }
+                    AstKind::TypePattern(_) => {
+                        let pattern_id = builder.nodes.parent_id(declaration_id);
+                        bind_pattern_variable(&self.name, pattern_id, builder);
+                    }
+                    _ => {
+                        let scope_end = builder.scoping.scope(builder.current_scope_id).span.end;
+                        let window = Span::new(self.name.span.start, scope_end);
+                        builder.declare_symbol_within(
+                            &self.name,
+                            SymbolKind::LocalVariable,
+                            window,
+                        );
+                    }
+                }
             }
             _ => {}
         }
@@ -110,50 +134,25 @@ impl<'a> Binder<'a> for FormalParameter<'a> {
     }
 }
 
-impl<'a> Binder<'a> for EnhancedForStatement<'a> {
-    fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        builder.declare_symbol_within(
-            &self.name,
-            SymbolKind::EnhancedForVariable,
-            self.body.span(),
-        );
-    }
-}
-
-impl<'a> Binder<'a> for ResourceDeclaration<'a> {
-    fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        let end = builder
-            .nodes
-            .ancestor_kinds(builder.current_node_id)
-            .find_map(|ancestor| match ancestor {
-                AstKind::TryStatement(statement) => Some(statement.block.span.end),
-                _ => None,
-            })
-            .unwrap_or_else(|| self.span().end);
-        let window = Span::new(self.name.span.start, end);
-        builder.declare_symbol_within(&self.name, SymbolKind::Resource, window);
-    }
-}
-
 impl<'a> Binder<'a> for CatchClause<'a> {
     fn bind(&self, builder: &mut SemanticBuilder<'a>) {
         builder.declare_symbol_within(&self.name, SymbolKind::CatchParameter, self.block.span);
     }
 }
 
-impl<'a> Binder<'a> for TypePattern<'a> {
-    fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        let PatternScope { scope_id, parts, unmatched } =
-            pattern_scope(&builder.nodes, builder.current_node_id, builder.current_scope_id);
-        let symbol_id = builder.declare_symbol_in_parts(
-            &self.name,
-            SymbolKind::PatternVariable,
-            scope_id,
-            &parts,
-        );
-        if let (Some(symbol_id), Some(unmatched)) = (symbol_id, unmatched) {
-            builder.pending_patterns.push((symbol_id, unmatched));
-        }
+/// Declare the variable of the type pattern at `pattern_id`, in scope where the
+/// pattern has matched (JLS 6.3).
+fn bind_pattern_variable<'a>(
+    name: &BindingIdentifier<'a>,
+    pattern_id: NodeId,
+    builder: &mut SemanticBuilder<'a>,
+) {
+    let PatternScope { scope_id, parts, unmatched } =
+        pattern_scope(&builder.nodes, pattern_id, builder.current_scope_id);
+    let symbol_id =
+        builder.declare_symbol_in_parts(name, SymbolKind::PatternVariable, scope_id, &parts);
+    if let (Some(symbol_id), Some(unmatched)) = (symbol_id, unmatched) {
+        builder.pending_patterns.push((symbol_id, unmatched));
     }
 }
 

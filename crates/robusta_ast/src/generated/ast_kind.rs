@@ -62,7 +62,6 @@ pub enum AstKind<'a> {
     ThrowStatement(&'a ThrowStatement<'a>),
     AssertStatement(&'a AssertStatement<'a>),
     TryStatement(&'a TryStatement<'a>),
-    ResourceDeclaration(&'a ResourceDeclaration<'a>),
     CatchClause(&'a CatchClause<'a>),
     SynchronizedStatement(&'a SynchronizedStatement<'a>),
     LabeledStatement(&'a LabeledStatement<'a>),
@@ -184,7 +183,6 @@ pub enum AstType {
     ThrowStatement,
     AssertStatement,
     TryStatement,
-    ResourceDeclaration,
     CatchClause,
     SynchronizedStatement,
     LabeledStatement,
@@ -253,7 +251,7 @@ pub enum AstType {
 
 impl AstType {
     /// Number of node kinds; discriminants are dense in `0..COUNT`.
-    pub const COUNT: usize = 115;
+    pub const COUNT: usize = 114;
 
     /// Every node kind, in discriminant order.
     pub const ALL: [Self; Self::COUNT] = [
@@ -307,7 +305,6 @@ impl AstType {
         Self::ThrowStatement,
         Self::AssertStatement,
         Self::TryStatement,
-        Self::ResourceDeclaration,
         Self::CatchClause,
         Self::SynchronizedStatement,
         Self::LabeledStatement,
@@ -428,7 +425,6 @@ impl GetSpan for AstKind<'_> {
             Self::ThrowStatement(node) => node.span(),
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
-            Self::ResourceDeclaration(node) => node.span(),
             Self::CatchClause(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
@@ -554,7 +550,6 @@ impl GetAddress for AstKind<'_> {
             Self::ThrowStatement(it) => it.unstable_address(),
             Self::AssertStatement(it) => it.unstable_address(),
             Self::TryStatement(it) => it.unstable_address(),
-            Self::ResourceDeclaration(it) => it.unstable_address(),
             Self::CatchClause(it) => it.unstable_address(),
             Self::SynchronizedStatement(it) => it.unstable_address(),
             Self::LabeledStatement(it) => it.unstable_address(),
@@ -678,7 +673,6 @@ impl AstKind<'_> {
             Self::ThrowStatement(it) => it.node_id(),
             Self::AssertStatement(it) => it.node_id(),
             Self::TryStatement(it) => it.node_id(),
-            Self::ResourceDeclaration(it) => it.node_id(),
             Self::CatchClause(it) => it.node_id(),
             Self::SynchronizedStatement(it) => it.node_id(),
             Self::LabeledStatement(it) => it.node_id(),
@@ -800,7 +794,6 @@ impl AstKind<'_> {
             Self::ThrowStatement(it) => it.set_node_id(node_id),
             Self::AssertStatement(it) => it.set_node_id(node_id),
             Self::TryStatement(it) => it.set_node_id(node_id),
-            Self::ResourceDeclaration(it) => it.set_node_id(node_id),
             Self::CatchClause(it) => it.set_node_id(node_id),
             Self::SynchronizedStatement(it) => it.set_node_id(node_id),
             Self::LabeledStatement(it) => it.set_node_id(node_id),
@@ -924,7 +917,6 @@ impl AstKind<'_> {
             Self::ThrowStatement(_) => AstType::ThrowStatement,
             Self::AssertStatement(_) => AstType::AssertStatement,
             Self::TryStatement(_) => AstType::TryStatement,
-            Self::ResourceDeclaration(_) => AstType::ResourceDeclaration,
             Self::CatchClause(_) => AstType::CatchClause,
             Self::SynchronizedStatement(_) => AstType::SynchronizedStatement,
             Self::LabeledStatement(_) => AstType::LabeledStatement,
@@ -1048,7 +1040,6 @@ impl AstKind<'_> {
             Self::ThrowStatement(_) => "ThrowStatement",
             Self::AssertStatement(_) => "AssertStatement",
             Self::TryStatement(_) => "TryStatement",
-            Self::ResourceDeclaration(_) => "ResourceDeclaration",
             Self::CatchClause(_) => "CatchClause",
             Self::SynchronizedStatement(_) => "SynchronizedStatement",
             Self::LabeledStatement(_) => "LabeledStatement",

@@ -279,9 +279,8 @@ pub enum Pattern<'a> {
 pub struct TypePattern<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub modifiers: Vec<'a, Modifier<'a>>,
-    pub ty: VariableType<'a>,
-    pub name: BindingIdentifier<'a>,
+    /// One declarator without an initializer or dimensions (JLS §14.30.1).
+    pub declaration: LocalVariableDeclaration<'a>,
 }
 
 /// `Point(int x, int y)` with nested patterns or `_` components.

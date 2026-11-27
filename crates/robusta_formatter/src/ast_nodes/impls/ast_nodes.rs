@@ -273,9 +273,7 @@ pub fn format_node_leading_comments<'a>(
         AstNodes::AnnotationInterfaceElementDeclaration(parent) => {
             parent.default_value.as_ref().is_some_and(|value| start >= value.span().start)
         }
-        // The resource's type and name come before its `=`.
-        AstNodes::ResourceDeclaration(parent) => start >= parent.init.span().start,
-        // As do the declarator's name and dimensions.
+        // The declarator's name and dimensions come before its `=`.
         AstNodes::VariableDeclarator(parent) => {
             parent.init.as_ref().is_some_and(|init| start >= init.span().start)
         }

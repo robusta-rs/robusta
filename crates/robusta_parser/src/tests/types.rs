@@ -259,7 +259,7 @@ fn parses_dimensions_after_declarator_names() {
     let Statement::LocalVariable(local) = &statements[0] else { panic!("local") };
     assert_eq!(local.declarators[0].dims.len(), 1);
     let Statement::EnhancedFor(each) = &statements[1] else { panic!("enhanced for") };
-    assert_eq!(each.dims.len(), 1);
+    assert_eq!(each.declaration.declarators[0].dims.len(), 1);
     let Statement::For(counted) = &statements[2] else { panic!("for") };
     let Some(ForInit::Declaration(init)) = &counted.init else { panic!("for declaration") };
     assert_eq!(init.declarators[1].dims.len(), 1);
@@ -438,8 +438,8 @@ fn parses_var_in_inferred_variable_type_positions() {
     let Statement::EnhancedFor(for_each) = &statements[2] else {
         panic!("expected an enhanced for statement");
     };
-    assert!(matches!(&for_each.ty, VariableType::Var(_)));
-    assert_eq!(for_each.name.name, "item");
+    assert!(matches!(&for_each.declaration.ty, VariableType::Var(_)));
+    assert_eq!(for_each.declaration.declarators[0].name.name, "item");
 
     let Statement::Try(try_stmt) = &statements[3] else {
         panic!("expected a try statement");
@@ -448,7 +448,7 @@ fn parses_var_in_inferred_variable_type_positions() {
         panic!("expected a resource declaration");
     };
     assert!(matches!(&resource.ty, VariableType::Var(_)));
-    assert_eq!(resource.name.name, "in");
+    assert_eq!(resource.declarators[0].name.name, "in");
 
     let Expression::Lambda(lambda) = assignment_value(&statements[4]) else {
         panic!("expected a lambda assignment value");
@@ -499,7 +499,7 @@ fn parses_unnamed_variables_in_declarator_id_positions() {
     let Statement::EnhancedFor(for_each) = &statements[1] else {
         panic!("expected an enhanced for statement");
     };
-    assert_eq!(for_each.name.name, "_");
+    assert_eq!(for_each.declaration.declarators[0].name.name, "_");
 
     let Statement::Try(resource_try) = &statements[2] else {
         panic!("expected a try-with-resources statement");
@@ -507,7 +507,7 @@ fn parses_unnamed_variables_in_declarator_id_positions() {
     let Resource::Declaration(resource) = &resource_try.resources[0] else {
         panic!("expected a resource declaration");
     };
-    assert_eq!(resource.name.name, "_");
+    assert_eq!(resource.declarators[0].name.name, "_");
 
     let Statement::Try(catch_try) = &statements[3] else {
         panic!("expected a try-catch statement");

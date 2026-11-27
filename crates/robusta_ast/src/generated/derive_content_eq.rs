@@ -577,10 +577,7 @@ impl ContentEq for StatementExpressionList<'_> {
 
 impl ContentEq for EnhancedForStatement<'_> {
     fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.modifiers, &other.modifiers)
-            && ContentEq::content_eq(&self.ty, &other.ty)
-            && ContentEq::content_eq(&self.name, &other.name)
-            && ContentEq::content_eq(&self.dims, &other.dims)
+        ContentEq::content_eq(&self.declaration, &other.declaration)
             && ContentEq::content_eq(&self.iterable, &other.iterable)
             && ContentEq::content_eq(&self.body, &other.body)
     }
@@ -642,15 +639,6 @@ impl ContentEq for ResourceAccess<'_> {
             (Self::Field(a), Self::Field(b)) => a.content_eq(b),
             _ => false,
         }
-    }
-}
-
-impl ContentEq for ResourceDeclaration<'_> {
-    fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.modifiers, &other.modifiers)
-            && ContentEq::content_eq(&self.ty, &other.ty)
-            && ContentEq::content_eq(&self.name, &other.name)
-            && ContentEq::content_eq(&self.init, &other.init)
     }
 }
 
@@ -972,9 +960,7 @@ impl ContentEq for Pattern<'_> {
 
 impl ContentEq for TypePattern<'_> {
     fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.modifiers, &other.modifiers)
-            && ContentEq::content_eq(&self.ty, &other.ty)
-            && ContentEq::content_eq(&self.name, &other.name)
+        ContentEq::content_eq(&self.declaration, &other.declaration)
     }
 }
 

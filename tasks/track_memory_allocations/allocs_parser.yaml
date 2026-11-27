@@ -5,7 +5,7 @@ InventoryLedger.java:
   sys deallocs: 2
   sys alloc bytes: 35468 # 35.47 kB
   sys peak growth: 35468 # 35.47 kB
-  arena allocs: 1679
+  arena allocs: 1689
   arena reallocs: 196
   arena size: 118864 # 118.86 kB
 

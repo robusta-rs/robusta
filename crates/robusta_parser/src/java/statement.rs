@@ -523,16 +523,16 @@ impl<'a> Parser<'a> {
             let name = self.variable_declarator_id("the loop variable name")?;
             let dims = self.variable_declarator_dims(&name)?;
             Self::reject_var_dims(&ty, &dims)?;
+            let span = dims.last().map_or(name.span, |last| name.span.cover(last.span));
+            let declarator = VariableDeclarator::new(span, name, dims, None, self);
+            let declaration = self.single_variable_declaration(modifiers, ty, declarator);
             self.expect(TokenKind::Colon, "`:` in the enhanced `for` header")?;
             let iterable = self.expression()?;
             self.expect(TokenKind::RParen, "`)` to close the `for` header")?;
             let body = self.embedded_statement()?;
             return Ok(Statement::new_enhanced_for_statement(
                 start.cover(body.span()),
-                modifiers,
-                ty,
-                name,
-                dims,
+                declaration,
                 iterable,
                 body,
                 self,
@@ -697,18 +697,14 @@ impl<'a> Parser<'a> {
         if self.at_local_variable_declaration() {
             let modifiers = self.modifiers()?;
             let ty = self.variable_type()?;
-            let start = modifiers.first().map_or_else(|| ty.span(), robusta_span::GetSpan::span);
             let name = self.variable_declarator_id("the resource name")?;
             self.expect(TokenKind::Assign, "`=` in the resource declaration")?;
             let init = self.expression()?;
-            Ok(Resource::new_resource_declaration(
-                start.cover(init.span()),
-                modifiers,
-                ty,
-                name,
-                init,
-                self,
-            ))
+            let span = name.span.cover(init.span());
+            let declarator =
+                VariableDeclarator::new(span, name, Vec::new_in(self), Some(init.into()), self);
+            let declaration = self.single_variable_declaration(modifiers, ty, declarator);
+            Ok(Resource::Declaration(self.alloc(declaration)))
         } else {
             let expression = self.expression()?;
             let span = expression.span();

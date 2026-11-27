@@ -1807,6 +1807,53 @@ fn resource_declarator_comment_before_equals_stays_with_its_declarator() {
     ");
 }
 
+#[test]
+fn block_comment_ending_a_resource_type_line_moves_the_name_as_in_a_local() {
+    let declarator = "pooledConnection = connectionFactory.openPooledConnection(primaryArgument, backupArgument)";
+    let source = format!(
+        "class A {{ void f() throws Exception {{ AutoCloseable /* c */\n{declarator}; \
+         try (AutoCloseable /* c */\n{declarator}) {{}} }} }}"
+    );
+    assert_snapshot!(fmt(&source), @"
+    class A {
+      void f() throws Exception {
+        AutoCloseable /* c */
+          pooledConnection = connectionFactory.openPooledConnection(primaryArgument, backupArgument);
+        try (
+          AutoCloseable /* c */
+            pooledConnection = connectionFactory.openPooledConnection(primaryArgument, backupArgument)
+        ) {}
+      }
+    }
+    ");
+}
+
+#[test]
+fn block_comment_ending_a_pattern_type_line_keeps_the_name_beside_it_as_in_a_local() {
+    let source = "class A { void f(Object o) { String /* c */\ns // d\n; \
+                  if (o instanceof String /* c */\nt // d\n&& t.isEmpty()) {} \
+                  switch (o) { case String /* c */\nu // d\nwhen u.isEmpty() -> {} \
+                  case Point(int /* c */\nx // d\n, int y) -> {} default -> {} } } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f(Object o) {
+        String /* c */ s; // d
+        if (o instanceof String /* c */ t // d
+            && t.isEmpty()) {}
+        switch (o) {
+          case String /* c */ u // d
+            when u.isEmpty() -> {}
+          case Point(
+              int /* c */ x, // d
+              int y
+            ) -> {}
+          default -> {}
+        }
+      }
+    }
+    ");
+}
+
 /// Every assignment operator in the language claims the comments the source
 /// put on each side of it, and keeps them there. The four constructs that
 /// carry one — a declarator, an annotation element-value pair, a

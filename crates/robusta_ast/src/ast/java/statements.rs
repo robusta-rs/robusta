@@ -216,11 +216,8 @@ pub struct StatementExpressionList<'a> {
 pub struct EnhancedForStatement<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub modifiers: Vec<'a, Modifier<'a>>,
-    pub ty: VariableType<'a>,
-    pub name: BindingIdentifier<'a>,
-    /// See [`VariableDeclarator::dims`].
-    pub dims: Vec<'a, ArrayTypeDimension<'a>>,
+    /// One declarator without an initializer.
+    pub declaration: LocalVariableDeclaration<'a>,
     pub iterable: Expression<'a>,
     pub body: Statement<'a>,
     pub scope_id: Cell<Option<ScopeId>>,
@@ -286,11 +283,13 @@ pub struct TryStatement<'a> {
 
 /// A resource declaration or access to an effectively-final variable (JLS §14.20.3).
 /// Accesses are names or fields, excluding arbitrary expressions.
+///
+/// A declaration has one declarator, with an expression initializer and no dimensions.
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetAddress, GetSpan)]
 pub enum Resource<'a> {
-    Declaration(Box<'a, ResourceDeclaration<'a>>) = 2,
+    Declaration(Box<'a, LocalVariableDeclaration<'a>>) = 2,
     INHERIT(ResourceAccess<'a>),
 }
 
@@ -301,19 +300,6 @@ pub enum ResourceAccess<'a> {
     Identifier(Box<'a, IdentifierReference<'a>>) = 0,
     /// `owner.resource`, `primary.resource`, `super.resource`, or `TypeName.super.resource`.
     Field(Box<'a, FieldAccess<'a>>) = 1,
-}
-
-/// One initialized resource variable, `{modifier} Type name = init`.
-#[ast(visit)]
-#[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct ResourceDeclaration<'a> {
-    pub node_id: Cell<NodeId>,
-    pub span: Span,
-    pub modifiers: Vec<'a, Modifier<'a>>,
-    pub ty: VariableType<'a>,
-    pub name: BindingIdentifier<'a>,
-    pub init: Expression<'a>,
 }
 
 /// `catch (T | U name) block` with multi-catch type alternatives.

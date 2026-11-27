@@ -1202,8 +1202,8 @@ fn parses_instanceof_type_patterns() {
     let InstanceofRhs::TypePattern(annotated_pattern) = &annotated.rhs else {
         panic!("expected a type pattern");
     };
-    assert_eq!(annotated_pattern.modifiers.len(), 1);
-    assert_eq!(annotated_pattern.name.name, "name");
+    assert_eq!(annotated_pattern.declaration.modifiers.len(), 1);
+    assert_eq!(annotated_pattern.declaration.declarators[0].name.name, "name");
 
     let TypeDeclaration::Class(class) = &unit.types()[0] else {
         panic!("expected a class");
@@ -1226,10 +1226,10 @@ fn parses_instanceof_type_patterns() {
         panic!("expected a type pattern");
     };
     assert!(
-        matches!(&var_pattern.modifiers[0], Modifier::Keyword(k) if k.kind == ModifierKind::Final)
+        matches!(&var_pattern.declaration.modifiers[0], Modifier::Keyword(k) if k.kind == ModifierKind::Final)
     );
-    assert!(matches!(&var_pattern.ty, VariableType::Var(_)));
-    assert_eq!(var_pattern.name.name, "value");
+    assert!(matches!(&var_pattern.declaration.ty, VariableType::Var(_)));
+    assert_eq!(var_pattern.declaration.declarators[0].name.name, "value");
 
     let Statement::Expression(unnamed_stmt) = &statements[2] else {
         panic!("expected an expression statement");
@@ -1243,8 +1243,8 @@ fn parses_instanceof_type_patterns() {
     let InstanceofRhs::TypePattern(unnamed_pattern) = &unnamed_instanceof.rhs else {
         panic!("expected a type pattern");
     };
-    assert_eq!(unnamed_pattern.name.name, "_");
-    let Some(unnamed_ty) = unnamed_pattern.ty.as_class_type() else {
+    assert_eq!(unnamed_pattern.declaration.declarators[0].name.name, "_");
+    let Some(unnamed_ty) = unnamed_pattern.declaration.ty.as_class_type() else {
         panic!("expected a class pattern type");
     };
     assert_eq!(unnamed_ty.args().len(), 2);
@@ -1261,11 +1261,11 @@ fn parses_instanceof_type_patterns() {
     let InstanceofRhs::TypePattern(primitive_pattern) = &primitive_instanceof.rhs else {
         panic!("expected a type pattern");
     };
-    let VariableType::Primitive(primitive_ty) = &primitive_pattern.ty else {
+    let VariableType::Primitive(primitive_ty) = &primitive_pattern.declaration.ty else {
         panic!("expected a primitive pattern type");
     };
     assert_eq!(primitive_ty.kind, PrimitiveTypeKind::Int);
-    assert_eq!(primitive_pattern.name.name, "count");
+    assert_eq!(primitive_pattern.declaration.declarators[0].name.name, "count");
 }
 
 #[test]
@@ -1294,11 +1294,11 @@ fn parses_instanceof_record_patterns() {
     let ComponentPattern::TypePattern(x_pattern) = &point.components[0] else {
         panic!("expected the first record component to be a type pattern");
     };
-    assert_eq!(x_pattern.name.name, "x");
+    assert_eq!(x_pattern.declaration.declarators[0].name.name, "x");
     let ComponentPattern::TypePattern(y_pattern) = &point.components[1] else {
         panic!("expected the second record component to be a type pattern");
     };
-    assert_eq!(y_pattern.name.name, "y");
+    assert_eq!(y_pattern.declaration.declarators[0].name.name, "y");
 
     let Expression::Instanceof(box_instanceof) = assignment_value(&statements[1]) else {
         panic!("expected an instanceof");
@@ -1316,8 +1316,8 @@ fn parses_instanceof_record_patterns() {
     let ComponentPattern::TypePattern(var_component) = &nested_point.components[0] else {
         panic!("expected a var type pattern component");
     };
-    assert!(matches!(&var_component.ty, VariableType::Var(_)));
-    assert_eq!(var_component.name.name, "x");
+    assert!(matches!(&var_component.declaration.ty, VariableType::Var(_)));
+    assert_eq!(var_component.declaration.declarators[0].name.name, "x");
     assert!(matches!(&nested_point.components[1], ComponentPattern::MatchAll(_)));
 }
 

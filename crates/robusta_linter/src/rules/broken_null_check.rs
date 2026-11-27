@@ -388,10 +388,6 @@ fn declared_type(symbol: SymbolId, context: &LintContext<'_, '_, '_>) -> Operand
         AstKind::FormalParameter(parameter) if !parameter.varargs && parameter.dims.is_empty() => {
             parameter.ty.as_ref().and_then(|ty| ty.as_type())
         }
-        AstKind::EnhancedForStatement(statement) if statement.dims.is_empty() => {
-            statement.ty.as_type()
-        }
-        AstKind::TypePattern(pattern) => pattern.ty.as_type(),
         _ => None,
     };
     match ty {

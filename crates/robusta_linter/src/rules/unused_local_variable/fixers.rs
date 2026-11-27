@@ -15,31 +15,28 @@ impl Local<'_, '_> {
     pub fn fix(&self, kind: AstKind<'_>, source: &str) -> (FixKind, Vec<Fix>) {
         let mut edits = Vec::new();
         let mut fix_kind = FixKind::SAFE_FIX;
-        match kind {
-            AstKind::VariableDeclarator(declarator) => {
-                let nodes = self.semantic.nodes();
-                let AstKind::LocalVariableDeclaration(declaration) =
-                    nodes.parent_kind(self.declaration_id())
-                else {
-                    unreachable!()
-                };
-                let (kind, keep) =
-                    declarator.init.as_ref().map_or((FixKind::SAFE_FIX, false), |value| {
-                        let expression =
-                            value.as_expression().map(|expression| self.retained_value(expression));
-                        Value::inspect(nodes, self.declaration_id(), value.span())
-                            .classify(expression)
-                    });
-                fix_kind = kind;
-                let initializer =
-                    if keep { declarator.init.as_ref().map(GetSpan::span) } else { None };
-                self.fix_declaration(source, declaration, initializer, &mut fix_kind, &mut edits);
-            }
-            AstKind::TypePattern(pattern) => {
-                edits
-                    .push(Fix::new(pattern.ty.span().source_text(source).to_owned(), pattern.span));
-            }
-            _ => unreachable!(),
+        let AstKind::VariableDeclarator(declarator) = kind else { unreachable!() };
+        let nodes = self.semantic.nodes();
+        let declaration_id = nodes.parent_id(self.declaration_id());
+        let AstKind::LocalVariableDeclaration(declaration) = nodes.kind(declaration_id) else {
+            unreachable!()
+        };
+        if matches!(nodes.parent_kind(declaration_id), AstKind::TypePattern(_)) {
+            // The pattern keeps its type, and the value is still tested against it.
+            edits.push(Fix::new(
+                declaration.ty.span().source_text(source).to_owned(),
+                declaration.span,
+            ));
+        } else {
+            let (kind, keep) =
+                declarator.init.as_ref().map_or((FixKind::SAFE_FIX, false), |value| {
+                    let expression =
+                        value.as_expression().map(|expression| self.retained_value(expression));
+                    Value::inspect(nodes, self.declaration_id(), value.span()).classify(expression)
+                });
+            fix_kind = kind;
+            let initializer = if keep { declarator.init.as_ref().map(GetSpan::span) } else { None };
+            self.fix_declaration(source, declaration, initializer, &mut fix_kind, &mut edits);
         }
         let mut seen = FxHashSet::default();
         for reference in self.semantic.scoping().references_for_symbol(self.symbol_id) {

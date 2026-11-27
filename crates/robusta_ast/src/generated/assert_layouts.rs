@@ -469,17 +469,14 @@ const _: () = {
     assert!(offset_of!(StatementExpressionList, expressions) == 16);
 
     // Padding: 0 bytes
-    assert!(size_of::<EnhancedForStatement>() == 144);
+    assert!(size_of::<EnhancedForStatement>() == 128);
     assert!(align_of::<EnhancedForStatement>() == 8);
     assert!(offset_of!(EnhancedForStatement, span) == 0);
     assert!(offset_of!(EnhancedForStatement, node_id) == 8);
     assert!(offset_of!(EnhancedForStatement, scope_id) == 12);
-    assert!(offset_of!(EnhancedForStatement, modifiers) == 16);
-    assert!(offset_of!(EnhancedForStatement, ty) == 40);
-    assert!(offset_of!(EnhancedForStatement, name) == 56);
-    assert!(offset_of!(EnhancedForStatement, dims) == 88);
-    assert!(offset_of!(EnhancedForStatement, iterable) == 112);
-    assert!(offset_of!(EnhancedForStatement, body) == 128);
+    assert!(offset_of!(EnhancedForStatement, declaration) == 16);
+    assert!(offset_of!(EnhancedForStatement, iterable) == 96);
+    assert!(offset_of!(EnhancedForStatement, body) == 112);
 
     // Padding: 4 bytes
     assert!(size_of::<BreakStatement>() == 48);
@@ -527,16 +524,6 @@ const _: () = {
 
     assert!(size_of::<ResourceAccess>() == 16);
     assert!(align_of::<ResourceAccess>() == 8);
-
-    // Padding: 4 bytes
-    assert!(size_of::<ResourceDeclaration>() == 104);
-    assert!(align_of::<ResourceDeclaration>() == 8);
-    assert!(offset_of!(ResourceDeclaration, span) == 0);
-    assert!(offset_of!(ResourceDeclaration, node_id) == 8);
-    assert!(offset_of!(ResourceDeclaration, modifiers) == 16);
-    assert!(offset_of!(ResourceDeclaration, ty) == 40);
-    assert!(offset_of!(ResourceDeclaration, name) == 56);
-    assert!(offset_of!(ResourceDeclaration, init) == 88);
 
     // Padding: 0 bytes
     assert!(size_of::<CatchClause>() == 136);
@@ -780,13 +767,11 @@ const _: () = {
     assert!(align_of::<Pattern>() == 8);
 
     // Padding: 4 bytes
-    assert!(size_of::<TypePattern>() == 88);
+    assert!(size_of::<TypePattern>() == 96);
     assert!(align_of::<TypePattern>() == 8);
     assert!(offset_of!(TypePattern, span) == 0);
     assert!(offset_of!(TypePattern, node_id) == 8);
-    assert!(offset_of!(TypePattern, modifiers) == 16);
-    assert!(offset_of!(TypePattern, ty) == 40);
-    assert!(offset_of!(TypePattern, name) == 56);
+    assert!(offset_of!(TypePattern, declaration) == 16);
 
     // Padding: 4 bytes
     assert!(size_of::<RecordPattern>() == 56);
@@ -1640,17 +1625,14 @@ const _: () = {
     assert!(offset_of!(StatementExpressionList, expressions) == 12);
 
     // Padding: 0 bytes
-    assert!(size_of::<EnhancedForStatement>() == 96);
+    assert!(size_of::<EnhancedForStatement>() == 84);
     assert!(align_of::<EnhancedForStatement>() == 4);
     assert!(offset_of!(EnhancedForStatement, span) == 0);
     assert!(offset_of!(EnhancedForStatement, node_id) == 8);
     assert!(offset_of!(EnhancedForStatement, scope_id) == 12);
-    assert!(offset_of!(EnhancedForStatement, modifiers) == 16);
-    assert!(offset_of!(EnhancedForStatement, ty) == 32);
-    assert!(offset_of!(EnhancedForStatement, name) == 40);
-    assert!(offset_of!(EnhancedForStatement, dims) == 64);
-    assert!(offset_of!(EnhancedForStatement, iterable) == 80);
-    assert!(offset_of!(EnhancedForStatement, body) == 88);
+    assert!(offset_of!(EnhancedForStatement, declaration) == 16);
+    assert!(offset_of!(EnhancedForStatement, iterable) == 68);
+    assert!(offset_of!(EnhancedForStatement, body) == 76);
 
     // Padding: 0 bytes
     assert!(size_of::<BreakStatement>() == 32);
@@ -1698,16 +1680,6 @@ const _: () = {
 
     assert!(size_of::<ResourceAccess>() == 8);
     assert!(align_of::<ResourceAccess>() == 4);
-
-    // Padding: 0 bytes
-    assert!(size_of::<ResourceDeclaration>() == 68);
-    assert!(align_of::<ResourceDeclaration>() == 4);
-    assert!(offset_of!(ResourceDeclaration, span) == 0);
-    assert!(offset_of!(ResourceDeclaration, node_id) == 8);
-    assert!(offset_of!(ResourceDeclaration, modifiers) == 12);
-    assert!(offset_of!(ResourceDeclaration, ty) == 28);
-    assert!(offset_of!(ResourceDeclaration, name) == 36);
-    assert!(offset_of!(ResourceDeclaration, init) == 60);
 
     // Padding: 0 bytes
     assert!(size_of::<CatchClause>() == 104);
@@ -1951,13 +1923,11 @@ const _: () = {
     assert!(align_of::<Pattern>() == 4);
 
     // Padding: 0 bytes
-    assert!(size_of::<TypePattern>() == 60);
+    assert!(size_of::<TypePattern>() == 64);
     assert!(align_of::<TypePattern>() == 4);
     assert!(offset_of!(TypePattern, span) == 0);
     assert!(offset_of!(TypePattern, node_id) == 8);
-    assert!(offset_of!(TypePattern, modifiers) == 12);
-    assert!(offset_of!(TypePattern, ty) == 28);
-    assert!(offset_of!(TypePattern, name) == 36);
+    assert!(offset_of!(TypePattern, declaration) == 12);
 
     // Padding: 0 bytes
     assert!(size_of::<RecordPattern>() == 36);

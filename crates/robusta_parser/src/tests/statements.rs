@@ -277,9 +277,9 @@ fn parses_enhanced_for() {
     let Statement::EnhancedFor(for_each) = stmt else {
         panic!("expected an enhanced for");
     };
-    assert_eq!(for_each.modifiers.len(), 1);
-    assert!(matches!(&for_each.ty, VariableType::Qualified(_)));
-    assert_eq!(for_each.name.name, "e");
+    assert_eq!(for_each.declaration.modifiers.len(), 1);
+    assert!(matches!(&for_each.declaration.ty, VariableType::Qualified(_)));
+    assert_eq!(for_each.declaration.declarators[0].name.name, "e");
     assert!(matches!(&for_each.iterable, Expression::MethodCall(_)));
 }
 
@@ -446,11 +446,11 @@ fn parses_try_with_resources() {
         panic!("expected a resource declaration");
     };
     assert_eq!(first.modifiers.len(), 1);
-    assert_eq!(first.name.name, "in");
+    assert_eq!(first.declarators[0].name.name, "in");
     let Resource::Declaration(second) = &try_stmt.resources[1] else {
         panic!("expected a resource declaration");
     };
-    assert_eq!(second.name.name, "out");
+    assert_eq!(second.declarators[0].name.name, "out");
 }
 
 #[test]
@@ -645,8 +645,8 @@ fn parses_switch_type_pattern_labels() {
     let Pattern::TypePattern(first_pattern) = &first_case.patterns[0] else {
         panic!("expected a type pattern");
     };
-    assert_eq!(first_pattern.modifiers.len(), 1);
-    assert_eq!(first_pattern.name.name, "name");
+    assert_eq!(first_pattern.declaration.modifiers.len(), 1);
+    assert_eq!(first_pattern.declaration.declarators[0].name.name, "name");
 
     let Some(SwitchLabel::Pattern(second_case)) = &rules[1].label else {
         panic!("expected a pattern switch label");
@@ -655,10 +655,10 @@ fn parses_switch_type_pattern_labels() {
         panic!("expected a type pattern");
     };
     assert!(
-        matches!(&second_pattern.modifiers[0], Modifier::Keyword(k) if k.kind == ModifierKind::Final)
+        matches!(&second_pattern.declaration.modifiers[0], Modifier::Keyword(k) if k.kind == ModifierKind::Final)
     );
-    assert!(matches!(&second_pattern.ty, VariableType::Var(_)));
-    assert_eq!(second_pattern.name.name, "item");
+    assert!(matches!(&second_pattern.declaration.ty, VariableType::Var(_)));
+    assert_eq!(second_pattern.declaration.declarators[0].name.name, "item");
 }
 
 #[test]

@@ -1,8 +1,7 @@
 use crate::ast_nodes::AstNode;
 use crate::formatter::prelude::*;
 use crate::formatter::separated::{format_empty_parentheses, format_parenthesized_frame};
-use crate::print::annotations::format_modifiers_inline;
-use crate::print::{FormatWrite, format_name_after_type};
+use crate::print::FormatWrite;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::write_comments_before_opener;
 use robusta_ast::{MatchAllPattern, RecordPattern, TypePattern};
@@ -12,9 +11,7 @@ use robusta_span::Span;
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypePattern<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        format_modifiers_inline(f, &self.modifiers());
-        format_content_without_comments_after(&self.ty(), self.ty.span().end, f);
-        format_name_after_type(self.name.span.start, &self.name(), f);
+        self.declaration().fmt(f);
     }
 }
 

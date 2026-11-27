@@ -7,13 +7,12 @@ use crate::formatter::trivia::{
     FormatTrailingComments, format_hoisted_leading_comments, format_leading_comments,
 };
 use crate::print::annotations::format_modifiers_inline;
-use crate::print::{FormatWrite, format_name_after_type, write_type_name_separator};
-use crate::utils::assignment_like::AssignmentLike;
+use crate::print::{FormatWrite, write_type_name_separator};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
     format_continuation_keyword, format_head_body, write_node_with_terminator,
 };
-use robusta_ast::{CatchClause, Resource, ResourceDeclaration, TryStatement};
+use robusta_ast::{CatchClause, Resource, TryStatement};
 use robusta_formatter_core::write;
 use robusta_span::{GetSpan, Span};
 
@@ -106,15 +105,6 @@ fn format_resource_entry<'ast>(
         FormatTrailingComments::Comments(comments).fmt(f);
     } else {
         format_content_without_comments_after(resource, resource.span().end, f);
-    }
-}
-
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ResourceDeclaration<'a>> {
-    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        format_modifiers_inline(f, &self.modifiers());
-        format_content_without_comments_after(&self.ty(), self.ty.span().end, f);
-        let declarator = format_with(|f| AssignmentLike::ResourceDeclaration(self).fmt(f));
-        format_name_after_type(self.name.span.start, &declarator, f);
     }
 }
 

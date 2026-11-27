@@ -209,9 +209,10 @@ impl<'a> Parser<'a> {
     pub(crate) fn type_pattern(&mut self) -> Result<Box<'a, TypePattern<'a>>> {
         let modifiers = self.modifiers()?;
         let ty = self.variable_type()?;
-        let start = modifiers.first().map_or_else(|| ty.span(), robusta_span::GetSpan::span);
         let name = self.variable_declarator_id("a pattern variable name")?;
-        Ok(TypePattern::boxed(start.cover(name.span), modifiers, ty, name, self))
+        let declarator = VariableDeclarator::new(name.span, name, Vec::new_in(self), None, self);
+        let declaration = self.single_variable_declaration(modifiers, ty, declarator);
+        Ok(TypePattern::boxed(declaration.span, declaration, self))
     }
 
     /// Read a binary operator and its token count. Reconstruct right shifts

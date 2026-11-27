@@ -996,20 +996,6 @@ impl TryStatement<'_> {
     }
 }
 
-impl ResourceDeclaration<'_> {
-    /// Get [`NodeId`] of [`ResourceDeclaration`].
-    #[inline]
-    pub fn node_id(&self) -> NodeId {
-        self.node_id.get()
-    }
-
-    /// Set [`NodeId`] of [`ResourceDeclaration`].
-    #[inline]
-    pub fn set_node_id(&self, node_id: NodeId) {
-        self.node_id.set(node_id);
-    }
-}
-
 impl CatchClause<'_> {
     /// Get [`NodeId`] of [`CatchClause`].
     #[inline]

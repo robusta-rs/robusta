@@ -35,6 +35,20 @@ impl<'a> Parser<'a> {
         Ok(LocalVariableDeclaration::boxed(start.cover(end), modifiers, ty, declarators, self))
     }
 
+    /// Build the declaration of the one variable an enhanced `for` header, a
+    /// resource, or a type pattern declares (JLS §14.14.2, §14.20.3, §14.30.1).
+    pub(crate) fn single_variable_declaration(
+        &self,
+        modifiers: Vec<'a, Modifier<'a>>,
+        ty: VariableType<'a>,
+        declarator: VariableDeclarator<'a>,
+    ) -> LocalVariableDeclaration<'a> {
+        let start = modifiers.first().map_or_else(|| ty.span(), robusta_span::GetSpan::span);
+        let span = start.cover(declarator.span);
+        let declarators = Vec::from_iter_in([declarator], self);
+        LocalVariableDeclaration::new(span, modifiers, ty, declarators, self)
+    }
+
     pub(crate) fn validate_local_variable_type_inference(
         ty: &VariableType<'a>,
         declarators: &[VariableDeclarator<'a>],

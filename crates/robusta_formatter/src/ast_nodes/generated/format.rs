@@ -1421,7 +1421,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, Resource<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         match self.inner {
             Resource::Declaration(field_0) => {
-                AstNode::<ResourceDeclaration<'a>> {
+                AstNode::<LocalVariableDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -1467,17 +1467,6 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ResourceAccess<'a
                 .fmt(f);
             }
         }
-    }
-}
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ResourceDeclaration<'a>> {
-    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
-        self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CatchClause<'a>> {
