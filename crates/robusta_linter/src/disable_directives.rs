@@ -345,22 +345,17 @@ fn collect_suppressed_rules<'source>(
     }
 }
 
-/// The rule a string literal names, read after Unicode escape translation,
-/// which can spell any of its characters (JLS §3.3).
+/// The rule a string literal's value names (JLS §3.10.5).
 fn string_literal_rule<'source>(
     literal: &StringLiteral<'source>,
 ) -> Option<SuppressedRule<'source>> {
-    match robusta_lexer::translate(literal.raw).cooked {
-        Cow::Borrowed(raw) => quoted_rule(raw),
-        Cow::Owned(raw) => quoted_rule(&raw).map(SuppressedRule::into_owned),
+    match robusta_lexer::string_literal_value(literal.raw)? {
+        Cow::Borrowed(value) => value_rule(value),
+        Cow::Owned(value) => value_rule(&value).map(SuppressedRule::into_owned),
     }
 }
 
-fn quoted_rule(raw: &str) -> Option<SuppressedRule<'_>> {
-    let value = raw.strip_prefix('"')?.strip_suffix('"')?;
-    if value.starts_with("\"\"") || value.contains('\\') {
-        return None;
-    }
+fn value_rule(value: &str) -> Option<SuppressedRule<'_>> {
     if value == "all" {
         return Some(SuppressedRule::All);
     }
@@ -538,6 +533,42 @@ mod tests {
         let sole =
             "class A {\n@SuppressWarnings(\"\\u0072obusta:modifier-order\")\nint value;\n}\n";
         assert_eq!(prune(sole), "class A {\nint value;\n}\n");
+    }
+
+    #[test]
+    fn escape_sequence_values_suppress_like_their_plain_spelling() {
+        for value in [
+            r#""\162obusta:uppercase-long-suffix""#,
+            r#""robusta\072uppercase-long-suffix""#,
+            r#""robusta:uppercase-long-suffi\170""#,
+            r#""\141ll""#,
+            r#"{"unchecked", "robusta:uppercase\55long-suffix"}"#,
+        ] {
+            let source = format!("class A {{ @SuppressWarnings({value}) long value = 1l; }}");
+            assert!(lint(&source).is_empty(), "{source}");
+        }
+        for value in [
+            r#""robusta:uppercase-long-suffix\s""#,
+            r#""robusta:uppercase-long-suffix\\""#,
+            r#""robusta:uppercase-long-suffix\0""#,
+            r#""\162obusta:""#,
+        ] {
+            let source = format!("class A {{ @SuppressWarnings({value}) long value = 1l; }}");
+            assert_eq!(rule_ids(&lint(&source)), ["uppercase-long-suffix"], "{source}");
+        }
+    }
+
+    #[test]
+    fn unused_escape_sequence_values_are_reported_on_their_source_spelling() {
+        let source = concat!(
+            "class A {\n",
+            r#"@SuppressWarnings({"unchecked", "robusta:modifier\055order"})"#,
+            "\nint value;\n}\n",
+        );
+        let diagnostics = audit(source, &RULES);
+        assert_eq!(messages(&diagnostics), ["unused suppression for rule `modifier-order`"]);
+        assert_eq!(diagnostics[0].span().source_text(source), r#""robusta:modifier\055order""#);
+        assert_eq!(prune(source), "class A {\n@SuppressWarnings({\"unchecked\"})\nint value;\n}\n");
     }
 
     fn lint_with_options(source: &str, options: LintOptions<'_>) -> Vec<crate::LintDiagnostic> {
