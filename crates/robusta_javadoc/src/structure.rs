@@ -419,11 +419,8 @@ fn parse_markdown(content: &str) -> Option<MarkdownParse> {
     for node in &root.children {
         let position = node.position()?;
         let range = position.start.offset..position.end.offset;
-        let source = &content[range.clone()];
-        if matches!(node, Node::Paragraph(paragraph) if paragraph.children.iter().all(|child| matches!(child, Node::Text(_))))
-            && !source.contains("{@")
-        {
-            let reflow_start = range.start + indented_marker_prefix_len(source);
+        if let Some(reflow_start) = markdown_reflow_start(node, &content[range.clone()]) {
+            let reflow_start = range.start + reflow_start;
             if reflow_start > range.start {
                 ranges.preserved.push(range.start..reflow_start);
             }
@@ -437,6 +434,17 @@ fn parse_markdown(content: &str) -> Option<MarkdownParse> {
     }
     let code = code.iter().filter_map(|range| code_text(content, range)).collect();
     Some(MarkdownParse { ranges, literal_ranges, code })
+}
+
+/// Where the text of the top-level Markdown `node`, spanning `source`, starts to reflow,
+/// dropping the indentation of its lines, or `None` when every line keeps its spacing.
+pub fn markdown_reflow_start(node: &Node, source: &str) -> Option<usize> {
+    let Node::Paragraph(paragraph) = node else {
+        return None;
+    };
+    (paragraph.children.iter().all(|child| matches!(child, Node::Text(_)))
+        && !source.contains("{@"))
+    .then(|| indented_marker_prefix_len(source))
 }
 
 fn indented_marker_prefix_len(source: &str) -> usize {

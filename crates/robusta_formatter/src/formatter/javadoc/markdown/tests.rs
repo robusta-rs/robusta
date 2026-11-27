@@ -479,6 +479,16 @@ fn ordered_marker_width_moves_continuation_blocks() {
 }
 
 #[test]
+fn shorter_ordered_markers_leave_the_paragraphs_after_their_list() {
+    assert_eq!(normalized("001) a\n\n   b\n   c"), "1. a\n\nb\n   c");
+    assert_eq!(normalized("01. # H\n   a b"), "1. # H\na b");
+    // These paragraphs keep their indentation, which would put them in the item.
+    for kept in ["01. a\n\n   b {@code c}", "01. a\n\n   `b` c", "01. a\n\n   #b"] {
+        assert_eq!(normalized(kept), kept);
+    }
+}
+
+#[test]
 fn ordered_numbers_stop_at_the_largest_marker() {
     assert_eq!(
         normalized("999999998) a\n0) b\n0) c\n   - nested"),

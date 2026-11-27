@@ -8,7 +8,7 @@ use robusta_formatter_core::IndentWidth;
 use robusta_javadoc::markdown::{
     code_gap, columns, indented_range, parse, quote_content, remove_margin, span,
 };
-use robusta_javadoc::{Structure, TagForm};
+use robusta_javadoc::{Structure, TagForm, markdown_reflow_start};
 
 use super::normalize::capitalize_first;
 
@@ -109,6 +109,7 @@ fn section_edits(section: &str, protected: &[Range<usize>], capitalize: bool) ->
             capitalize,
             groups: Vec::new(),
             lists: Vec::new(),
+            margins: Vec::new(),
             capitals: Vec::new(),
         };
         normalizer.children(&root, Scope { root: true, ..Scope::default() });
@@ -119,6 +120,11 @@ fn section_edits(section: &str, protected: &[Range<usize>], capitalize: bool) ->
             .filter(|group| group.iter().all(outside))
             .flatten()
             .collect::<Vec<_>>();
+        // A shorter marker can reach a paragraph after its list, whose indentation the output
+        // drops anyway.
+        if !lists.is_empty() {
+            lists.extend(normalizer.margins.into_iter().filter(outside));
+        }
         if !lists.is_empty()
             && let Some(edited) = apply(&content, &mut lists).filter(|edited| edited != &*content)
             && same_tree(&mut root, &edited)
@@ -249,6 +255,8 @@ struct Normalizer<'a> {
     /// Edits, grouped by the rule application that needs all of them.
     groups: Vec<Vec<Edit>>,
     lists: Vec<Vec<Edit>>,
+    /// The indentation of top-level paragraphs that reflow, which the output drops.
+    margins: Vec<Edit>,
     /// Capitalized list items, kept apart because they change the text.
     capitals: Vec<Edit>,
 }
@@ -307,6 +315,16 @@ impl Normalizer<'_> {
             Node::Strong(_) => self.delimiters(node, range, "__", "**"),
             Node::Table(table) if !scope.footnote => self.table(table, scope.paragraph_end),
             Node::FootnoteDefinition(_) => inner.footnote = true,
+            Node::Paragraph(_)
+                if scope.root
+                    && markdown_reflow_start(node, &self.content[range.clone()]) == Some(0) =>
+            {
+                let source = &self.content[range.clone()];
+                let indentation = source.len() - source.trim_start_matches([' ', '\t']).len();
+                if indentation > 0 {
+                    self.margins.push(Edit::new(range.start..range.start + indentation, ""));
+                }
+            }
             _ => {}
         }
         self.children(node, inner);
