@@ -88,7 +88,7 @@ fn malformed_truncated_inputs_terminate_at_eof() {
 }
 
 #[test]
-fn fatal_units_are_empty_ordinary_forms_keeping_comments_in_order() {
+fn fatal_units_are_empty_ordinary_forms_keeping_the_text_and_comments_in_order() {
     for (source, comments) in [
         (
             "/* keep this */ class Fatal { void f() { call( // trailing",
@@ -102,6 +102,7 @@ fn fatal_units_are_empty_ordinary_forms_keeping_comments_in_order() {
         assert_eq!(result.status, ParseStatus::Fatal, "{source}");
         assert!(!result.errors.is_empty(), "{source}");
         let unit = result.unit;
+        assert_eq!(unit.source_text, source);
         let texts = unit.comments.iter().map(|comment| comment.span.source_text(source));
         assert!(texts.eq(comments), "{source}: {:?}", unit.comments);
         assert_eq!(unit.span, Span::empty(0), "{source}");
@@ -157,6 +158,7 @@ fn overlong_source_yields_a_fatal_empty_unit() {
     let result = parse(&allocator, source);
     assert_eq!(result.status, ParseStatus::Fatal);
     assert!(result.unit.types().is_empty());
+    assert!(std::ptr::eq(result.unit.source_text, source));
     assert!(result.unit.comments.is_empty());
     assert_eq!(result.unit.node_id(), NodeId::ROOT);
     assert_ne!(result.unit.content.node_id(), NodeId::ROOT);

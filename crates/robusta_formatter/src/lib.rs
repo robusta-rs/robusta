@@ -67,7 +67,7 @@ pub fn format(source: &str, options: &Options) -> Result<String, RobustaDiagnost
     if let Some(error) = result.errors.into_iter().next() {
         return Err(error);
     }
-    Ok(format_compilation_unit(&allocator, source, &result.unit, options))
+    Ok(format_compilation_unit(&allocator, &result.unit, options))
 }
 
 /// Print an already-parsed `unit` in robusta's canonical layout, re-attaching
@@ -81,12 +81,11 @@ pub fn format(source: &str, options: &Options) -> Result<String, RobustaDiagnost
 /// outside the syntax tree and formatting IR.
 pub fn format_compilation_unit<'a>(
     allocator: &'a Allocator,
-    source: &'a str,
     unit: &'a CompilationUnit<'a>,
     options: &Options,
 ) -> String {
-    let has_utf8_bom = source.starts_with(UTF8_BOM);
-    let formatted = format_unit(allocator, source, unit, options);
+    let has_utf8_bom = unit.source_text.starts_with(UTF8_BOM);
+    let formatted = format_unit(allocator, unit, options);
     if !has_utf8_bom {
         return formatted;
     }
@@ -99,14 +98,12 @@ pub fn format_compilation_unit<'a>(
 
 fn format_unit<'a>(
     allocator: &'a Allocator,
-    source: &'a str,
     unit: &'a CompilationUnit<'a>,
     options: &Options,
 ) -> String {
-    let code =
-        format_node(allocator, JavaFormatContext::new(allocator, source, unit, options), |f| {
-            AstNode::new(unit, AstNodes::Dummy).fmt(f);
-        });
+    let code = format_node(allocator, JavaFormatContext::new(allocator, unit, options), |f| {
+        AstNode::new(unit, AstNodes::Dummy).fmt(f);
+    });
     formatter::javadoc::format_embedded(allocator, code, options)
 }
 

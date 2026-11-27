@@ -91,7 +91,7 @@ pub fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> ParseResult<'a> {
     if source.len() > robusta_lexer::MAX_LEN {
         return ParseResult {
             status: ParseStatus::Fatal,
-            unit: empty_unit(allocator, &lexed.comments),
+            unit: empty_unit(allocator, source, &lexed.comments),
             errors: lexed.errors,
         };
     }
@@ -135,13 +135,18 @@ pub fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> ParseResult<'a> {
         (true, false) => ParseStatus::Recovered,
         (false, _) => ParseStatus::Fatal,
     };
-    let unit = unit.unwrap_or_else(|| empty_unit(allocator, &parser.comments));
+    let unit = unit.unwrap_or_else(|| empty_unit(allocator, source, &parser.comments));
     ParseResult { status, unit, errors }
 }
 
-/// Build an empty fatal unit retaining lexed comments.
-fn empty_unit<'a>(allocator: &'a Allocator, comments: &[Comment]) -> CompilationUnit<'a> {
+/// Build an empty fatal unit retaining the source text and lexed comments.
+fn empty_unit<'a>(
+    allocator: &'a Allocator,
+    source: &'a str,
+    comments: &[Comment],
+) -> CompilationUnit<'a> {
     let mut unit = CompilationUnit::dummy(allocator);
+    unit.source_text = source;
     unit.comments = Vec::from_iter_in(comments.iter().copied(), &allocator);
     // The unit keeps `NodeId::ROOT`. Its form takes the first ID the parser
     // assigns, keeping the two distinct.
@@ -237,6 +242,7 @@ impl<'a> Parser<'a> {
         let comments = Vec::from_iter_in(self.comments.iter().copied(), self);
         Ok(CompilationUnit::new(
             Span::new(0, end),
+            self.source,
             comments,
             content,
             // The default builder assigns ID zero (`NodeId::ROOT`) to the unit.

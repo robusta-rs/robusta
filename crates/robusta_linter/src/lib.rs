@@ -232,7 +232,7 @@ public final class Example {
         let parsed = robusta_parser::parse(&allocator, FIXTURE);
         assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
         let unit = &parsed.unit;
-        let semantic = SemanticBuilder::new().build(FIXTURE, unit);
+        let semantic = SemanticBuilder::new().build(unit);
 
         let linter = Linter::new(
             rules::builtin_rules()

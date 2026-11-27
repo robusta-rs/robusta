@@ -29,11 +29,13 @@ impl<'a> CompilationUnit<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
+    /// * `source_text`
     /// * `comments`: Source-ordered comments, skipped by visitors.
     /// * `content`: Exactly one compilation-unit form (JLS §19).
     #[inline]
     pub fn new(
         span: Span,
+        source_text: &'a str,
         comments: impl IntoIn<'a, Vec<'a, Comment>>,
         content: CompilationUnitContent<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -42,6 +44,7 @@ impl<'a> CompilationUnit<'a> {
         CompilationUnit {
             node_id: Cell::new(builder.node_id()),
             span,
+            source_text,
             comments: comments.into_in(builder.allocator()),
             content,
             scope_id: Default::default(),

@@ -14,12 +14,7 @@ fn bench_formatter(criterion: &mut Criterion) {
                 // Parse in setup so the benchmark isolates formatting from parsing.
                 let parsed = robusta_parser::parse(&allocator, file.source_text);
                 runner.run(|| {
-                    robusta_formatter::format_compilation_unit(
-                        &allocator,
-                        file.source_text,
-                        &parsed.unit,
-                        &options,
-                    )
+                    robusta_formatter::format_compilation_unit(&allocator, &parsed.unit, &options)
                 });
             });
         });

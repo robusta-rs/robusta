@@ -24,7 +24,7 @@ fn analysis_replaces_parser_ids_with_the_dense_table_index() {
         let parsed_form_id = parsed.unit.content.node_id();
         parsed.unit.set_node_id(NodeId::new(9));
 
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let nodes = semantic.nodes();
         assert!(nodes.len() > 2, "{source}");
         for (id, node) in nodes.iter_enumerated() {
@@ -47,7 +47,7 @@ fn a_choice_reads_the_id_of_the_node_it_holds() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
 
     let TypeDeclaration::Class(class) = &parsed.unit.types()[0] else {
         panic!("expected a class");
@@ -76,7 +76,7 @@ fn long_binary_chains_keep_preorder_and_parent_links() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, &source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let nodes = semantic.nodes();
     let binaries = nodes
         .iter_enumerated()
@@ -112,7 +112,7 @@ fn long_receiver_chains_keep_preorder_and_parent_links() {
         let allocator = Allocator::new();
         let parsed = parse(&allocator, &source);
         assert!(parsed.errors.is_empty(), "{tail}: {:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let nodes = semantic.nodes();
         let chains = nodes
             .iter_enumerated()
@@ -149,7 +149,7 @@ fn long_dotted_names_keep_preorder_and_parent_links() {
         let allocator = Allocator::new();
         let parsed = parse(&allocator, &source);
         assert!(parsed.errors.is_empty(), "{kind}: {:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let nodes = semantic.nodes();
         let chain = nodes
             .iter_enumerated()
@@ -170,7 +170,7 @@ fn names_by_role<'a>(source: &'a str, example: &str) -> [Vec<&'a str>; 3] {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let mut roles = [Vec::new(), Vec::new(), Vec::new()];
     for node in semantic.nodes().iter() {
         let (role, name) = match node.kind() {
@@ -278,7 +278,7 @@ fn only_a_single_type_or_static_import_binds() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let imports = semantic
         .scoping()
         .symbols()
@@ -297,7 +297,7 @@ fn a_member_name_is_not_looked_up() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let references = semantic
         .scoping()
         .references()
@@ -348,7 +348,7 @@ fn a_variable_is_written_only_as_the_operand_of_an_assignment_or_update() {
         let allocator = Allocator::new();
         let parsed = parse(&allocator, &source);
         assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let found = semantic
             .scoping()
             .references()
@@ -367,7 +367,7 @@ fn an_annotation_element_value_is_looked_up_as_a_variable() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let scoping = semantic.scoping();
     let references = scoping
         .references()
@@ -398,7 +398,7 @@ fn relationship_indexes_keep_declaration_and_source_order() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let scoping = semantic.scoping();
 
     for scope_id in scoping.scopes.indices() {
@@ -463,8 +463,8 @@ fn relationship_storage_survives_owner_moves_and_independent_drops() {
     let parsed = parse(&allocator, &source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
     let mut results = vec![
-        SemanticBuilder::new().build(&source, &parsed.unit),
-        SemanticBuilder::new().build(&source, &parsed.unit),
+        SemanticBuilder::new().build(&parsed.unit),
+        SemanticBuilder::new().build(&parsed.unit),
     ];
     results.swap(0, 1);
     drop(results.pop());
@@ -504,7 +504,7 @@ fn escaped_identifiers_share_their_cooked_symbol_identity() {
         let allocator = Allocator::new();
         let result = parse(&allocator, &source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(&source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
         let (symbol_id, symbol) = scoping
             .symbols_enumerated()
@@ -556,7 +556,7 @@ fn identifier_ignorable_spellings_share_names_and_preserve_spans() {
                     let allocator = Allocator::new();
                     let parsed = parse(&allocator, &source);
                     assert!(parsed.errors.is_empty(), "{source:?}: {:?}", parsed.errors);
-                    let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+                    let semantic = SemanticBuilder::new().build(&parsed.unit);
                     let scoping = semantic.scoping();
                     let (id, symbol) = scoping
                         .symbols_enumerated()
@@ -589,7 +589,7 @@ fn supplementary_format_characters_keep_compiler_distinct_bindings() {
             let allocator = Allocator::new();
             let parsed = parse(&allocator, &source);
             assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-            let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+            let semantic = SemanticBuilder::new().build(&parsed.unit);
             let scoping = semantic.scoping();
             let locals: Vec<_> = scoping
                 .symbols_enumerated()
@@ -611,7 +611,7 @@ fn identifier_identity_preserves_shadowing_and_unicode_distinctions() {
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
     assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
     let scoping = semantic.scoping();
     let (field, _) = scoping
         .symbols_enumerated()
@@ -633,7 +633,7 @@ fn identifier_identity_preserves_shadowing_and_unicode_distinctions() {
         let allocator = Allocator::new();
         let parsed = parse(&allocator, &source);
         assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(&source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let scoping = semantic.scoping();
         let (id, symbol) = scoping
             .symbols_enumerated()
@@ -663,7 +663,7 @@ fn escaped_imports_and_type_references_share_the_cooked_qualified_name() {
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
         assert_eq!(result.unit.imports()[0].name.dotted(), "java.util.List");
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
         let (symbol_id, symbol) = scoping
             .symbols_enumerated()
@@ -693,7 +693,7 @@ fn flattens_concrete_nodes_with_parent_links() {
     let source = "class Outer { void run() { if (ready) { call(10l, value -> value + 1); } ; } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let traversal: std::vec::Vec<_> = nodes
@@ -783,7 +783,7 @@ fn flattens_modular_and_compact_compilation_units() {
     for source in sources {
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let nodes = semantic.nodes();
 
         assert_eq!(nodes.parent_id(NodeId::ROOT), NodeId::ROOT);
@@ -825,7 +825,7 @@ fn semantic_builds_scopes_and_resolves_reads() {
     let source = "class A { int value; void f(int input) { int copy = input; use(copy); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     assert!(scoping.scopes().len() >= 4);
@@ -843,7 +843,7 @@ fn receiver_parameters_declare_no_symbol() {
     let source = "class A { void f(A this, int value) {} class B { B(A A.this) {} } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let parameters = semantic
         .scoping()
         .symbols_enumerated()
@@ -860,7 +860,7 @@ fn qualified_super_qualifiers_name_types() {
         void f() { int I = 0; Runnable r = I.super::m; I.super.m(); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let kinds = scoping
@@ -886,7 +886,7 @@ fn default_is_a_rule_or_case_without_a_label() {
         switch (x) { case 1: default: h(); } } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let children = nodes
@@ -913,7 +913,7 @@ fn switch_cases_are_children_of_their_switch_in_source_order() {
         return switch (x) { case 1: yield 1; default: yield 2; }; } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let cases = nodes
@@ -952,7 +952,7 @@ fn annotation_arguments_are_children_of_their_annotation_in_source_order() {
     let source = "@A(x = 1, y = @B({2, @C(3)})) @D(4) @E() @F class G {}";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let arguments = nodes
@@ -982,7 +982,7 @@ fn for_expression_lists_are_children_of_their_for_in_source_order() {
         for (int k = 0; ; j++) break; for (i = 0; ; ) break; for (;;) break; } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let lists = nodes
@@ -1035,7 +1035,7 @@ fn references_for_symbol_yields_only_that_symbols_references_in_source_order() {
     let source = "class A { int value; void f(int value) { use(value); value = value + 1; } void g() { use(value); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let parameter = scoping
@@ -1060,7 +1060,7 @@ fn semantic_records_shadowing_and_write_only_references() {
     let source = "class A { int value; void f(int value) { int stale; stale = 1; } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     assert!(
@@ -1083,7 +1083,7 @@ fn semantic_enhanced_for_binding_starts_at_the_body() {
     let source = "class A { void f() { for (String item : item) { use(item); } } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let resolved = semantic
         .scoping()
         .references()
@@ -1101,7 +1101,7 @@ fn resolve_breaks_priority_ties_toward_the_earliest_declaration() {
     let source = "import static p.A.f; import static p.B.f; class C { void g() { f(); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let imports: std::vec::Vec<SymbolId> = scoping
@@ -1137,7 +1137,7 @@ fn methods_of_one_name_share_a_binding() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
 
         let mut symbols = scoping.symbols_enumerated().filter(|(_, symbol)| symbol.name() == "log");
@@ -1184,7 +1184,7 @@ fn a_single_declaration_has_no_redeclarations() {
     for source in ["class A { void log() {} }", "@interface A { int log(); }"] {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
         let (log, symbol) =
             scoping.symbols_enumerated().find(|(_, symbol)| symbol.name() == "log").unwrap();
@@ -1205,7 +1205,7 @@ fn a_nested_class_binds_its_own_methods() {
     let allocator = Allocator::new();
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let methods: Vec<_> =
@@ -1228,7 +1228,7 @@ fn methods_stay_apart_from_same_name_variables_and_types() {
     let allocator = Allocator::new();
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let kinds: Vec<_> = scoping
@@ -1272,7 +1272,7 @@ fn methods_of_a_class_take_a_call_from_a_static_import_of_their_name() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
         let call = scoping.references().iter().find(|reference| reference.name() == "log").unwrap();
         assert_eq!(
@@ -1296,7 +1296,7 @@ fn a_shared_method_binding_is_private_only_while_every_method_is() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let symbol =
             semantic.scoping().symbols().iter().find(|symbol| symbol.name() == "f").unwrap();
         assert_eq!(symbol.is_private(), expected, "{source}");
@@ -1314,7 +1314,7 @@ fn a_member_type_binding_is_private_when_declared_private() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let symbol =
             semantic.scoping().symbols().iter().find(|symbol| symbol.name() == "B").unwrap();
         assert_eq!(symbol.is_private(), expected, "{source}");
@@ -1338,7 +1338,7 @@ fn resolve_binds_a_reused_pattern_variable_to_its_latest_declaration() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
 
         let patterns: std::vec::Vec<(SymbolId, u32)> = scoping
@@ -1566,7 +1566,7 @@ fn resolve_pattern_variables_only_where_they_are_definitely_matched() {
         let allocator = Allocator::new();
         let result = parse(&allocator, &source);
         assert!(result.errors.is_empty(), "{body}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(&source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let scoping = semantic.scoping();
 
         let patterns: std::vec::Vec<SymbolId> = scoping
@@ -1602,7 +1602,7 @@ fn constant_chains_end_in_code_that_does_not_compile() {
          if (!(o instanceof String s)) { while (X || Z) {} } use(s); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
     let read = scoping.references().iter().rfind(|reference| reference.name() == "s").unwrap();
     assert_eq!(
@@ -1617,7 +1617,7 @@ fn a_pattern_variable_after_a_basic_for_binds_in_the_enclosing_block() {
     let source = "class A { void f(Object o) { for (; !(o instanceof String s); ) {} use(s); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let (pattern_id, pattern) = scoping
@@ -1698,7 +1698,7 @@ fn resolve_l(declaration: &str) -> std::vec::Vec<String> {
     let allocator = Allocator::new();
     let result = parse(&allocator, &source);
     assert!(result.errors.is_empty(), "{declaration}: {:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(&source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let types: std::vec::Vec<SymbolId> = scoping
@@ -1729,7 +1729,7 @@ fn record_components_bind_in_the_body_scope() {
     let source = "record A<T>(T value) implements B<T> { T get() { return value; } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
     let nodes = semantic.nodes();
 
@@ -1765,7 +1765,7 @@ fn scope_owners_of(source: &str, name: &str) -> Vec<&'static str> {
     let allocator = Allocator::new();
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
     let reference = scoping
         .references()
@@ -1910,7 +1910,7 @@ fn a_local_after_the_try_block_does_not_shadow_its_resource() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let local = semantic
             .scoping()
             .symbols()
@@ -1927,7 +1927,7 @@ fn a_compact_units_imports_stay_in_the_file_scope() {
     let source = "import java.util.List; void main() {}";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let scope_of = |matches: fn(AstKind<'_>) -> bool| {
@@ -1970,7 +1970,7 @@ fn analysis_records_the_nodes_the_generated_walk_visits() {
     ";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
 
     let mut walked = Walked::default();
     walked.visit_compilation_unit(&result.unit);
@@ -2010,7 +2010,7 @@ fn every_node_that_opens_a_scope_holds_it_after_analysis() {
     ";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
 
     let mut cells = ScopeCells::default();
     cells.visit_compilation_unit(&result.unit);
@@ -2038,7 +2038,7 @@ fn compact_constructor_parameters_shadow_record_components() {
     ";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
     let nodes = semantic.nodes();
 
@@ -2087,7 +2087,7 @@ fn resolve_prefers_the_nearest_enclosing_scope() {
     let source = "class A { int x; void f() { int x = 0; use(x); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let local = scoping
@@ -2111,7 +2111,7 @@ fn resolve_shadowing_links_to_the_ancestor_declaration() {
     let source = "class A { int value; void f(int value) { use(value); } }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let field = scoping
@@ -2133,7 +2133,7 @@ fn semantic_type_parameters_shadow_imported_types() {
     let source = "package p; import example.T; class A<T> { T value; }";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let scoping = semantic.scoping();
 
     let parameter = scoping
@@ -2156,7 +2156,7 @@ fn the_root_accessor_hands_back_the_units_own_declarations() {
     let source = "package p; import java.util.List; class A {} class B {}";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
     let nodes = semantic.nodes();
 
     let unit = nodes.compilation_unit();
@@ -2178,7 +2178,7 @@ fn the_unusual_unit_shapes_still_carry_their_imports_on_the_root() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let nodes = semantic.nodes();
 
         let unit = nodes.compilation_unit();
@@ -2193,7 +2193,7 @@ fn named_type_declarations_expose_one_common_ast_view() {
     let source = "class C {} interface I {} enum E {} record R() {} @interface A {}";
     let result = parse(&allocator, source);
     assert!(result.errors.is_empty(), "{:?}", result.errors);
-    let semantic = SemanticBuilder::new().build(source, &result.unit);
+    let semantic = SemanticBuilder::new().build(&result.unit);
 
     let declarations: Vec<_> =
         semantic.nodes().iter().filter_map(|node| node.kind().as_type_declaration_kind()).collect();
@@ -2225,7 +2225,7 @@ fn flattened_nodes_follow_source_order() {
         let allocator = Allocator::new();
         let result = parse(&allocator, source);
         assert!(result.errors.is_empty(), "{source}: {:?}", result.errors);
-        let semantic = SemanticBuilder::new().build(source, &result.unit);
+        let semantic = SemanticBuilder::new().build(&result.unit);
         let nodes = semantic.nodes();
 
         let mut previous = None::<(AstKind<'_>, Span)>;
@@ -2254,7 +2254,7 @@ fn javadocs_are_the_documentation_comments_that_document_a_declaration() {
         let allocator = Allocator::new();
         let parsed = parse(&allocator, source);
         assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         ["List", "Map"]
             .map(|name| semantic.javadocs().structures().any(|structure| structure.mentions(name)))
     };
@@ -2272,7 +2272,7 @@ fn javadoc_structure_is_parsed_once() {
     let source = "/** First List. */\nclass A {}";
     let allocator = Allocator::new();
     let parsed = parse(&allocator, source);
-    let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+    let semantic = SemanticBuilder::new().build(&parsed.unit);
 
     let first = semantic.javadocs().structures().next().expect("Javadoc structure");
     let again = semantic.javadocs().structures().next().expect("Javadoc structure");

@@ -13,6 +13,7 @@ impl<'a> Dummy<'a> for CompilationUnit<'a> {
         Self {
             node_id: Dummy::dummy(allocator),
             span: Dummy::dummy(allocator),
+            source_text: Dummy::dummy(allocator),
             comments: Dummy::dummy(allocator),
             content: Dummy::dummy(allocator),
             scope_id: Dummy::dummy(allocator),

@@ -307,13 +307,8 @@ pub fn run() -> Result<(), io::Error> {
         allocator.reset();
         let parsed = robusta_parser::parse(&allocator, file.source_text);
         assert!(parsed.errors.is_empty(), "{} must parse", file.file_name);
-        let _ = SemanticBuilder::new().build(file.source_text, &parsed.unit);
-        let _ = robusta_formatter::format_compilation_unit(
-            &allocator,
-            file.source_text,
-            &parsed.unit,
-            &options,
-        );
+        let _ = SemanticBuilder::new().build(&parsed.unit);
+        let _ = robusta_formatter::format_compilation_unit(&allocator, &parsed.unit, &options);
     }
 
     for file in files.files() {
@@ -329,18 +324,13 @@ pub fn run() -> Result<(), io::Error> {
         parser_entries.push((file, parser_stats));
 
         let ((), semantic_stats) = record_stats_in(&allocator, || {
-            let _ = SemanticBuilder::new().build(file.source_text, &parsed.unit);
+            let _ = SemanticBuilder::new().build(&parsed.unit);
         });
 
         semantic_entries.push((file, semantic_stats));
 
         let (_, formatter_stats) = record_stats_in(&allocator, || {
-            robusta_formatter::format_compilation_unit(
-                &allocator,
-                file.source_text,
-                &parsed.unit,
-                &options,
-            )
+            robusta_formatter::format_compilation_unit(&allocator, &parsed.unit, &options)
         });
 
         formatter_entries.push((file, formatter_stats));

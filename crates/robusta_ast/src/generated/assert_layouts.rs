@@ -18,13 +18,14 @@ use crate::ast::*;
 #[cfg(target_pointer_width = "64")]
 const _: () = {
     // Padding: 0 bytes
-    assert!(size_of::<CompilationUnit>() == 168);
+    assert!(size_of::<CompilationUnit>() == 184);
     assert!(align_of::<CompilationUnit>() == 8);
     assert!(offset_of!(CompilationUnit, span) == 0);
     assert!(offset_of!(CompilationUnit, node_id) == 8);
     assert!(offset_of!(CompilationUnit, scope_id) == 12);
-    assert!(offset_of!(CompilationUnit, comments) == 16);
-    assert!(offset_of!(CompilationUnit, content) == 40);
+    assert!(offset_of!(CompilationUnit, source_text) == 16);
+    assert!(offset_of!(CompilationUnit, comments) == 32);
+    assert!(offset_of!(CompilationUnit, content) == 56);
 
     assert!(size_of::<CompilationUnitContent>() == 128);
     assert!(align_of::<CompilationUnitContent>() == 8);
@@ -1188,13 +1189,14 @@ const _: () = {
 #[cfg(target_pointer_width = "32")]
 const _: () = {
     // Padding: 0 bytes
-    assert!(size_of::<CompilationUnit>() == 120);
+    assert!(size_of::<CompilationUnit>() == 128);
     assert!(align_of::<CompilationUnit>() == 4);
     assert!(offset_of!(CompilationUnit, span) == 0);
     assert!(offset_of!(CompilationUnit, node_id) == 8);
     assert!(offset_of!(CompilationUnit, scope_id) == 12);
-    assert!(offset_of!(CompilationUnit, comments) == 16);
-    assert!(offset_of!(CompilationUnit, content) == 32);
+    assert!(offset_of!(CompilationUnit, source_text) == 16);
+    assert!(offset_of!(CompilationUnit, comments) == 24);
+    assert!(offset_of!(CompilationUnit, content) == 40);
 
     assert!(size_of::<CompilationUnitContent>() == 88);
     assert!(align_of::<CompilationUnitContent>() == 4);

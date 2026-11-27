@@ -49,3 +49,11 @@ impl<'a, T: Dummy<'a>> Dummy<'a> for Cell<T> {
         Cell::new(Dummy::dummy(allocator))
     }
 }
+
+impl<'a> Dummy<'a> for &'a str {
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
+    fn dummy(_allocator: &'a Allocator) -> Self {
+        ""
+    }
+}

@@ -59,7 +59,7 @@ impl<'a> SemanticBuilder<'a> {
     }
 
     /// Build nodes, scopes, symbols, and references in source order.
-    pub fn build(mut self, source: &'a str, unit: &'a CompilationUnit<'a>) -> Semantic<'a> {
+    pub fn build(mut self, unit: &'a CompilationUnit<'a>) -> Semantic<'a> {
         self.visit_compilation_unit(unit);
 
         self.scoping.index_scopes();
@@ -69,7 +69,7 @@ impl<'a> SemanticBuilder<'a> {
         self.resolve_all_references();
         self.scoping.index_references();
         Semantic {
-            source_text: source,
+            source_text: unit.source_text,
             comments: &unit.comments,
             javadocs: OnceCell::new(),
             nodes: self.nodes,

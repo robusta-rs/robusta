@@ -22,12 +22,7 @@ fn bench_pipeline(criterion: &mut Criterion) {
                 let allocator = pool.get();
                 let parsed = robusta_parser::parse(&allocator, file.source_text);
                 let unit = &parsed.unit;
-                robusta_formatter::format_compilation_unit(
-                    &allocator,
-                    file.source_text,
-                    unit,
-                    &options,
-                )
+                robusta_formatter::format_compilation_unit(&allocator, unit, &options)
             });
         });
     }
@@ -56,12 +51,7 @@ fn bench_cli_pipeline(criterion: &mut Criterion) {
                 let source = read_source(&path).expect("benchmark fixture should be readable");
                 let allocator = pool.get();
                 let parsed = robusta_parser::parse(&allocator, &source);
-                robusta_formatter::format_compilation_unit(
-                    &allocator,
-                    &source,
-                    &parsed.unit,
-                    &options,
-                )
+                robusta_formatter::format_compilation_unit(&allocator, &parsed.unit, &options)
             });
         });
     }

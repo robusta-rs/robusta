@@ -153,7 +153,7 @@ pub fn format_source(
 ) -> Result<String, FileFailure> {
     with_parsed_source(allocator_pool, source, |allocator, result| {
         let formatted =
-            robusta_formatter::format_compilation_unit(allocator, source, &result.unit, options);
+            robusta_formatter::format_compilation_unit(allocator, &result.unit, options);
         verify_formatted_source(source, &formatted, options);
         formatted
     })

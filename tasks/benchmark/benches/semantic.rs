@@ -10,7 +10,7 @@ fn bench_semantic(criterion: &mut Criterion) {
         let parsed = robusta_parser::parse(&allocator, file.source_text);
         let unit = &parsed.unit;
         group.bench_function(BenchmarkId::from_parameter(file.file_name), |b| {
-            b.iter(|| SemanticBuilder::new().build(black_box(file.source_text), black_box(unit)));
+            b.iter(|| SemanticBuilder::new().build(black_box(unit)));
         });
     }
     group.finish();

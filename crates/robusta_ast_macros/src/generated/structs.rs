@@ -172,7 +172,10 @@ pub static STRUCTS: phf::Map<&'static str, StructDetails> = ::phf::Map {
             "FormalParameter",
             StructDetails { field_order: Some(&[1, 0, 3, 4, 2, 5, 6, 7]), is_node: true },
         ),
-        ("CompilationUnit", StructDetails { field_order: Some(&[1, 0, 3, 4, 2]), is_node: true }),
+        (
+            "CompilationUnit",
+            StructDetails { field_order: Some(&[1, 0, 3, 4, 5, 2]), is_node: true },
+        ),
         (
             "ClassDeclaration",
             StructDetails { field_order: Some(&[1, 0, 3, 4, 5, 6, 7, 8, 9, 2]), is_node: true },

@@ -39,11 +39,10 @@ pub struct JavaFormatContext<'a> {
 impl<'a> JavaFormatContext<'a> {
     pub(crate) fn new(
         allocator: &'a Allocator,
-        source: &'a str,
         unit: &'a CompilationUnit<'a>,
         options: &Options,
     ) -> Self {
-        let source_text = SourceText::new(source);
+        let source_text = SourceText::new(unit.source_text);
         let mut comments = Comments::new(source_text, &unit.comments);
         if options.javadoc.is_some() {
             comments = comments

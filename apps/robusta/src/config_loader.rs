@@ -466,7 +466,7 @@ lint:
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, source);
         assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         let diagnostics = Linter::new(configured.iter().cloned()).lint(&semantic);
 
         assert_eq!(diagnostics.len(), 4);
@@ -666,7 +666,7 @@ lint:
         let source = "class A { void f() { String unused = g(); String spare = g(); } }";
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(&allocator, source);
-        let semantic = SemanticBuilder::new().build(source, &parsed.unit);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
         lint.clone()
             .build(Path::new(""))
             .apply_overrides(Path::new("A.java"))

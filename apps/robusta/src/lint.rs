@@ -928,10 +928,9 @@ fn analyze_source(
         let diagnostics = if pass.linter.is_empty() && pass.report_unused_suppressions.is_none() {
             Vec::new()
         } else {
-            pass.run(&SemanticBuilder::new().build(source, unit))
+            pass.run(&SemanticBuilder::new().build(unit))
         };
-        let formatted =
-            robusta_formatter::format_compilation_unit(allocator, source, unit, options);
+        let formatted = robusta_formatter::format_compilation_unit(allocator, unit, options);
         verify_formatted_source(source, &formatted, options);
         Ok(Analysis { formatted, diagnostics })
     })?
@@ -1000,7 +999,7 @@ impl LintPass<'_> {
 
 fn lint_source(source: &str, pass: LintPass<'_>) -> Result<Vec<LintDiagnostic>, FileFailure> {
     with_parsed_source(pass.allocator_pool, source, |_, result| {
-        pass.run(&SemanticBuilder::new().build(source, &result.unit))
+        pass.run(&SemanticBuilder::new().build(&result.unit))
     })
 }
 
