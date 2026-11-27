@@ -37,9 +37,8 @@ impl IgnorePatterns {
 /// Reject a pattern that could reach outside the configuration directory or
 /// that the gitignore syntax cannot express.
 fn validate_ignore_pattern(pattern: &str) -> Result<(), String> {
-    let path_part = pattern.strip_prefix('!').unwrap_or(pattern);
-    // Gitignore drops unescaped trailing spaces; `\ ` keeps a literal one.
-    let path_part = if path_part.ends_with("\\ ") { path_part } else { path_part.trim_end() };
+    let path_part = gitignore::trim_trailing_spaces(pattern);
+    let path_part = path_part.strip_prefix('!').unwrap_or(path_part);
     // Gitignore patterns use `/` as the separator on every platform.
     if path_part.split('/').any(|segment| segment == "..") {
         return Err(format!(
@@ -87,6 +86,14 @@ mod tests {
     #[test]
     fn dots_inside_a_segment_are_accepted() {
         parse("- \"..x/\"\n- \"x..\"\n- \"a/.../b\"\n").expect("only a whole `..` segment fails");
+    }
+
+    #[test]
+    fn whitespace_git_keeps_is_part_of_the_segment() {
+        let patterns = ["..\u{a0}", "!..\u{3000}", "..\t", "..\\ "];
+        let yaml = patterns.map(|pattern| format!("- '{pattern}'")).join("\n");
+
+        assert_eq!(parse(&yaml).expect("only spaces are trimmed"), IgnorePatterns::new(patterns));
     }
 
     #[test]
