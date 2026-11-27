@@ -805,9 +805,11 @@ fn method_and_element_names_break_from_their_type_only_when_they_do_not_fit() {
 
       int fits() {}
 
-      <T> LongTypeName<T>
-          longMethodName(T value)
-              throws Failure {
+      <T>
+          LongTypeName<T>
+              longMethodName(
+                T value
+              ) throws Failure {
         return null;
       }
 

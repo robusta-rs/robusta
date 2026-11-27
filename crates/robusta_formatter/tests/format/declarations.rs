@@ -369,6 +369,62 @@ fn declaration_clauses_keep_the_keyword_with_the_first_entry() {
 }
 
 #[test]
+fn method_headers_break_after_type_parameters_before_the_return_type() {
+    let options =
+        Options { line_width: line_width(50), indent_width: indent_width(2), ..Options::default() };
+    let examples = [
+        "public Map<Customer, List<Invoice>>
+    invoicesForRegion(Region region) {
+  return groupByCustomer(invoices, region);
+}
+",
+        "static <R extends Region, I>
+    Map<R, List<I>> invoicesGroupedByRegion(
+      List<I> invoices,
+      Function<I, R> regionOf
+    ) {
+  return groupBy(invoices, regionOf);
+}
+",
+        "static <R extends Region, I extends Invoice>
+    Map<R, List<Map.Entry<I, Customer>>>
+        invoiceEntriesByRegion(List<I> all)
+            throws IOException {
+  return groupEntries(all);
+}
+",
+    ];
+    assert_examples_print_as_shown(&examples, &options);
+}
+
+/// A comment after the type parameters neither breaks them nor the return type.
+#[test]
+fn comments_after_method_type_parameters_keep_the_break_after_them() {
+    let source = "class C { <T> // c\nLongTypeName<T> longMethodName(T value) { return null; } \
+                  static <R extends Region, I> /* c */ Map<R, List<I>> \
+                  invoicesGroupedByRegion(List<I> invoices) { return null; } }";
+    let options =
+        Options { line_width: line_width(36), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class C {
+      <T> // c
+          LongTypeName<T>
+              longMethodName(T value) {
+        return null;
+      }
+
+      static <R extends Region, I>
+          /* c */ Map<R, List<I>>
+              invoicesGroupedByRegion(
+                List<I> invoices
+              ) {
+        return null;
+      }
+    }
+    ");
+}
+
+#[test]
 fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
     let source = "class C { Invoice createInvoice(Customer customer, List<Item> items, \
                   Discount discount) throws IOException {} \
