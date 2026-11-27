@@ -69,7 +69,7 @@ where
 /// the side of the code before it, as before a `}`-to-keyword gap's keyword.
 pub fn write_comments_before_opener(start: u32, opener: u8, f: &mut JavaFormatter<'_, '_>) {
     let comments = f.comments().comments_before_character(start, opener);
-    write_comments_between_blocks(comments, f);
+    write_comments_after(start, comments, f);
 }
 
 /// Print the pending comments on `start`'s line before the next `opener` as
@@ -118,13 +118,16 @@ pub fn format_on_wrapped_line<'a>(
 }
 
 /// Whether a comment between `start` and the opener after it ends its line: a
-/// line comment, or one on a line of its own. Printed comments count too, so
-/// the printer of the code after the opener's line decides as the opener did.
+/// line comment, or one on a line of its own. A line comment moved behind the
+/// code before `start` ends the line before any of them. Printed comments count
+/// too, so the printer of the code after the opener's line decides as the
+/// opener did.
 pub fn comment_ends_line_before_opener(start: u32, f: &JavaFormatter<'_, '_>) -> bool {
     let comments = f.comments();
+    let after_moved_comment = comments.moved_line_comment_at(start).is_some();
     comments
         .all_comments_in_range(start, comments.token_start_after(start))
-        .any(|comment| comment.is_line() || comment.preceded_by_newline())
+        .any(|comment| after_moved_comment || comment.is_line() || comment.preceded_by_newline())
 }
 
 /// Print the pending comments before the next `character` as trailing
@@ -344,6 +347,17 @@ pub fn write_comments_between_blocks(comments: &[Comment], f: &mut JavaFormatter
     write_split_comments_between_blocks(comments, same_line_count, f)
 }
 
+/// [`write_comments_between_blocks`] for `comments` after the code ending at
+/// `end`, where no declaration can follow. A block comment on that code's line
+/// starts the next line when a line comment moved behind the code.
+fn write_comments_after(end: u32, comments: &[Comment], f: &mut JavaFormatter<'_, '_>) -> bool {
+    if f.comments().line_after_moved_comment(end, false) > 0 {
+        write_split_comments_between_blocks(comments, 0, f)
+    } else {
+        write_comments_between_blocks(comments, f)
+    }
+}
+
 /// [`write_comments_between_blocks`], with the first `same_line_count` of
 /// `comments` on the previous block's line.
 fn write_split_comments_between_blocks(
@@ -383,10 +397,8 @@ pub fn write_comments_after_unbraced_body(
     // Claim earlier pending comments too so the ones after the body stay in order.
     let needs_break = if comments.last().is_none_or(|comment| comment.span.start < body_end) {
         true
-    } else if f.comments().line_after_moved_comment(body_end, false) > 0 {
-        write_split_comments_between_blocks(comments, 0, f)
     } else {
-        write_comments_between_blocks(comments, f)
+        write_comments_after(body_end, comments, f)
     };
     if needs_break {
         hard_line_break().fmt(f);
