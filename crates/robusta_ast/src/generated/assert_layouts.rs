@@ -936,7 +936,7 @@ const _: () = {
     assert!(offset_of!(ArrayType, span) == 0);
     assert!(offset_of!(ArrayType, node_id) == 8);
     assert!(offset_of!(ArrayType, element) == 16);
-    assert!(offset_of!(ArrayType, annotations) == 32);
+    assert!(offset_of!(ArrayType, dims) == 32);
 
     // Padding: 4 bytes
     assert!(size_of::<ArrayTypeDimension>() == 40);
@@ -2092,7 +2092,7 @@ const _: () = {
     assert!(offset_of!(ArrayType, span) == 0);
     assert!(offset_of!(ArrayType, node_id) == 8);
     assert!(offset_of!(ArrayType, element) == 12);
-    assert!(offset_of!(ArrayType, annotations) == 20);
+    assert!(offset_of!(ArrayType, dims) == 20);
 
     // Padding: 0 bytes
     assert!(size_of::<ArrayTypeDimension>() == 28);

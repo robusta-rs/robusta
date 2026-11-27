@@ -6890,16 +6890,16 @@ impl<'a> InstanceofRhs<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build an [`InstanceofRhs::Simple`].
@@ -8654,16 +8654,16 @@ impl<'a> MethodReferenceTarget<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build a [`MethodReferenceTarget::Simple`].
@@ -8821,16 +8821,16 @@ impl<'a> VariableType<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build a [`VariableType::Simple`].
@@ -8936,16 +8936,16 @@ impl<'a> Type<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build a [`Type::Simple`].
@@ -9034,16 +9034,16 @@ impl<'a> MethodResult<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build a [`MethodResult::Simple`].
@@ -9342,13 +9342,13 @@ impl<'a> ArrayType<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
@@ -9356,7 +9356,7 @@ impl<'a> ArrayType<'a> {
             node_id: Cell::new(builder.node_id()),
             span,
             element,
-            annotations: annotations.into_in(builder.allocator()),
+            dims: dims.into_in(builder.allocator()),
         }
     }
 
@@ -9367,17 +9367,17 @@ impl<'a> ArrayType<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn boxed(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
-        Box::new_in(Self::new(span, element, annotations, builder), &builder.allocator())
+        Box::new_in(Self::new(span, element, dims, builder), &builder.allocator())
     }
 }
 
@@ -9487,16 +9487,16 @@ impl<'a> TypeArgument<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `element`
-    /// * `annotations`: Annotations before this dimension's `[`, e.g. `char @Nullable []` (JLS §10.1).
+    /// * `element`: Never an array type.
+    /// * `dims`: Dimensions in source order. In `int @A [] @B []`, `@A` annotates
     #[inline]
     pub fn new_array_type(
         span: Span,
         element: Type<'a>,
-        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Array(ArrayType::boxed(span, element, annotations, builder.builder()))
+        Self::Array(ArrayType::boxed(span, element, dims, builder.builder()))
     }
 
     /// Build a [`TypeArgument::Simple`].

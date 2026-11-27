@@ -36,9 +36,7 @@ use crate::formatter::trivia::{
     format_trailing_comments,
 };
 use crate::print::annotations::{format_modifiers_inline, format_type_annotations};
-use crate::print::array_dimension::{
-    format_array_type_dimensions, format_dimension_after, format_type_dimension,
-};
+use crate::print::array_dimension::format_array_type_dimensions;
 use crate::print::binary_like_expression::BinaryLikeExpression;
 use crate::print::call_like_expression::arguments::format_arguments;
 use crate::print::member_expression::{
@@ -892,9 +890,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayType<'a>> {
         let element = self.element();
         let element_end = element.span().end;
         format_content_without_comments_after(&element, element_end, f);
-        let dimension = format_with(|f| {
-            format_type_dimension(f, &self.annotations(), element_end, self.span.end);
-        });
-        format_dimension_after(f, element_end, !self.annotations.is_empty(), &dimension);
+        format_array_type_dimensions(f, element_end, &self.dims());
     }
 }

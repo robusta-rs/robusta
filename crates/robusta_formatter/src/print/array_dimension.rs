@@ -31,56 +31,46 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayCreation<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayDimension<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let Some(length) = self.length() else {
+            format_empty_dimension(f, &self.annotations(), self.span);
+            return;
+        };
         format_type_annotations(f, &self.annotations());
-        if let Some(length) = self.length() {
-            format_delimited_frame(f, "[", "]", None, |f| length.fmt(f));
-        } else {
-            let open_end = f.comments().position_after_character(
-                self.annotations.last().map_or(self.span.start, |last| last.span.end),
-                b'[',
-            );
-            write!(
-                f,
-                [
-                    "[",
-                    format_dangling_comments(Span::new(open_end, self.span.end))
-                        .with_soft_block_indent(),
-                    "]"
-                ]
-            );
-        }
+        format_delimited_frame(f, "[", "]", None, |f| length.fmt(f));
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayTypeDimension<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        format_type_dimension(f, &self.annotations(), self.span.start, self.span.end);
+        format_empty_dimension(f, &self.annotations(), self.span);
     }
 }
 
-/// A dimension's type-use annotations and its `[]`, which ends at `end`.
-/// `preceding_end` is where the text before the dimension ends.
-pub(super) fn format_type_dimension<'a>(
+/// A dimension's type-use annotations and its `[]`, which together span `span`.
+fn format_empty_dimension<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     annotations: &AstNode<'_, 'a, Vec<'a, Annotation<'a>>>,
-    preceding_end: u32,
-    end: u32,
+    span: Span,
 ) {
     format_type_annotations(f, annotations);
     let open_end = f.comments().position_after_character(
-        annotations.last().map_or(preceding_end, |last| last.span.end),
+        annotations.last().map_or(span.start, |last| last.span.end),
         b'[',
     );
     write!(
         f,
-        ["[", format_dangling_comments(Span::new(open_end, end)).with_soft_block_indent(), "]"]
+        [
+            "[",
+            format_dangling_comments(Span::new(open_end, span.end)).with_soft_block_indent(),
+            "]"
+        ]
     );
 }
 
-/// Dimensions written apart from the type they extend, after a declarator's
-/// name (`int a[]`) or a method's parameter list (`int f()[]`). `preceding_end`
-/// is where the text before the first dimension ends; returns where the last
-/// one ends.
+/// An array type's dimensions (`int[]`), or those after a declarator's name
+/// (`int a[]`) or a method's parameter list (`int f()[]`). `preceding_end` is
+/// where the text before the first dimension ends; returns where the last one
+/// ends.
 pub fn format_array_type_dimensions<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     preceding_end: u32,
@@ -92,7 +82,7 @@ pub fn format_array_type_dimensions<'a>(
 /// A dimension after the text ending at `preceding_end`, separated from it by
 /// the comments before its `[`, or by a space before its first annotation,
 /// where the leading pass of the node starting there prints them.
-pub(super) fn format_dimension_after<'a>(
+fn format_dimension_after<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     preceding_end: u32,
     annotated: bool,
@@ -106,8 +96,8 @@ pub(super) fn format_dimension_after<'a>(
     }
 }
 
-/// [`dimensions_wrap_line`] for dimensions written apart from the type they
-/// extend, as [`format_array_type_dimensions`] prints them.
+/// [`dimensions_wrap_line`] for the dimensions [`format_array_type_dimensions`]
+/// prints.
 pub fn array_type_dimensions_wrap_line(
     f: &JavaFormatter<'_, '_>,
     preceding_end: u32,
@@ -141,9 +131,7 @@ pub fn type_wraps_line(f: &JavaFormatter<'_, '_>, ty: &Type<'_>) -> bool {
     let Type::Array(array) = ty else {
         return false;
     };
-    let element_end = array.element.span().end;
-    (array.annotations.is_empty() && comment_ends_line_before_opener(element_end, f))
-        || type_wraps_line(f, &array.element)
+    array_type_dimensions_wrap_line(f, array.element.span().end, &array.dims)
 }
 
 /// `dimensions` after the text ending at `preceding_end`; returns where the
