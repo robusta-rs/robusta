@@ -78,6 +78,7 @@ rand = "0.10.2"
 rayon = "1.12.0"
 rust-lapper = "2.0.0"
 rustc-hash = "2"
+saphyr = "0.4.0"
 schemars = { package = "oxc-schemars", version = "0.9.1" }
 self_cell = "1.2.2"
 serde = { version = "1", features = ["derive"] }

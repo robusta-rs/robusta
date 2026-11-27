@@ -27,7 +27,7 @@ robusta_tasks_common.workspace = true
 
 humansize.workspace = true
 mimalloc-safe.workspace = true
-serde-saphyr.workspace = true
+saphyr.workspace = true
 
 [features]
 # Sentinel flag that should only get enabled if we're running under `--all-features`

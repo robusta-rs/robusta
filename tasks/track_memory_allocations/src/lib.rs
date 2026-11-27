@@ -1,9 +1,10 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/f9ed53b1e82cb35a1118de673be637791d60676d/tasks/track_memory_allocations/src/lib.rs
 
-use std::{collections::BTreeMap, fmt::Write as _, fs, io, path::Path};
+use std::{fmt::Write as _, fs, io, path::Path};
 
 use humansize::{DECIMAL, format_size};
 use mimalloc_safe::MiMalloc;
+use saphyr::{LoadableYamlNode, SafelyIndex, Yaml};
 
 use robusta_allocator::Allocator;
 use robusta_formatter::Options;
@@ -468,19 +469,16 @@ impl Metric {
     ///
     /// [`MetricKind::Bytes`] metrics keep the committed value when the measured one is
     /// within their tolerance of it; everything else records the measured value exactly.
-    fn snapshot_value(&self, committed: Option<usize>) -> usize {
+    fn snapshot_value(&self, committed: Option<i64>) -> usize {
         let MetricKind::Bytes { tolerance } = self.kind else {
             return self.value;
         };
-        let Some(committed) = committed else {
+        let Some(committed) = committed.and_then(|value| usize::try_from(value).ok()) else {
             return self.value;
         };
         if self.value.abs_diff(committed) <= tolerance { committed } else { self.value }
     }
 }
-
-/// Committed snapshot values, by test file name and then metric label.
-type Snapshot = BTreeMap<String, BTreeMap<String, usize>>;
 
 /// Writes one snapshot file, formatted as a YAML mapping per test file.
 ///
@@ -490,14 +488,15 @@ type Snapshot = BTreeMap<String, BTreeMap<String, usize>>;
 fn write_snapshot(file_name: &str, entries: &[(&TestFile, StageStats)]) -> Result<(), io::Error> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(file_name);
     let committed = fs::read_to_string(&path).unwrap_or_default();
-    let committed: Snapshot = serde_saphyr::from_str(&committed).unwrap_or_default();
+    let committed_docs = Yaml::load_from_str(&committed).unwrap_or_default();
 
     let mut out = String::new();
+    let committed_doc = committed_docs.first();
     for (i, (file, stats)) in entries.iter().enumerate() {
         if i > 0 {
             out.push('\n');
         }
-        let committed_file = committed.get(file.file_name);
+        let committed_file = committed_doc.get(file.file_name);
         let metrics = stats.metrics(file.source_text.len());
         render_file_stats(&mut out, file.file_name, &metrics, committed_file);
     }
@@ -514,11 +513,11 @@ fn render_file_stats(
     out: &mut String,
     file_name: &str,
     metrics: &[Metric],
-    committed_file: Option<&BTreeMap<String, usize>>,
+    committed_file: Option<&Yaml<'_>>,
 ) {
     writeln!(out, "{file_name}:").unwrap();
     for metric in metrics {
-        let committed = committed_file.and_then(|file| file.get(metric.label)).copied();
+        let committed = committed_file.get(metric.label).and_then(Yaml::as_integer);
         let value = metric.snapshot_value(committed);
         match metric.kind {
             MetricKind::Count => writeln!(out, "  {}: {value}", metric.label),
