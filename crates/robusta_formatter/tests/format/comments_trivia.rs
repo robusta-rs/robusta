@@ -1327,6 +1327,59 @@ fn a_comment_kept_before_a_dimension_indents_as_a_wrapped_line() {
     ");
 }
 
+/// A line comment after a method's name rides past the empty `()` and any `[]`
+/// up to the next comment, so a block comment before a `[` starts the next line,
+/// indented as a wrapped line.
+#[test]
+fn a_comment_after_a_riding_name_comment_indents_a_dimension_as_a_wrapped_line() {
+    let source = "class Grid { int[] row // first\n() /* cells */[] { return null; } \
+                  int column // last\n()[] /* cells */[] { return null; } \
+                  int[] edge() /* cells */ [] { return null; } \
+                  int[] corner() // shared\n[] { return null; } }";
+    assert_snapshot!(fmt(source), @"
+    class Grid {
+      int[] row() // first
+        /* cells */ [] {
+        return null;
+      }
+
+      int column()[] // last
+        /* cells */ [] {
+        return null;
+      }
+
+      int[] edge() /* cells */[] {
+        return null;
+      }
+
+      int[] corner() // shared
+        [] {
+        return null;
+      }
+    }
+    ");
+}
+
+/// The riding name comment meets a comment inside a dimension's brackets,
+/// which flushes it after the `[`. The second pass moves it onto its own line.
+#[test]
+fn a_comment_inside_a_dimension_after_a_riding_name_comment_moves_on_a_second_pass() {
+    assert_snapshot!(fmt("class Grid { int row // first\n() [ /* cells */ ] {} }"), @"
+    class Grid {
+      int row()[ // first
+        /* cells */
+      ] {}
+    }
+    ---------- Not idempotent (second pass) ----------
+    class Grid {
+      int row()[
+        // first
+        /* cells */
+      ] {}
+    }
+    ");
+}
+
 #[test]
 fn the_code_after_a_dimension_kept_after_a_comment_continues_its_wrapped_line() {
     let source = "class Grid {\n\

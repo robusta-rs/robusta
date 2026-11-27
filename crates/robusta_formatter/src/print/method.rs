@@ -15,9 +15,9 @@ use crate::utils::format_node_without_trailing_comments::format_content_without_
 use crate::utils::statement_body::format_head_body;
 use robusta_allocator::Vec;
 use robusta_ast::{
-    AnnotationInterfaceElementDeclaration, ArrayTypeDimension, CompactConstructorDeclaration,
-    ConstructorDeclaration, FormalParameters, MethodDeclaration, MethodResult, Modifier, Type,
-    TypeParameters,
+    AnnotationInterfaceElementDeclaration, ArrayTypeDimension, Comment,
+    CompactConstructorDeclaration, ConstructorDeclaration, FormalParameters, MethodDeclaration,
+    MethodResult, Modifier, Type, TypeParameters,
 };
 use robusta_formatter_core::{format_args, write};
 use robusta_span::GetSpan;
@@ -91,24 +91,30 @@ struct Signature<'parent, 'a, Name> {
 }
 
 impl<Name: GetSpan> Signature<'_, '_, Name> {
-    /// Record the line comment that ends the line of the name, or of a
-    /// constructor's type parameters, as moved behind the declaration ending
-    /// at `end`. Called after an empty body or a `;`: with an empty `()` and no
-    /// `throws` clause, no line breaks between them.
-    fn mark_name_comment_moved_behind(&self, end: u32, f: &JavaFormatter<'_, '_>) {
+    /// The line comment that ends the line of the name, or of a constructor's
+    /// type parameters, when it rides past an empty `()`.
+    fn name_comment_past_parameters(&self, f: &JavaFormatter<'_, '_>) -> Option<Comment> {
         let parameters = &self.parameters;
-        if parameters.receiver.is_some() || !parameters.items.is_empty() || !self.throws.is_empty()
-        {
-            return;
+        if parameters.receiver.is_some() || !parameters.items.is_empty() {
+            return None;
         }
         let start = match (&self.return_type, &self.type_params) {
             (None, Some(type_params)) => type_params.span.end,
             _ => self.name.span().start,
         };
-        if let Some(comment) = f.comments().printed_line_comment_after(start)
-            && comment.span.end <= parameters.span.start
-            && !comment.preceded_by_newline()
-            && !comment.is_documentation()
+        f.comments().printed_line_comment_after(start).filter(|comment| {
+            comment.span.end <= parameters.span.start
+                && !comment.preceded_by_newline()
+                && !comment.is_documentation()
+        })
+    }
+
+    /// Record [`Self::name_comment_past_parameters`] as moved behind the
+    /// declaration ending at `end`. Called after an empty body or a `;`: with
+    /// no `throws` clause, no line breaks between them and the `()`.
+    fn mark_name_comment_moved_behind(&self, end: u32, f: &JavaFormatter<'_, '_>) {
+        if self.throws.is_empty()
+            && let Some(comment) = self.name_comment_past_parameters(f)
         {
             f.comments().mark_line_comment_moved_behind(end, &comment);
         }
@@ -221,6 +227,17 @@ where
     format_declaration_header(f, head_end, clause, |f| {
         let list = format_parameter_list(f, &signature.parameters);
         if let Some(dimensions) = signature.dimensions {
+            // The name's line comment also rides past each `[]` before the
+            // next comment, so it moves behind the last of them.
+            if let Some(comment) = signature.name_comment_past_parameters(f) {
+                let comments = f.comments();
+                let end = dimensions
+                    .iter()
+                    .take_while(|dimension| !comments.has_comment_before(dimension.span.end))
+                    .last()
+                    .map_or(params_end, |dimension| dimension.span.end);
+                comments.mark_line_comment_moved_behind(end, &comment);
+            }
             format_array_type_dimensions(f, params_end, &dimensions);
         }
         list
