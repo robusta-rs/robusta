@@ -587,11 +587,27 @@ fn comments_before_type_parameters_trail_the_name_or_lead_the_first_parameter() 
         // b
         T> {}
 
-    class Z</* c */ T> {}
+    class Z /* c */<T> {}
 
-    interface I</* d */ /* e */ T> extends J {}
+    interface I /* d */ /* e */<T> extends J {}
 
-    record R</* f */ T>(int x) {}
+    record R /* f */<T>(int x) {}
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn block_comments_ending_the_line_before_type_parameters_trail_the_name() {
+    let source = "class A /* c */\n<T> {}\nrecord R /* c */\n<T>(T t) {}\n\
+                  class K /** d */ /* b */\n<T extends B> {\n  int x;\n}";
+    assert_snapshot!(fmt(source), @"
+    class A /* c */<T> {}
+
+    record R /* c */<T>(T t) {}
+
+    class K /** d */ /* b */<T extends B> {
+      int x;
+    }
     ");
     check_contract_at_widths_and_modes(source);
 }

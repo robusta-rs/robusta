@@ -10,7 +10,6 @@ use smallvec::SmallVec;
 
 use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
-use crate::formatter::trivia::FormatTrailingComments;
 use crate::print::annotations::format_type_annotations;
 use crate::print::member_expression::{
     Member, MemberLayout, format_comments_around_member_separator, format_member_after_object,
@@ -19,7 +18,9 @@ use crate::print::member_expression::{
 use crate::print::{FormatWrite, format_indented_continuation_with_mode};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::is_header_condition;
-use crate::utils::statement_body::format_after_comments_before_opener;
+use crate::utils::statement_body::{
+    format_after_comments_before_opener, write_same_line_comments_before_opener,
+};
 
 // A name keeps its source spelling, escapes included.
 fn format_identifier(span: Span, f: &mut JavaFormatter<'_, '_>) {
@@ -196,10 +197,7 @@ pub fn format_class_type_name<'a>(
     if created {
         format_after_comments_before_opener(end, b'<', &args, f);
     } else {
-        let comments = f.comments().comments_before_character(end, b'<');
-        let same_line =
-            comments.iter().take_while(|comment| !comment.preceded_by_newline()).count();
-        FormatTrailingComments::Comments(&comments[..same_line]).fmt(f);
+        write_same_line_comments_before_opener(end, b'<', f);
         args.fmt(f);
     }
 }

@@ -72,6 +72,20 @@ pub fn write_comments_before_opener(start: u32, opener: u8, f: &mut JavaFormatte
     write_comments_between_blocks(comments, f);
 }
 
+/// Print the pending comments on `start`'s line before the next `opener` as
+/// trailing comments of the code before it, and leave those on later lines to
+/// lead the code after it, so a block comment that ends its line prints as it
+/// does once joined to the opener.
+pub fn write_same_line_comments_before_opener(
+    start: u32,
+    opener: u8,
+    f: &mut JavaFormatter<'_, '_>,
+) {
+    let comments = f.comments().comments_before_character(start, opener);
+    let same_line = comments.iter().take_while(|comment| !comment.preceded_by_newline()).count();
+    FormatTrailingComments::Comments(&comments[..same_line]).fmt(f);
+}
+
 /// [`write_comments_before_opener`], then `code`, which starts at the opener.
 /// When a comment ends its line there, the comments and `code` are indented as
 /// a wrapped line.
