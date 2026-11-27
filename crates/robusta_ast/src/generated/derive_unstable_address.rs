@@ -27,8 +27,6 @@ impl UnstableAddress for ModuleDeclaration<'_> {}
 
 impl UnstableAddress for RequiresDirective<'_> {}
 
-impl UnstableAddress for RequiresModifier {}
-
 impl UnstableAddress for PackageDirective<'_> {}
 
 impl UnstableAddress for UsesDirective<'_> {}

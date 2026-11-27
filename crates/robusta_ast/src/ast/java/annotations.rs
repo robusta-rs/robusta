@@ -89,4 +89,6 @@ pub enum ModifierKind {
     Synchronized = 11,
     Transient = 12,
     Volatile = 13,
+    /// Contextual `transitive`, only in a `requires` directive (JLS §7.7.1).
+    Transitive = 14,
 }

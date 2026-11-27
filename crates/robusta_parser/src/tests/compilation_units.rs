@@ -219,14 +219,14 @@ fn parses_module_declaration_directives() {
         panic!("expected a requires directive");
     };
     assert_eq!(requires.modifiers.len(), 1);
-    assert_eq!(requires.modifiers[0].kind, RequiresModifierKind::Transitive);
+    assert_eq!(requires.modifiers[0].kind, ModifierKind::Transitive);
     assert_eq!(name_parts(&requires.name), ["java", "compiler"]);
 
     let ModuleDirective::Requires(static_requires) = &module.directives[1] else {
         panic!("expected a requires directive");
     };
     assert_eq!(static_requires.modifiers.len(), 1);
-    assert_eq!(static_requires.modifiers[0].kind, RequiresModifierKind::Static);
+    assert_eq!(static_requires.modifiers[0].kind, ModifierKind::Static);
 
     let ModuleDirective::Requires(transitive_module) = &module.directives[2] else {
         panic!("expected a requires directive");
@@ -251,6 +251,19 @@ fn parses_module_declaration_directives() {
         panic!("expected a provides directive");
     };
     assert_eq!(provides.with.len(), 2);
+}
+
+#[test]
+fn requires_modifiers_keep_source_order() {
+    let allocator = Allocator::new();
+    let result = parse(&allocator, "module m { requires transitive static a; }");
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    let ModuleDirective::Requires(requires) = &result.unit.module().unwrap().directives[0] else {
+        panic!("expected a requires directive");
+    };
+    let kinds =
+        requires.modifiers.iter().map(|modifier| modifier.kind).collect::<std::vec::Vec<_>>();
+    assert_eq!(kinds, [ModifierKind::Transitive, ModifierKind::Static]);
 }
 
 #[test]

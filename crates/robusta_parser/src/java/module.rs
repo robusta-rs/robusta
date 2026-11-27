@@ -113,11 +113,7 @@ impl<'a> Parser<'a> {
             loop {
                 // `static` is always a modifier here.
                 if let Some(tok) = self.eat(TokenKind::Static) {
-                    modifiers.push(RequiresModifier::new(
-                        tok.span,
-                        RequiresModifierKind::Static,
-                        self,
-                    ));
+                    modifiers.push(KeywordModifier::new(tok.span, ModifierKind::Static, self));
                     continue;
                 }
                 // `requires transitive;` names a module (JLS §7.7.1).
@@ -125,11 +121,7 @@ impl<'a> Parser<'a> {
                     && (self.nth_kind(1).is_identifier() || self.nth_kind(1) == TokenKind::Static)
                 {
                     let tok = self.bump();
-                    modifiers.push(RequiresModifier::new(
-                        tok.span,
-                        RequiresModifierKind::Transitive,
-                        self,
-                    ));
+                    modifiers.push(KeywordModifier::new(tok.span, ModifierKind::Transitive, self));
                     continue;
                 }
                 break;

@@ -99,18 +99,6 @@ impl ContentEq for RequiresDirective<'_> {
     }
 }
 
-impl ContentEq for RequiresModifier {
-    fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.kind, &other.kind)
-    }
-}
-
-impl ContentEq for RequiresModifierKind {
-    fn content_eq(&self, other: &Self) -> bool {
-        self == other
-    }
-}
-
 impl ContentEq for PackageDirective<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.kind, &other.kind)

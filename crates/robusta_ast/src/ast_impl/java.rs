@@ -45,15 +45,6 @@ impl<'a> CompilationUnit<'a> {
     }
 }
 
-impl RequiresModifierKind {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            RequiresModifierKind::Transitive => "transitive",
-            RequiresModifierKind::Static => "static",
-        }
-    }
-}
-
 impl PackageDirectiveKind {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -344,6 +335,7 @@ impl ModifierKind {
             ModifierKind::Synchronized => "synchronized",
             ModifierKind::Transient => "transient",
             ModifierKind::Volatile => "volatile",
+            ModifierKind::Transitive => "transitive",
         }
     }
 }

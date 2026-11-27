@@ -67,7 +67,7 @@ pub fn format_inline_nodes<'ast>(
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, KeywordModifier> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        text_without_whitespace(self.kind.as_str()).fmt(f);
+        self.kind.as_str().fmt(f);
     }
 }
 

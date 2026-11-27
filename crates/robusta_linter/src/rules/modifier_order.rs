@@ -112,7 +112,7 @@ fn keyword_modifier<'modifier>(modifier: &'modifier Modifier<'_>) -> &'modifier 
     }
 }
 
-const fn modifier_rank(kind: ModifierKind) -> u8 {
+fn modifier_rank(kind: ModifierKind) -> u8 {
     match kind {
         ModifierKind::Public => 0,
         ModifierKind::Protected => 1,
@@ -128,6 +128,7 @@ const fn modifier_rank(kind: ModifierKind) -> u8 {
         ModifierKind::Synchronized => 11,
         ModifierKind::Native => 12,
         ModifierKind::Strictfp => 13,
+        ModifierKind::Transitive => unreachable!("only a `requires` directive is `transitive`"),
     }
 }
 
@@ -212,6 +213,12 @@ mod tests {
 
         let report = tester.fixes("non-sealed final class A {}", "final non-sealed class A {}");
         insta::assert_snapshot!(report, @r#"1:1: warning[modifier-order]: modifiers are not in the canonical order ("non-sealed final")"#);
+    }
+
+    #[test]
+    fn ignores_requires_directive_modifiers() {
+        Tester::new(&MODIFIER_ORDER)
+            .passes("module m { requires static transitive a; requires transitive static b; }");
     }
 
     #[test]

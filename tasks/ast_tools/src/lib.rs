@@ -260,7 +260,7 @@ mod tests {
             .filter(|item| item.visit.has_visitor() && !item.kind.has_kind)
             .map(|item| item.name.as_str())
             .collect::<Vec<_>>();
-        assert_eq!(without_kind, ["RequiresModifier", "KeywordModifier"]);
+        assert_eq!(without_kind, ["KeywordModifier"]);
         for name in ["OrdinaryCompilationUnit", "CompactCompilationUnit", "ModularCompilationUnit"]
         {
             assert!(schema.type_by_name(name).as_struct().unwrap().kind.has_kind, "{name}");

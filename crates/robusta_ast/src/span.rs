@@ -10,10 +10,6 @@ mod tests {
     fn derived_records_expose_source_spans() {
         let allocator = &Allocator::new();
         let builder = AstBuilder::new(allocator);
-        let requires_modifier =
-            RequiresModifier::new(Span::new(9, 19), RequiresModifierKind::Transitive, &builder);
-        assert_eq!(requires_modifier.span(), Span::new(9, 19));
-
         let keyword_modifier =
             KeywordModifier::new(Span::new(20, 26), ModifierKind::Public, &builder);
         assert_eq!(keyword_modifier.span(), Span::new(20, 26));

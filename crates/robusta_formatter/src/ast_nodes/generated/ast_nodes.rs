@@ -1163,7 +1163,7 @@ impl<'a> AstNode<'_, 'a, RequiresDirective<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::RequiresDirective(self)
     }
-    pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, RequiresModifier>> {
+    pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, KeywordModifier>> {
         AstNode {
             inner: &self.inner.modifiers,
             parent: self.as_ast_nodes(),
@@ -1178,7 +1178,6 @@ impl<'a> AstNode<'_, 'a, RequiresDirective<'a>> {
         }
     }
 }
-impl AstNode<'_, '_, RequiresModifier> {}
 impl<'a> AstNode<'_, 'a, PackageDirective<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::PackageDirective(self)
