@@ -1,4 +1,4 @@
-// Adapted from https://github.com/oxc-project/oxc/blob/0e6498f7e218420153910074d5a55bbef7c1c1d4/crates/oxc_formatter/src/formatter/trivia.rs
+// Adapted from https://github.com/oxc-project/oxc/blob/cf50f9bff808764c0bb7c21591843827816a4f2d/crates/oxc_formatter/src/formatter/trivia.rs
 
 use crate::formatter::prelude::*;
 use crate::{CommentLineStrategy, JavaLabels};
@@ -228,17 +228,25 @@ impl<'a> Format<'a, crate::JavaFormatContext<'a>> for FormatDanglingComments {
             for (index, &comment) in comments.iter().enumerate() {
                 f.comments().increment_printed_count(&comment);
                 let rest = &comments[index + 1..];
-                let nestle = rest
-                    .first()
-                    .is_some_and(|&next| should_nestle_adjacent_comments(comment, next, f));
-                let ends_line = comment.is_line() || (!rest.is_empty() && !nestle);
+                let next = rest.first().copied();
+                let nestle =
+                    next.is_some_and(|next| should_nestle_adjacent_comments(comment, next, f));
                 if index == 0
                     && f.lines_before(comment.span) > 0
                     && lines_before_output(comment.span.end, rest, span.end, f) > 0
                 {
                     expand_parent().fmt(f);
                 }
-                format_run_comment(comment, rest.first().copied(), own_line, ends_line, f);
+                format_comment_text(comment, own_line).fmt(f);
+                if comment.is_line() || (next.is_some() && !nestle) {
+                    // A blank line between them is kept, as between statements
+                    let line = if next.is_some_and(|next| f.lines_before(next.span) > 1) {
+                        empty_line()
+                    } else {
+                        hard_line_break()
+                    };
+                    format_comment_line_end(comment, next, line, f);
+                }
             }
         });
         match indent {
@@ -344,7 +352,10 @@ fn format_comment_slice_before_token(comments: &[Comment], f: &mut JavaFormatter
             .fmt(f);
             hard_line_break().fmt(f);
         } else {
-            format_run_comment(comment, next, false, comment.is_line(), f);
+            format_comment_text(comment, false).fmt(f);
+            if comment.is_line() {
+                format_comment_line_end(comment, next, hard_line_break(), f);
+            }
         }
         line_already_written = comment.is_line();
     }
@@ -423,20 +434,6 @@ fn following_line_start(following_start: u32, f: &JavaFormatter<'_, '_>) -> u32 
         line_start(f.source_text().as_str(), following_start)
     } else {
         0
-    }
-}
-
-/// Format `comment` from a run, ending its line when `ends_line` holds.
-fn format_run_comment(
-    comment: Comment,
-    next: Option<Comment>,
-    own_line: bool,
-    ends_line: bool,
-    f: &mut JavaFormatter<'_, '_>,
-) {
-    format_comment_text(comment, own_line).fmt(f);
-    if ends_line {
-        format_comment_line_end(comment, next, hard_line_break(), f);
     }
 }
 

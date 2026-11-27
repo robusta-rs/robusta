@@ -107,10 +107,10 @@ fn comments_keep_their_place_around_inherited_choice_variants() {
 }
 
 #[test]
-fn blank_lines_between_body_comments_need_a_following_entry() {
+fn blank_lines_between_body_comments_stay_without_a_following_entry() {
     for marker in ["//", "///", "/*"] {
         let end = if marker == "/*" { " */" } else { "" };
-        let comments = format!("{marker} first{end}\n\n{marker} last{end}\n");
+        let comments = format!("{marker} first{end}\n\n\n{marker} last{end}\n");
         for (source, expected) in [
             (
                 format!("class A {{\n{comments}void f() {{}}}}"),
@@ -121,8 +121,12 @@ fn blank_lines_between_body_comments_need_a_following_entry() {
             (
                 format!("class A {{void f() {{\n{comments}}}}}"),
                 format!(
-                    "class A {{\n  void f() {{\n    {marker} first{end}\n    {marker} last{end}\n  }}\n}}\n"
+                    "class A {{\n  void f() {{\n    {marker} first{end}\n\n    {marker} last{end}\n  }}\n}}\n"
                 ),
+            ),
+            (
+                format!("class A {{\n{comments}}}"),
+                format!("class A {{\n  {marker} first{end}\n\n  {marker} last{end}\n}}\n"),
             ),
         ] {
             assert_eq!(format_stable(&source), expected);
@@ -1511,7 +1515,8 @@ fn comment_run_after_an_empty_opener_keeps_its_space() {
 fn dangling_comments_take_a_line_each_unless_one_fits_inline() {
     let source = "class A { void m() { foo(/* a */); foo(/* a */ // b\n); foo(\n/* a */\n); \
                   foo(\n/* a */\n\n\n/* b */\n); } int[] g = {\n// a\n\n// b\n}; \
-                  void n(/* a */ // b\n) {} @A({/* a */ // b\n}) int z; }";
+                  void n(/* a */ // b\n) {} void p(\n// a\n\n// b\n) {} \
+                  @A({/* a */ // b\n}) int z; }";
     assert_snapshot!(format_stable(source), @"
     class A {
       void m() {
@@ -1525,17 +1530,25 @@ fn dangling_comments_take_a_line_each_unless_one_fits_inline() {
         );
         foo(
           /* a */
+
           /* b */
         );
       }
 
       int[] g = {
         // a
+
         // b
       };
 
       void n(
         /* a */
+        // b
+      ) {}
+
+      void p(
+        // a
+
         // b
       ) {}
 

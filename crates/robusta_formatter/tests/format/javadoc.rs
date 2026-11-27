@@ -768,6 +768,7 @@ fn spaces_after_the_last_line_of_a_markdown_comment_are_dropped() {
                 "class A {\n  /// a  \n\n  // b\n  void f() {}\n}\n",
                 "class A {\n  /// a\n\n  // b\n  void f() {}\n}\n",
             ),
+            ("class A {\n  /// a  \n\n  // b\n}\n", "class A {\n  /// a\n\n  // b\n}\n"),
             ("/// ```\n/// b\n/// ```  \nclass A {}\n", "/// ```\n/// b\n/// ```\nclass A {}\n"),
             (
                 "class A {\n  public\n  /// first  \n  /* second\n   third */ static int a;\n}\n",
@@ -789,6 +790,7 @@ fn spaces_after_the_last_line_of_markdown_code_are_kept() {
         "/// a\n///\n/// \tcode  \nclass A {}\n",
         "class A {\n  void m() {\n    /// a\n    ///\n    ///     code\t\n    int x;\n  }\n}\n",
         "class A {\n  /// a\n  ///\n  ///     code  \n\n  // b\n  void f() {}\n}\n",
+        "class A {\n  /// a\n  ///\n  ///     code  \n\n  // b\n}\n",
     ] {
         assert_eq!(format_stable_with_options(source, &Options::default()), source);
     }
@@ -826,6 +828,7 @@ fn markdown_hard_breaks_survive_inside_comment_gaps() {
     let cases = [
         "class A {\n  int m() {\n    return a\n      /// first  \n      /// second\n      + b;\n  }\n}\n",
         "class A {\n  void m() {\n    /// first  \n    /// second\n  }\n}\n",
+        "class A {\n  void m() {\n    /// first  \n    /// second\n\n    // third\n  }\n}\n",
         "class A {\n  void m(\n    /// first  \n    /// second\n    int a\n  ) {}\n}\n",
         "class A {\n  /// ```\n  /// code  \n  ///\n  /// \ttab\t\n  /// ```\n  int x;\n}\n",
         "class A {\n  int x; /// first  \n  /// second\n  int y;\n}\n",
