@@ -140,8 +140,7 @@ fn parse_config_file(source: &str, path: Option<&Path>) -> Result<ConfigFile, Co
 
 fn load_config_with_path(source: &str, path: &Path) -> Result<LoadedConfig, ConfigError> {
     let config = parse_config_file(source, Some(path))?;
-    let format =
-        config.format.as_ref().map(|format| format.format_config.clone()).unwrap_or_default();
+    let format = config.format.as_ref().map_or_default(|format| format.format_config.clone());
     let run_option = config.lint.as_ref().and_then(|lint| first_run_option(&lint.options));
     let config = into_config(config, Some(path))?;
     Ok(LoadedConfig { path: path.to_path_buf(), config, format, run_option })

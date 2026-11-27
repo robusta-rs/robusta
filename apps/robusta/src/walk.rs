@@ -287,7 +287,7 @@ impl ConfigResolver {
             .as_deref()
             .map(|path| load_selection(out, path, features, filters))
             .transpose()?;
-        let run_options = main.as_ref().map(|main| main.run_options).unwrap_or_default();
+        let run_options = main.as_ref().map_or_default(|main| main.run_options);
         let mode = if options.config.is_some() || options.no_nested_config {
             ConfigResolution::Single(main.map(Box::new))
         } else {

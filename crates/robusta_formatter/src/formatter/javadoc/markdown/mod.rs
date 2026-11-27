@@ -147,8 +147,7 @@ fn section_edits(section: &str, protected: &[Range<usize>], capitalize: bool) ->
             edits
         } else {
             apply(&content, &mut edits)
-                .map(|edited| vec![Edit::new(0..section.len(), edited)])
-                .unwrap_or_default()
+                .map_or_default(|edited| vec![Edit::new(0..section.len(), edited)])
         };
     }
 }

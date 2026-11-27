@@ -113,10 +113,7 @@ impl ParserDiagnostic {
                 message == *own
             }
             Self::variable_operand { op, .. } => {
-                message
-                    .strip_prefix("the operand of `")
-                    .and_then(|message| message.strip_suffix("` must be a variable"))
-                    == Some(*op)
+                message.strip_circumfix("the operand of `", "` must be a variable") == Some(*op)
             }
             Self::Eager(diagnostic) => message == diagnostic.message,
         }

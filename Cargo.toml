@@ -19,7 +19,7 @@ description = "A fast, Rust-native Java formatter and linter."
 edition = "2024"
 # MSRV Policy N-2 (12 weeks).
 # Balance between the core contributors enjoying the latest version of rustc, while waiting for dependents to catch up.
-rust-version = "1.97.0"
+rust-version = "1.98.0"
 
 [workspace.dependencies]
 bpaf = { version = "0.9.26", features = ["derive"] }

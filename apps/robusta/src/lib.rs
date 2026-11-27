@@ -32,7 +32,6 @@ pub mod cli {
 ///
 /// Flushing owns the last word: a failed write turns any outcome into an
 /// operational failure.
-#[must_use]
 pub fn run_cli() -> ExitCode {
     let mut out = Output::stdio();
     let command = match command::parse(&mut out) {

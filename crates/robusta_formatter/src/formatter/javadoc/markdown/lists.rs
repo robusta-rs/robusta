@@ -65,7 +65,7 @@ impl Normalizer<'_> {
                         .to_string();
                     if number.len() != digits {
                         numbers.extend(self.item_indentation(
-                            item_range.clone(),
+                            item_range,
                             start..start + digits,
                             number.len(),
                         ));

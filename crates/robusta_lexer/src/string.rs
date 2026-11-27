@@ -69,7 +69,7 @@ fn string_content(raw: &str) -> Option<&str> {
     if raw.starts_with("\"\"\"") {
         return None;
     }
-    raw.strip_prefix('"')?.strip_suffix('"')
+    raw.strip_circumfix('"', '"')
 }
 
 /// Decode the escape sequences in Unicode-translated string content.

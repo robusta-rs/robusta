@@ -222,7 +222,7 @@ fn java_body(text: &str) -> Option<Range<usize>> {
         return None;
     }
     let end = balanced_inline_end(text, start)?;
-    let close = text[end..].trim().strip_prefix("</")?.strip_suffix('>')?.trim_end();
+    let close = text[end..].trim().strip_circumfix("</", '>')?.trim_end();
     close.eq_ignore_ascii_case("pre").then_some(start + "{@code".len()..end - 1)
 }
 
