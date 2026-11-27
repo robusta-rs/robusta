@@ -53,7 +53,7 @@ declare_robusta_lint! {
     /// parameter whose declaration shows it, so `x + y` with an unknown `y` may
     /// be string concatenation and is not reported.
     BrokenNullCheck {
-        id: BROKEN_NULL_CHECK_ID = "broken-null-check",
+        id: BROKEN_NULL_CHECK_ID,
         rule: BROKEN_NULL_CHECK,
         summary: "Reports a null comparison whose short-circuited operand dereferences the value just proved null.",
         category: Correctness,

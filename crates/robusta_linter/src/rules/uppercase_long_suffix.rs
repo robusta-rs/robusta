@@ -9,7 +9,7 @@ use crate::{FixKind, LintContext, Rule, RuleFixMeta};
 declare_robusta_lint! {
     /// Replaces the visually ambiguous lowercase `l` suffix on integer literals.
     UppercaseLongSuffix {
-        id: UPPERCASE_LONG_SUFFIX_ID = "uppercase-long-suffix",
+        id: UPPERCASE_LONG_SUFFIX_ID,
         rule: UPPERCASE_LONG_SUFFIX,
         summary: "Reports integer literals with the visually ambiguous lowercase `l` long suffix.",
         category: Style,

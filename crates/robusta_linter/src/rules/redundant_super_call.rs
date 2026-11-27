@@ -26,7 +26,7 @@ declare_robusta_lint! {
     /// could come next, since deleting it could attach the comment to that
     /// declaration.
     RedundantSuperCall {
-        id: REDUNDANT_SUPER_CALL_ID = "redundant-super-call",
+        id: REDUNDANT_SUPER_CALL_ID,
         rule: REDUNDANT_SUPER_CALL,
         summary: "Reports an explicit leading `super()` equivalent to the implicit constructor invocation.",
         category: Pedantic,

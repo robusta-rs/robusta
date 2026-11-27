@@ -9,9 +9,9 @@ mod declare_robusta_lint;
 /// Declares one lint rule: its stable-ID const, its doc-commented struct, its
 /// registry static, and its `DeclaredRule` metadata impl.
 ///
-/// The hand-written half is only the `impl Rule` beneath it. The rule ID must
-/// match the rule's file name (with `-` for `_`); the linter's registry test
-/// enforces that.
+/// The hand-written half is only the `impl Rule` beneath it. The rule ID is
+/// the struct name in kebab case, and must match the rule's file name (with
+/// `-` for `_`); the linter's registry test enforces that.
 ///
 /// `node_types` lists the `AstKind` variants the rule's `run` matches on, or
 /// `any` for a rule that inspects every node. The optional `settings` names
@@ -23,7 +23,7 @@ mod declare_robusta_lint;
 /// declare_robusta_lint! {
 ///     /// Replaces the visually ambiguous lowercase `l` suffix on integer literals.
 ///     UppercaseLongSuffix {
-///         id: UPPERCASE_LONG_SUFFIX_ID = "uppercase-long-suffix",
+///         id: UPPERCASE_LONG_SUFFIX_ID,
 ///         rule: UPPERCASE_LONG_SUFFIX,
 ///         summary: "Reports integer literals with the visually ambiguous lowercase `l` long suffix.",
 ///         category: Style,

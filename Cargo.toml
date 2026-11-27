@@ -48,6 +48,7 @@ website_common = { path = "tasks/website_common" }
 allocator-api2 = { version = "=0.2.21", default-features = false, features = ["alloc"] }
 bitflags = "2.13.0"
 bytecount = "0.6.9"
+convert_case = "0.12.0"
 cow-utils = "0.1.3"
 criterion2 = { version = "3.0.4", default-features = false }
 editorconfig-parser = "0.0.5"

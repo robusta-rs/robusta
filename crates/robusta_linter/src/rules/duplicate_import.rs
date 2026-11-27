@@ -16,7 +16,7 @@ declare_robusta_lint! {
     /// and module imports are reported too. Two imports from one package are
     /// not repeats, because Java cannot combine them into one.
     DuplicateImport {
-        id: DUPLICATE_IMPORT_ID = "duplicate-import",
+        id: DUPLICATE_IMPORT_ID,
         rule: DUPLICATE_IMPORT,
         summary: "Reports imports repeated later in the file.",
         category: Correctness,
