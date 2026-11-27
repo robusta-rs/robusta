@@ -1328,6 +1328,94 @@ fn a_comment_kept_before_a_dimension_indents_as_a_wrapped_line() {
 }
 
 #[test]
+fn the_code_after_a_dimension_kept_after_a_comment_continues_its_wrapped_line() {
+    let source = "class Grid {\n\
+                  String // column titles\n[] titles = {northColumnTitle, eastColumnTitle, \
+                  southColumnTitle, westColumnTitle, centreTitle, otherTitle};\n\
+                  int corners // clockwise\n[] = {northEastCornerIndex, southEastCornerIndex, \
+                  southWestCornerIndex, northWestCornerIndex, centre};\n\
+                  void fill() { cells = new int // rows first\n[] {firstRowOfCells, \
+                  secondRowOfCells, thirdRowOfCells, fourthRowOfCells, fifthRowOfCells, \
+                  sixthRow}; } }\n\
+                  @interface Shape { int sides()\n// per face\n[] default {firstFaceSideCount, \
+                  secondFaceSideCount, thirdFaceSideCount, fourthFaceSideCount, fifth}; }";
+    assert_snapshot!(format_stable(source), @"
+    class Grid {
+      String // column titles
+        [] titles = {
+          northColumnTitle,
+          eastColumnTitle,
+          southColumnTitle,
+          westColumnTitle,
+          centreTitle,
+          otherTitle,
+        };
+      int corners // clockwise
+        [] = {
+          northEastCornerIndex,
+          southEastCornerIndex,
+          southWestCornerIndex,
+          northWestCornerIndex,
+          centre,
+        };
+
+      void fill() {
+        cells = new int // rows first
+          [] {
+            firstRowOfCells,
+            secondRowOfCells,
+            thirdRowOfCells,
+            fourthRowOfCells,
+            fifthRowOfCells,
+            sixthRow,
+          };
+      }
+    }
+
+    @interface Shape {
+      int sides()
+        // per face
+        [] default {
+          firstFaceSideCount,
+          secondFaceSideCount,
+          thirdFaceSideCount,
+          fourthFaceSideCount,
+          fifth,
+        };
+    }
+    ");
+}
+
+#[test]
+fn the_code_after_type_arguments_kept_after_a_comment_continues_their_wrapped_line() {
+    let source = "class Cache { void reset() { entries = new LinkedHashMap // evicts the eldest \
+                  entry\n<>(initialCapacityForTheCache, defaultLoadFactorForTheCache, accessOrder) \
+                  { protected boolean removeEldestEntry(Map.Entry<K, V> eldest) { return size() > \
+                  limit; } }; view = entries.new View // newest first\n\
+                  <>(firstColumnShownInTheView, secondColumnShownInTheView, \
+                  thirdColumnShownInTheView, lastColumn); } }";
+    assert_snapshot!(format_stable(source), @"
+    class Cache {
+      void reset() {
+        entries = new LinkedHashMap // evicts the eldest entry
+          <>(initialCapacityForTheCache, defaultLoadFactorForTheCache, accessOrder) {
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+              return size() > limit;
+            }
+          };
+        view = entries.new View // newest first
+          <>(
+            firstColumnShownInTheView,
+            secondColumnShownInTheView,
+            thirdColumnShownInTheView,
+            lastColumn
+          );
+      }
+    }
+    ");
+}
+
+#[test]
 fn a_comment_kept_before_a_variable_arity_ellipsis_indents_as_a_wrapped_line() {
     let source = "class A { void log(String // any number\n... parts) {} \
                   void join(int first, Object\n/* rest */\n... rest) {} }";

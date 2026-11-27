@@ -8,10 +8,12 @@ use crate::formatter::separated::format_empty_parentheses;
 use crate::formatter::trivia::{
     FormatTrailingComments, format_trailing_comments, is_alignable_block_comment,
 };
-use crate::print::array_dimension::format_array_type_dimensions;
+use crate::print::array_dimension::{
+    array_type_dimensions_wrap_line, format_array_type_dimensions,
+};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::member_chain::MemberChain;
-use crate::utils::statement_body::write_comments_before_opener;
+use crate::utils::statement_body::{format_on_wrapped_line, write_comments_before_opener};
 use robusta_ast::{
     AnnotationInterfaceElementDeclaration, AssignmentExpression, Comment, ElementValuePair,
     Expression, ResourceDeclaration, VariableDeclarator,
@@ -160,6 +162,24 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                     |dimension| dimension.span.end,
                 )
             }
+        }
+    }
+
+    /// Whether a comment that ends its line comes before the `[` of one of the
+    /// left side's dimensions, so the operator and the right side continue a
+    /// wrapped line.
+    fn left_wraps_line(&self, f: &JavaFormatter<'_, 'a>) -> bool {
+        match self {
+            Self::VariableDeclarator(declarator) => {
+                array_type_dimensions_wrap_line(f, declarator.name.span.end, &declarator.dims)
+            }
+            Self::AnnotationInterfaceElementDeclaration(element) => {
+                let comments = f.comments();
+                let open_end = comments.position_after_character(element.name.span.end, b'(');
+                let close_end = comments.position_after_character(open_end, b')');
+                array_type_dimensions_wrap_line(f, close_end, &element.post_paren_dimensions)
+            }
+            _ => false,
         }
     }
 
@@ -615,8 +635,8 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
             }
         };
 
-        let inner_content = format_once(|f| {
-            write!(f, [group(&left)]);
+        let wrapped = self.left_wraps_line(f);
+        let rest = format_once(|f| {
             self.write_operator(f);
             if let Some(comment_break) = comment_break {
                 // Once the group breaks, the right side follows the comments on their line;
@@ -637,6 +657,10 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
                 FormatTrailingComments::Comments(operator_line_run).fmt(f);
                 write_layout(&right, f);
             }
+        });
+        let inner_content = format_once(|f| {
+            write!(f, [group(&left)]);
+            format_on_wrapped_line(wrapped, &rest, f);
         });
 
         match layout {

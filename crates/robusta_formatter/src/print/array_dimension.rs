@@ -1,6 +1,6 @@
 use robusta_allocator::Vec;
-use robusta_ast::{Annotation, ArrayCreation, ArrayDimension, ArrayTypeDimension};
-use robusta_formatter_core::write;
+use robusta_ast::{Annotation, ArrayCreation, ArrayDimension, ArrayTypeDimension, Type};
+use robusta_formatter_core::{format_args, write};
 use robusta_span::{GetSpan, Span};
 
 use crate::ast_nodes::{AstNode, AstNodeListElement};
@@ -9,20 +9,22 @@ use crate::formatter::{prelude::*, trivia::format_dangling_comments};
 use crate::print::{FormatWrite, annotations::format_type_annotations};
 use crate::utils::{
     format_node_without_trailing_comments::format_content_without_comments_after,
-    statement_body::format_after_comments_before_opener,
+    statement_body::{
+        comment_ends_line_before_opener, format_after_comments_before_opener,
+        format_on_wrapped_line,
+    },
 };
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayCreation<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         write!(f, ["new", space()]);
         let element_end = self.element.span().end;
+        let annotated = |dimension: &ArrayDimension<'_>| !dimension.annotations.is_empty();
+        let wrapped = dimensions_wrap_line(f, element_end, &self.dims, annotated);
         format_content_without_comments_after(&self.element(), element_end, f);
-        format_dimensions(f, element_end, &self.dims(), |dimension| {
-            !dimension.annotations.is_empty()
-        });
+        format_dimensions(f, element_end, &self.dims(), annotated);
         if let Some(init) = self.init() {
-            space().fmt(f);
-            init.fmt(f);
+            format_on_wrapped_line(wrapped, &format_args!(space(), init), f);
         }
     }
 }
@@ -102,6 +104,46 @@ pub(super) fn format_dimension_after<'a>(
     } else {
         format_after_comments_before_opener(preceding_end, b'[', dimension, f);
     }
+}
+
+/// [`dimensions_wrap_line`] for dimensions written apart from the type they
+/// extend, as [`format_array_type_dimensions`] prints them.
+pub fn array_type_dimensions_wrap_line(
+    f: &JavaFormatter<'_, '_>,
+    preceding_end: u32,
+    dimensions: &[ArrayTypeDimension<'_>],
+) -> bool {
+    dimensions_wrap_line(f, preceding_end, dimensions, |dimension| {
+        !dimension.annotations.is_empty()
+    })
+}
+
+/// Whether a comment that ends its line comes before the `[` of one of
+/// `dimensions`, after the text ending at `preceding_end`, so the code after
+/// them continues a wrapped line.
+fn dimensions_wrap_line<D: GetSpan>(
+    f: &JavaFormatter<'_, '_>,
+    preceding_end: u32,
+    dimensions: &[D],
+    annotated: fn(&D) -> bool,
+) -> bool {
+    let mut preceding_end = preceding_end;
+    dimensions.iter().any(|dimension| {
+        let wraps = !annotated(dimension) && comment_ends_line_before_opener(preceding_end, f);
+        preceding_end = dimension.span().end;
+        wraps
+    })
+}
+
+/// Whether a comment that ends its line comes before the `[` of one of `ty`'s
+/// dimensions, so the code after `ty` continues a wrapped line.
+pub fn type_wraps_line(f: &JavaFormatter<'_, '_>, ty: &Type<'_>) -> bool {
+    let Type::Array(array) = ty else {
+        return false;
+    };
+    let element_end = array.element.span().end;
+    (array.annotations.is_empty() && comment_ends_line_before_opener(element_end, f))
+        || type_wraps_line(f, &array.element)
 }
 
 /// `dimensions` after the text ending at `preceding_end`; returns where the

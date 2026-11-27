@@ -60,7 +60,7 @@ where
 {
     let end = callee.span().end;
     format_content_without_comments_after(callee, end, f);
-    if !comment_ends_line_before_opener(end, b'(', f) {
+    if !comment_ends_line_before_opener(end, f) {
         write_comments_before_opener(end, b'(', f);
     }
 }
@@ -99,19 +99,31 @@ pub fn format_after_comments_before_opener<'a>(
         write_comments_before_opener(start, opener, f);
         code.fmt(f);
     });
-    if comment_ends_line_before_opener(start, opener, f) {
-        indent(&content).fmt(f);
+    format_on_wrapped_line(comment_ends_line_before_opener(start, f), &content, f);
+}
+
+/// `code`, indented as a wrapped line when `wrapped`: the decision
+/// [`comment_ends_line_before_opener`] made for the opener whose line `code`
+/// continues.
+pub fn format_on_wrapped_line<'a>(
+    wrapped: bool,
+    code: &impl Format<'a, JavaFormatContext<'a>>,
+    f: &mut JavaFormatter<'_, 'a>,
+) {
+    if wrapped {
+        indent(code).fmt(f);
     } else {
-        content.fmt(f);
+        code.fmt(f);
     }
 }
 
-/// Whether a pending comment before the `opener` after `start` ends its line:
-/// a line comment, or one on a line of its own.
-fn comment_ends_line_before_opener(start: u32, opener: u8, f: &JavaFormatter<'_, '_>) -> bool {
-    f.comments()
-        .comments_before_character(start, opener)
-        .iter()
+/// Whether a comment between `start` and the opener after it ends its line: a
+/// line comment, or one on a line of its own. Printed comments count too, so
+/// the printer of the code after the opener's line decides as the opener did.
+pub fn comment_ends_line_before_opener(start: u32, f: &JavaFormatter<'_, '_>) -> bool {
+    let comments = f.comments();
+    comments
+        .all_comments_in_range(start, comments.token_start_after(start))
         .any(|comment| comment.is_line() || comment.preceded_by_newline())
 }
 
