@@ -71,7 +71,7 @@ fn to_glob(line: &str) -> Result<Option<String>, String> {
 }
 
 /// Drop trailing spaces, except one a backslash quotes.
-fn trim_trailing_spaces(line: &str) -> &str {
+pub fn trim_trailing_spaces(line: &str) -> &str {
     let trimmed = line.trim_end_matches(' ');
     let backslashes = trimmed.bytes().rev().take_while(|byte| *byte == b'\\').count();
     if trimmed.len() < line.len() && backslashes % 2 == 1 {
