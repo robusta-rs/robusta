@@ -64,8 +64,9 @@ jobs:
       # job sidesteps by qualifying its `check` — but it is short enough for
       # every pull request, and `GoalSurfaceFunctionalTest` only keeps a mojo from
       # drifting away from the shared `RobustaFixedCommand` table if a pull
-      # request runs it. The staged bundle is all `prepareRobustaBinaries` needs.
-      - name: Validate Gradle and Maven plugins with bundled CLI
+      # request runs it. `:binary` publishes the staged CLI as this platform's
+      # binary jar for both functional suites.
+      - name: Validate Gradle and Maven plugins with the CLI
         id: plugin-tests
         if: ${{ !cancelled() && steps.cli-build.outcome == 'success' }}
         working-directory: jvm
@@ -180,7 +181,7 @@ jobs:
           file target/release/robusta
           file target/release/robusta | grep -Eq 'ELF 64-bit LSB.*(ARM aarch64|ARM64|AArch64)'
 
-      - name: Validate Gradle and Maven plugins with bundled ARM64 product
+      - name: Validate Gradle and Maven plugins with the ARM64 product
         id: plugin-tests
         working-directory: jvm
         run: |
