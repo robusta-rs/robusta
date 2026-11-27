@@ -30,7 +30,7 @@ impl Rule for RedundantSemicolons {
             AstKind::EmptyStatement(statement)
                 if matches!(
                     context.nodes().parent_kind(node.id()),
-                    AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)
+                    AstKind::Block(_) | AstKind::SwitchCase(_)
                 ) =>
             {
                 statement.span

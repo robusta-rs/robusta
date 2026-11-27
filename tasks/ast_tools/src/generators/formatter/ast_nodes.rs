@@ -15,7 +15,7 @@ use super::{
 
 /// Nodes whose last child has `following_span_start = 0`, so its trailing comments stay with it
 /// rather than leading a following sibling outside the node. A switch rule's body is its last
-/// statement, as a switch group's last statement is.
+/// statement, as a switch case's last statement is.
 const AST_NODE_WITHOUT_FOLLOWING_NODE_LIST: &[&str] =
     &["FormalParameters", "RecordHeader", "SwitchRule"];
 

@@ -353,7 +353,7 @@ impl<'a, 'c> Comments<'a, 'c> {
                 .count()];
 
             // When the enclosing node ends where the preceding one does, as a
-            // switch group ends with its last statement's `;`, a comment run that
+            // switch case ends with its last statement's `;`, a comment run that
             // starts its line before that `;` stays pending for the parent to
             // print after it. The run may continue on that line: `/* a */ // b`.
             if enclosing_span.end == preceding_span.end {

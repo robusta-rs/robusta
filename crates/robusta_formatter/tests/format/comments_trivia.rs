@@ -954,6 +954,7 @@ fn braced_bodies_join_their_entries_alike() {
       void f(int x) {
         switch (x) {
           case 1: // first
+
           // second
           case 2:
             g();

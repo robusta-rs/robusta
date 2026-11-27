@@ -1,3 +1,4 @@
+use crate::ast_nodes::impls::ast_nodes::format_child_trailing_comments;
 use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
 use crate::formatter::separated::format_undelimited_list;
@@ -6,16 +7,17 @@ use crate::print::binary_like_expression::format_operator_and_break;
 use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::print::{FormatWrite, format_header_condition};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
+use crate::utils::keyword_end;
 use crate::utils::statement_body::{
     FormatStatementBody, comments_staying_before_brace, format_attached_braced_body,
     format_head_body,
 };
 use robusta_ast::{
-    CaseLabel, CasePatternLabel, DefaultLabel, Statement, SwitchBlockStatementGroup,
-    SwitchExpression, SwitchLabel, SwitchRule, SwitchRuleBody, SwitchStatement, match_expression,
+    CaseLabel, CasePatternLabel, Statement, SwitchCase, SwitchExpression, SwitchRule,
+    SwitchRuleBody, SwitchStatement, match_expression,
 };
 use robusta_formatter_core::write;
-use robusta_span::GetSpan;
+use robusta_span::{GetSpan, Span};
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
@@ -43,34 +45,25 @@ fn format_switch<'a>(f: &mut JavaFormatter<'_, 'a>, switch: AstNodes<'_, 'a>) {
     });
 }
 
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchCase<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
         let lone_block = matches!(node.statements[..], [Statement::Block(_)]);
-        for (index, label) in self.labels().iter().enumerate() {
-            if index > 0 {
-                hard_line_break().fmt(f);
-            }
-            if lone_block && index + 1 == node.labels.len() {
-                format_label_before_block(&label, b':', f);
-                ":".fmt(f);
-            } else {
-                write!(f, [label, ":"]);
-            }
-        }
+        format_label(self.as_ast_nodes(), lone_block.then_some(b':'), f);
+        ":".fmt(f);
         if node.statements.is_empty() {
             return;
         }
 
-        // A lone block hugs the labels. With more statements it cannot, so the
-        // group visibly continues past the block's `}`.
+        // A lone block hugs the label. With more statements it cannot, so the
+        // case visibly continues past the block's `}`.
         let statements = self.statements();
         if lone_block {
             FormatStatementBody::new(&statements.get(0).expect("one statement")).fmt(f);
             return;
         }
 
-        // The group has no braces, so it owns the break that puts its first
+        // The case has no braces, so it owns the break that puts its first
         // statement on its own line; a braced body gets that from its frame.
         write!(
             f,
@@ -85,12 +78,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
-        let label = self.label();
-        if matches!(node.body, SwitchRuleBody::Block(_)) {
-            format_label_before_block(&label, b'-', f);
-        } else {
-            label.fmt(f);
-        }
+        let before_block = matches!(node.body, SwitchRuleBody::Block(_));
+        format_label(self.as_ast_nodes(), before_block.then_some(b'-'), f);
         group(&indent(&format_once(|f| {
             write!(f, [soft_line_break_or_space(), "->"]);
         })))
@@ -114,20 +103,41 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SwitchRule<'a>> {
     }
 }
 
-/// Print the `label` of a block, with the comments before the `separator`
-/// that follows it (`:` or `->`) that stay there. Those that would end the
-/// label's line move after the block's `{` with the comments after the
+/// Print the label of a rule or case, or `default` when it has none, which
+/// takes the comments after it as a label would. Before a block, the comments
+/// before the `:` or `->` that stay there follow the label. Those that would
+/// end its line move after the block's `{` with the comments after the
 /// separator, as [`format_head_body`] places them.
-fn format_label_before_block<'a>(
-    label: &AstNode<'_, 'a, SwitchLabel<'a>>,
-    separator: u8,
+fn format_label<'a>(
+    item: AstNodes<'_, 'a>,
+    block_separator: Option<u8>,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
-    let end = label.span().end;
-    format_content_without_comments_after(label, end, f);
-    let comments = f.comments().comments_before_character(end, separator);
-    let staying = comments_staying_before_brace(comments);
-    FormatTrailingComments::Comments(&comments[..staying]).fmt(f);
+    let (label, following_start) = match item {
+        AstNodes::SwitchRule(rule) => (rule.label(), rule.body.span().start),
+        AstNodes::SwitchCase(case) => (
+            case.label(),
+            case.statements.first().map_or(case.following_span_start(), |it| it.span().start),
+        ),
+        _ => unreachable!("a switch label belongs to a rule or case"),
+    };
+    let end =
+        label.map_or_else(|| keyword_end(f, item.span().start, "default"), |it| it.span().end);
+    match (label, block_separator) {
+        (Some(label), None) => label.fmt(f),
+        (Some(label), Some(_)) => format_content_without_comments_after(&label, end, f),
+        (None, None) => {
+            "default".fmt(f);
+            let keyword = Span::new(item.span().start, end);
+            format_child_trailing_comments(&item, keyword, following_start, f);
+        }
+        (None, Some(_)) => "default".fmt(f),
+    }
+    if let Some(separator) = block_separator {
+        let comments = f.comments().comments_before_character(end, separator);
+        let staying = comments_staying_before_brace(comments);
+        FormatTrailingComments::Comments(&comments[..staying]).fmt(f);
+    }
 }
 
 /// Format a switch-rule value after `->`: beside the arrow if it fits,
@@ -183,11 +193,5 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CasePatternLabel<'a>> {
             }
         }))
         .fmt(f);
-    }
-}
-
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DefaultLabel> {
-    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        "default".fmt(f);
     }
 }

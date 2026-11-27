@@ -49,13 +49,13 @@ list_elements!(false;
     ComponentPattern<'_>, ElementValue<'_>, Expression<'_>, FormalParameter<'_>,
     InterfaceMember<'_>, Modifier<'_>, ModuleDirective<'_>, Name<'_>,
     RecordComponent<'_>, RequiresModifier, Resource<'_>, Statement<'_>,
-    SwitchCase<'_>, Type<'_>, TypeArgument<'_>, TypeDeclaration<'_>, TypeName<'_>,
+    SwitchItem<'_>, Type<'_>, TypeArgument<'_>, TypeDeclaration<'_>, TypeName<'_>,
     TypeParameter<'_>, VariableDeclarator<'_>, VariableInitializer<'_>,
 );
 // More of the parent follows these lists: the enum's members (JLS 8.9.1), the unit's type
-// declarations (JLS 7.3), and a switch group's statements and a case's guard (JLS 14.11.1).
+// declarations (JLS 7.3), and a case's guard (JLS 14.11.1).
 // Comments before them lead them instead of trailing the last item.
-list_elements!(true; EnumConstant<'_>, ImportDeclaration<'_>, Pattern<'_>, SwitchLabel<'_>);
+list_elements!(true; EnumConstant<'_>, ImportDeclaration<'_>, Pattern<'_>);
 
 impl<'parent, 'a, T: GetSpan> Iterator for AstNodeIterator<'parent, 'a, T> {
     type Item = AstNode<'parent, 'a, T>;

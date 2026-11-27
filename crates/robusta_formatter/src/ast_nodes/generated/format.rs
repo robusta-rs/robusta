@@ -965,10 +965,10 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchStatement<'
         self.format_trailing_comments(f);
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchCase<'a>> {
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchItem<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         match self.inner {
-            SwitchCase::Rule(field_0) => {
+            SwitchItem::Rule(field_0) => {
                 AstNode::<SwitchRule<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -976,8 +976,8 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchCase<'a>> {
                 }
                 .fmt(f);
             }
-            SwitchCase::Group(field_0) => {
-                AstNode::<SwitchBlockStatementGroup<'a>> {
+            SwitchItem::Case(field_0) => {
+                AstNode::<SwitchCase<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -1252,7 +1252,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchRuleBody<'a
         }
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchCase<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
             self.write(f);
@@ -1282,14 +1282,6 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchLabel<'a>> 
                 }
                 .fmt(f);
             }
-            SwitchLabel::Default(field_0) => {
-                AstNode::<DefaultLabel> {
-                    inner: field_0,
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                }
-                .fmt(f);
-            }
         }
     }
 }
@@ -1305,17 +1297,6 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CaseLabel<'a>> {
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CasePatternLabel<'a>> {
-    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
-        self.write(f);
-        self.format_trailing_comments(f);
-    }
-}
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, DefaultLabel> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
             self.write(f);

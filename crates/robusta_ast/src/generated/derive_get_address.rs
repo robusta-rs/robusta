@@ -125,13 +125,13 @@ impl GetAddress for Statement<'_> {
     }
 }
 
-impl GetAddress for SwitchCase<'_> {
+impl GetAddress for SwitchItem<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]
     fn address(&self) -> Address {
         match self {
             Self::Rule(it) => GetAddress::address(it),
-            Self::Group(it) => GetAddress::address(it),
+            Self::Case(it) => GetAddress::address(it),
         }
     }
 }

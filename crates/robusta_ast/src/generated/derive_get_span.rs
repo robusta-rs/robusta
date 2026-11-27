@@ -401,11 +401,11 @@ impl GetSpan for SwitchStatement<'_> {
     }
 }
 
-impl GetSpan for SwitchCase<'_> {
+impl GetSpan for SwitchItem<'_> {
     fn span(&self) -> Span {
         match self {
             Self::Rule(it) => GetSpan::span(&**it),
-            Self::Group(it) => GetSpan::span(&**it),
+            Self::Case(it) => GetSpan::span(&**it),
         }
     }
 }
@@ -455,7 +455,7 @@ impl GetSpan for SwitchRuleBody<'_> {
     }
 }
 
-impl GetSpan for SwitchBlockStatementGroup<'_> {
+impl GetSpan for SwitchCase<'_> {
     #[inline]
     fn span(&self) -> Span {
         self.span
@@ -467,7 +467,6 @@ impl GetSpan for SwitchLabel<'_> {
         match self {
             Self::Case(it) => GetSpan::span(&**it),
             Self::Pattern(it) => GetSpan::span(&**it),
-            Self::Default(it) => GetSpan::span(it),
         }
     }
 }
@@ -480,13 +479,6 @@ impl GetSpan for CaseLabel<'_> {
 }
 
 impl GetSpan for CasePatternLabel<'_> {
-    #[inline]
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
-impl GetSpan for DefaultLabel {
     #[inline]
     fn span(&self) -> Span {
         self.span

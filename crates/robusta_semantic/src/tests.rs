@@ -880,7 +880,7 @@ fn qualified_super_qualifiers_name_types() {
 }
 
 #[test]
-fn default_labels_are_nodes_in_source_order() {
+fn default_is_a_rule_or_case_without_a_label() {
     let allocator = Allocator::new();
     let source = "class A { void f(int x) { switch (x) { default -> g(); } \
         switch (x) { case 1: default: h(); } } }";
@@ -892,26 +892,16 @@ fn default_labels_are_nodes_in_source_order() {
     let children = nodes
         .iter_enumerated()
         .map(|(id, node)| (node.kind().debug_name(), nodes.parent_kind(id).debug_name()))
-        .filter(|(_, parent)| matches!(*parent, "SwitchRule" | "SwitchBlockStatementGroup"))
+        .filter(|(_, parent)| matches!(*parent, "SwitchRule" | "SwitchCase"))
         .collect::<std::vec::Vec<_>>();
     assert_eq!(
         children,
         [
-            ("DefaultLabel", "SwitchRule"),
             ("MethodCall", "SwitchRule"),
-            ("CaseLabel", "SwitchBlockStatementGroup"),
-            ("DefaultLabel", "SwitchBlockStatementGroup"),
-            ("ExpressionStatement", "SwitchBlockStatementGroup"),
+            ("CaseLabel", "SwitchCase"),
+            ("ExpressionStatement", "SwitchCase"),
         ]
     );
-    let labels = nodes
-        .iter()
-        .filter_map(|node| match node.kind() {
-            AstKind::DefaultLabel(label) => Some(label.span.source_text(source)),
-            _ => None,
-        })
-        .collect::<std::vec::Vec<_>>();
-    assert_eq!(labels, ["default", "default"]);
 }
 
 #[test]
@@ -928,9 +918,7 @@ fn switch_cases_are_children_of_their_switch_in_source_order() {
 
     let cases = nodes
         .iter_enumerated()
-        .filter(|(_, node)| {
-            matches!(node.kind(), AstKind::SwitchRule(_) | AstKind::SwitchBlockStatementGroup(_))
-        })
+        .filter(|(_, node)| matches!(node.kind(), AstKind::SwitchRule(_) | AstKind::SwitchCase(_)))
         .map(|(id, node)| {
             (node.kind().span().source_text(source), nodes.parent_kind(id).debug_name())
         })
@@ -1559,6 +1547,10 @@ fn resolve_pattern_variables_only_where_they_are_definitely_matched() {
             &["pattern 0", "field"],
         ),
         (
+            "switch (c ? 1 : 2) { case 1: case 2: if (!(p instanceof Integer s)) break; use(s); default: use(s); }",
+            &["pattern 0", "field"],
+        ),
+        (
             "switch (s.length()) { case 1: String s; break; default: s = \"\"; use(s); } use(s);",
             &["field", "local", "local", "field"],
         ),
@@ -1663,6 +1655,10 @@ fn resolve_local_types_only_from_their_declaration() {
         ),
         (
             "void f(int n) { switch (n) { case 1: L a; class L {} L b; default: L c; } }",
+            &["import", "type 0", "import"],
+        ),
+        (
+            "void f(int n) { switch (n) { case 1: case 2: L a; class L {} L b; default: L c; } }",
             &["import", "type 0", "import"],
         ),
         ("void f() { L a; } class L {}", &["type 0"]),

@@ -291,7 +291,7 @@ impl<'a> Parser<'a> {
         Ok(Statement::new_if_statement(start.cover(end), condition, then_branch, else_branch, self))
     }
 
-    /// Parse arrow rules or colon groups (JLS §14.11).
+    /// Parse arrow rules or colon cases (JLS §14.11).
     fn switch_statement(&mut self) -> Result<Statement<'a>> {
         let start = self.bump().span;
         self.expect(TokenKind::LParen, "`(` after `switch`")?;
@@ -303,11 +303,12 @@ impl<'a> Parser<'a> {
         Ok(Statement::new_switch_statement(start.cover(end), selector, cases, self))
     }
 
-    pub(crate) fn switch_cases(&mut self) -> Result<Vec<'a, SwitchCase<'a>>> {
+    pub(crate) fn switch_cases(&mut self) -> Result<Vec<'a, SwitchItem<'a>>> {
         let mut cases = Vec::new_in(self);
         if matches!(self.kind(), TokenKind::RBrace | TokenKind::Eof) {
             return Ok(cases);
         }
+        let start = self.cur().span;
         let first_label = self.switch_label()?;
         let is_rule = match self.kind() {
             TokenKind::Arrow => true,
@@ -320,13 +321,12 @@ impl<'a> Parser<'a> {
             }
         };
         cases.push(if is_rule {
-            self.switch_rule_after_label(first_label)?
+            self.switch_rule_after_label(start, first_label)?
         } else {
-            self.switch_block_statement_group_after_label(first_label)?
+            self.switch_case_after_label(start, first_label)?
         });
         while !matches!(self.kind(), TokenKind::RBrace | TokenKind::Eof) {
-            let case =
-                if is_rule { self.switch_rule() } else { self.switch_block_statement_group() };
+            let case = if is_rule { self.switch_rule() } else { self.switch_case() };
             match case {
                 Ok(case) => cases.push(case),
                 Err(error) if self.recovery_enabled => {
@@ -339,13 +339,17 @@ impl<'a> Parser<'a> {
         Ok(cases)
     }
 
-    fn switch_rule(&mut self) -> Result<SwitchCase<'a>> {
+    fn switch_rule(&mut self) -> Result<SwitchItem<'a>> {
+        let start = self.cur().span;
         let label = self.switch_label()?;
-        self.switch_rule_after_label(label)
+        self.switch_rule_after_label(start, label)
     }
 
-    fn switch_rule_after_label(&mut self, label: SwitchLabel<'a>) -> Result<SwitchCase<'a>> {
-        let start = label.span();
+    fn switch_rule_after_label(
+        &mut self,
+        start: Span,
+        label: Option<SwitchLabel<'a>>,
+    ) -> Result<SwitchItem<'a>> {
         self.expect(TokenKind::Arrow, "`->` after the switch label")?;
         let (body, end) = match self.kind() {
             TokenKind::LBrace => {
@@ -369,27 +373,22 @@ impl<'a> Parser<'a> {
                 (SwitchRuleBody::from(expression), end)
             }
         };
-        Ok(SwitchCase::new_switch_rule(start.cover(end), label, body, self))
+        Ok(SwitchItem::new_switch_rule(start.cover(end), label, body, self))
     }
 
-    fn switch_block_statement_group(&mut self) -> Result<SwitchCase<'a>> {
+    fn switch_case(&mut self) -> Result<SwitchItem<'a>> {
+        let start = self.cur().span;
         let label = self.switch_label()?;
-        self.switch_block_statement_group_after_label(label)
+        self.switch_case_after_label(start, label)
     }
 
-    /// Parse labels and their statement group (JLS §14.11.1).
-    fn switch_block_statement_group_after_label(
+    /// Parse the statements up to the next label (JLS §14.11.1).
+    fn switch_case_after_label(
         &mut self,
-        first_label: SwitchLabel<'a>,
-    ) -> Result<SwitchCase<'a>> {
-        let mut labels = Vec::new_in(self);
-        let start = first_label.span();
-        let mut labels_end = self.expect(TokenKind::Colon, "`:` after the switch label")?.span;
-        labels.push(first_label);
-        while matches!(self.kind(), TokenKind::Case | TokenKind::Default) {
-            labels.push(self.switch_label()?);
-            labels_end = self.expect(TokenKind::Colon, "`:` after the switch label")?.span;
-        }
+        start: Span,
+        label: Option<SwitchLabel<'a>>,
+    ) -> Result<SwitchItem<'a>> {
+        let colon = self.expect(TokenKind::Colon, "`:` after the switch label")?.span;
         let mut statements = Vec::new_in(self);
         loop {
             if let Some(semi) = self.eat(TokenKind::Semicolon) {
@@ -411,15 +410,19 @@ impl<'a> Parser<'a> {
                 Err(error) => return Err(error),
             }
         }
-        let end = statements.last().map_or_else(|| labels_end, GetSpan::span);
-        Ok(SwitchCase::new_switch_block_statement_group(start.cover(end), labels, statements, self))
+        let end = statements.last().map_or_else(|| colon, GetSpan::span);
+        Ok(SwitchItem::new_switch_case(start.cover(end), label, statements, self))
     }
 
-    fn switch_label(&mut self) -> Result<SwitchLabel<'a>> {
+    /// Parse a label, `None` for `default`.
+    fn switch_label(&mut self) -> Result<Option<SwitchLabel<'a>>> {
         match self.kind() {
             // `case (int) X -> 1` casts `X`.
-            TokenKind::Case => self.with_case_label(true, Self::case_label),
-            TokenKind::Default => Ok(SwitchLabel::new_default_label(self.bump().span, self)),
+            TokenKind::Case => self.with_case_label(true, Self::case_label).map(Some),
+            TokenKind::Default => {
+                self.bump();
+                Ok(None)
+            }
             _ => Err(diagnostics::message(
                 "expected `case` or `default` in a `switch` block",
                 self.cur().span,

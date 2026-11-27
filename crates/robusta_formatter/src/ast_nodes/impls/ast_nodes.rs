@@ -1,4 +1,4 @@
-use robusta_ast::{Comment, SwitchCase};
+use robusta_ast::{Comment, SwitchItem};
 use robusta_span::{GetSpan, Span};
 
 use crate::formatter::trivia::{
@@ -14,12 +14,7 @@ use crate::ast_nodes::{AstNode, AstNodes};
 
 impl<'a, T: GetSpan> AstNode<'_, 'a, T> {
     pub fn enclosing_span(&self) -> Span {
-        match self.parent() {
-            AstNodes::OrdinaryCompilationUnit(parent) => parent.parent().span(),
-            AstNodes::CompactCompilationUnit(parent) => parent.parent().span(),
-            AstNodes::ModularCompilationUnit(parent) => parent.parent().span(),
-            _ => self.parent.span(),
-        }
+        enclosing_span(self.parent())
     }
 
     pub fn format_leading_comments(&self, f: &mut JavaFormatter<'_, 'a>)
@@ -30,28 +25,50 @@ impl<'a, T: GetSpan> AstNode<'_, 'a, T> {
     }
 
     pub fn format_trailing_comments(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let following_start = self.following_span_start;
-        if is_import(self.parent(), self.span()) {
-            format_import_trailing_comments(self.enclosing_span(), self.span(), following_start, f);
-            return;
-        }
-        if let Some(separator) = separator_before_declaration(self.parent(), following_start) {
-            format_trailing_comments_before_separator(
-                self.enclosing_span(),
-                self.span(),
-                separator,
-                following_start,
-                f,
-            );
-        } else {
-            format_node_trailing_comments(
-                self.enclosing_span(),
-                self.span(),
-                following_start,
-                declaration_may_follow(self.parent(), self.span()),
-                f,
-            );
-        }
+        format_child_trailing_comments(self.parent(), self.span(), self.following_span_start, f);
+    }
+}
+
+/// The span the comments of a child of `parent` lie in. A compilation unit
+/// form has no code of its own, so its children's is the unit's.
+fn enclosing_span(parent: &AstNodes<'_, '_>) -> Span {
+    match parent {
+        AstNodes::OrdinaryCompilationUnit(form) => form.parent().span(),
+        AstNodes::CompactCompilationUnit(form) => form.parent().span(),
+        AstNodes::ModularCompilationUnit(form) => form.parent().span(),
+        _ => parent.span(),
+    }
+}
+
+/// The trailing comments of the child of `parent` at `span`, before the
+/// sibling at `following_start`.
+pub fn format_child_trailing_comments(
+    parent: &AstNodes<'_, '_>,
+    span: Span,
+    following_start: u32,
+    f: &mut JavaFormatter<'_, '_>,
+) {
+    let enclosing_span = enclosing_span(parent);
+    if is_import(parent, span) {
+        format_import_trailing_comments(enclosing_span, span, following_start, f);
+        return;
+    }
+    if let Some(separator) = separator_before_declaration(parent, following_start) {
+        format_trailing_comments_before_separator(
+            enclosing_span,
+            span,
+            separator,
+            following_start,
+            f,
+        );
+    } else {
+        format_node_trailing_comments(
+            enclosing_span,
+            span,
+            following_start,
+            declaration_may_follow(parent, span),
+            f,
+        );
     }
 }
 
@@ -137,10 +154,10 @@ fn is_import(parent: &AstNodes<'_, '_>, span: Span) -> bool {
 /// `span`. None follows a module directive (JLS §7.7) or a switch rule
 /// (JLS §14.11.1).
 fn declaration_may_follow(parent: &AstNodes<'_, '_>, span: Span) -> bool {
-    let is_rule = |cases: &[SwitchCase<'_>]| {
+    let is_rule = |cases: &[SwitchItem<'_>]| {
         cases
             .binary_search_by_key(&span.start, |case| case.span().start)
-            .is_ok_and(|index| matches!(cases[index], SwitchCase::Rule(_)))
+            .is_ok_and(|index| matches!(cases[index], SwitchItem::Rule(_)))
     };
     match parent {
         AstNodes::ModuleDeclaration(_) => false,
@@ -152,7 +169,7 @@ fn declaration_may_follow(parent: &AstNodes<'_, '_>, span: Span) -> bool {
 
 /// The separator before the child of `parent` starting at `following_start`
 /// when that child is a declaration behind one: the `,` before an enum
-/// constant, or a switch group's `:` before a local type declaration.
+/// constant, or a switch case's `:` before a local type declaration.
 fn separator_before_declaration(parent: &AstNodes<'_, '_>, following_start: u32) -> Option<u8> {
     match parent {
         AstNodes::EnumBody(body) => body
@@ -160,7 +177,7 @@ fn separator_before_declaration(parent: &AstNodes<'_, '_>, following_start: u32)
             .binary_search_by_key(&following_start, |constant| constant.span.start)
             .is_ok()
             .then_some(b','),
-        AstNodes::SwitchBlockStatementGroup(group) => group
+        AstNodes::SwitchCase(case) => case
             .statements
             .first()
             .is_some_and(|statement| {

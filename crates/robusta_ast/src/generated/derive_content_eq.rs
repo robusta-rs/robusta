@@ -465,11 +465,11 @@ impl ContentEq for SwitchStatement<'_> {
     }
 }
 
-impl ContentEq for SwitchCase<'_> {
+impl ContentEq for SwitchItem<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Rule(a), Self::Rule(b)) => a.content_eq(b),
-            (Self::Group(a), Self::Group(b)) => a.content_eq(b),
+            (Self::Case(a), Self::Case(b)) => a.content_eq(b),
             _ => false,
         }
     }
@@ -523,9 +523,9 @@ impl ContentEq for SwitchRuleBody<'_> {
     }
 }
 
-impl ContentEq for SwitchBlockStatementGroup<'_> {
+impl ContentEq for SwitchCase<'_> {
     fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.labels, &other.labels)
+        ContentEq::content_eq(&self.label, &other.label)
             && ContentEq::content_eq(&self.statements, &other.statements)
     }
 }
@@ -535,7 +535,6 @@ impl ContentEq for SwitchLabel<'_> {
         match (self, other) {
             (Self::Case(a), Self::Case(b)) => a.content_eq(b),
             (Self::Pattern(a), Self::Pattern(b)) => a.content_eq(b),
-            (Self::Default(a), Self::Default(b)) => a.content_eq(b),
             _ => false,
         }
     }
@@ -552,12 +551,6 @@ impl ContentEq for CasePatternLabel<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.patterns, &other.patterns)
             && ContentEq::content_eq(&self.guard, &other.guard)
-    }
-}
-
-impl ContentEq for DefaultLabel {
-    fn content_eq(&self, _: &Self) -> bool {
-        true
     }
 }
 
