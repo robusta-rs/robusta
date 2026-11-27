@@ -2741,6 +2741,32 @@ impl ComponentPattern<'_> {
     }
 }
 
+impl AssignmentTarget<'_> {
+    /// Get [`NodeId`] of [`AssignmentTarget`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
+    pub fn node_id(&self) -> NodeId {
+        match self {
+            Self::Identifier(it) => it.node_id(),
+            Self::FieldAccess(it) => it.node_id(),
+            Self::ArrayAccess(it) => it.node_id(),
+            Self::Parenthesized(it) => it.node_id(),
+        }
+    }
+
+    /// Set [`NodeId`] of [`AssignmentTarget`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
+    pub fn set_node_id(&self, node_id: NodeId) {
+        match self {
+            Self::Identifier(it) => it.set_node_id(node_id),
+            Self::FieldAccess(it) => it.set_node_id(node_id),
+            Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Parenthesized(it) => it.set_node_id(node_id),
+        }
+    }
+}
+
 impl LambdaBody<'_> {
     /// Get [`NodeId`] of [`LambdaBody`].
     // `#[inline(always)]` because this should boil down to a single instruction.

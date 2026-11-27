@@ -336,6 +336,19 @@ impl GetAddress for ComponentPattern<'_> {
     }
 }
 
+impl GetAddress for AssignmentTarget<'_> {
+    // `#[inline]` because compiler should boil this down to a single assembly instruction
+    #[inline]
+    fn address(&self) -> Address {
+        match self {
+            Self::Identifier(it) => GetAddress::address(it),
+            Self::FieldAccess(it) => GetAddress::address(it),
+            Self::ArrayAccess(it) => GetAddress::address(it),
+            Self::Parenthesized(it) => GetAddress::address(it),
+        }
+    }
+}
+
 impl GetAddress for LambdaBody<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]

@@ -1,4 +1,7 @@
-use super::operator::{assign_op, binary_op, postfix_op};
+use super::{
+    grammar::{CoverGrammar, is_variable},
+    operator::{assign_op, binary_op, postfix_op},
+};
 use crate::*;
 
 impl<'a> Parser<'a> {
@@ -71,17 +74,15 @@ impl<'a> Parser<'a> {
         let Some((op, width)) = self.peek_assign_op() else {
             return Ok(lhs);
         };
-        if !is_variable(&lhs) {
-            return Err(diagnostics::message("this expression cannot be assigned to", lhs.span()));
-        }
+        let target = AssignmentTarget::cover(lhs)?;
         for _ in 0..width {
             self.bump();
         }
         // `a = b = c` associates right.
         let value = self.assignment_expression()?;
         Ok(Expression::new_assignment_expression(
-            lhs.span().cover(value.span()),
-            lhs,
+            target.span().cover(value.span()),
+            target,
             op,
             value,
             self,
@@ -776,13 +777,4 @@ impl<'a> Parser<'a> {
         let span = self.bump().span;
         (span, span.source_text(self.source))
     }
-}
-
-/// Whether an assignment or `++`/`--` can change `expression`: a name, a field, or an array
-/// element, which parentheses may enclose (JLS §15.26.1, §15.8.5).
-fn is_variable(expression: &Expression<'_>) -> bool {
-    matches!(
-        expression.without_parentheses(),
-        Expression::Identifier(_) | Expression::FieldAccess(_) | Expression::ArrayAccess(_)
-    )
 }

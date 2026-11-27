@@ -326,10 +326,21 @@ pub struct BinaryExpression<'a> {
 pub struct AssignmentExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    /// A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
-    pub target: Expression<'a>,
+    pub target: AssignmentTarget<'a>,
     pub op: AssignOp,
     pub value: Expression<'a>,
+}
+
+/// The variable an assignment changes: a name, field access, or array access, which
+/// parentheses may enclose (JLS §15.26.1).
+#[ast(visit)]
+#[derive(Debug)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
+pub enum AssignmentTarget<'a> {
+    Identifier(Box<'a, IdentifierReference<'a>>) = 0,
+    FieldAccess(Box<'a, FieldAccess<'a>>) = 1,
+    ArrayAccess(Box<'a, ArrayAccess<'a>>) = 2,
+    Parenthesized(Box<'a, ParenthesizedExpression<'a>>) = 3,
 }
 
 #[ast(visit)]

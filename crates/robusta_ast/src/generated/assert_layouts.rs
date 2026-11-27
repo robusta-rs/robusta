@@ -842,6 +842,9 @@ const _: () = {
     assert!(offset_of!(AssignmentExpression, target) == 16);
     assert!(offset_of!(AssignmentExpression, value) == 32);
 
+    assert!(size_of::<AssignmentTarget>() == 16);
+    assert!(align_of::<AssignmentTarget>() == 8);
+
     // Padding: 4 bytes
     assert!(size_of::<ConditionalExpression>() == 64);
     assert!(align_of::<ConditionalExpression>() == 8);
@@ -2028,6 +2031,9 @@ const _: () = {
     assert!(offset_of!(AssignmentExpression, op) == 12);
     assert!(offset_of!(AssignmentExpression, target) == 16);
     assert!(offset_of!(AssignmentExpression, value) == 24);
+
+    assert!(size_of::<AssignmentTarget>() == 8);
+    assert!(align_of::<AssignmentTarget>() == 4);
 
     // Padding: 0 bytes
     assert!(size_of::<ConditionalExpression>() == 36);

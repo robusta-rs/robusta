@@ -158,10 +158,7 @@ impl MemberLayout {
             // breaks.
             AstNodes::MethodMember(_) => Self::NoBreak,
             AstNodes::AssignmentExpression(assignment)
-                if !matches!(
-                    assignment.target.without_parentheses(),
-                    Expression::Identifier(_)
-                ) =>
+                if assignment.target.get_identifier_reference().is_none() =>
             {
                 Self::NoBreak
             }
