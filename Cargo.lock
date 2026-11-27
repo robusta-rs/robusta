@@ -1105,6 +1105,7 @@ name = "robusta_diagnostics"
 version = "0.1.0"
 dependencies = [
  "bytecount",
+ "insta",
  "itoa",
  "memchr",
  "robusta_span",
