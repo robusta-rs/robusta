@@ -15,7 +15,7 @@ use crate::print::type_parameters::format_type_declaration_parameters;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
     Body, format_braced_body, format_head_body, write_comments_before_opener,
-    write_comments_between_blocks,
+    write_comments_between_blocks, write_same_line_comments_before_opener,
 };
 use robusta_allocator::Vec;
 use robusta_ast::{
@@ -215,10 +215,14 @@ impl<'parent, 'ast> FormatTypeHead<'parent, 'ast> {
     fn format_name(&self, f: &mut JavaFormatter<'_, 'ast>, has_clauses: bool) {
         format_modifiers_stacked(f, &self.modifiers);
         write!(f, [self.keyword, space()]);
-        if has_clauses || self.type_params.is_some() {
+        let name_end = self.name.span.end;
+        if self.type_params.is_some() {
+            format_content_without_comments_after(&self.name, name_end, f);
+            write_same_line_comments_before_opener(name_end, b'<', f);
+        } else if has_clauses {
             self.name.fmt(f);
         } else {
-            format_content_without_comments_after(&self.name, self.name.span.end, f);
+            format_content_without_comments_after(&self.name, name_end, f);
         }
     }
 
