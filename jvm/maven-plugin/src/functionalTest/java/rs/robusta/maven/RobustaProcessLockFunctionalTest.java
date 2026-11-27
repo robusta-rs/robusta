@@ -7,9 +7,9 @@ import static rs.robusta.plugin.common.FakeRobusta.assertSerialActivity;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -21,83 +21,90 @@ import org.junit.jupiter.params.provider.ValueSource;
 @Timeout(120)
 class RobustaProcessLockFunctionalTest {
     @TempDir Path temporaryDirectory;
+    private Path root;
+    private Path activity;
+
+    @BeforeEach
+    void createReactorRoot() throws Exception {
+        root = createProject(temporaryDirectory, "root", minimalPom("root")
+                .replace("<packaging>jar</packaging>", "<packaging>pom</packaging>")
+                .replace("</project>", "<modules><module>alpha</module><module>beta</module></modules></project>"));
+        activity = Files.createDirectory(root.resolve("activity"));
+    }
 
     @ParameterizedTest(name = "{0} and {1}")
     @MethodSource("goalPairs")
     void serializesNativeProcessesAcrossParallelModulesAndGoals(String first, String second) throws Exception {
-        Path root = reactor(first, second, 0);
-        Result result = run(root, "-T", "3", "validate");
+        writeModules(robusta(first, "--exit=0"), robusta(second, "--exit=0"));
+        Result result = run("-T", "3", "validate");
         assertEquals(0, result.exitCode(), result.output());
-        assertSerialActivity(root.resolve("activity"), 2);
+        assertSerialActivity(activity, 2);
     }
 
     @Test
     void serializesNativeProcessesAcrossPluginRealms() throws Exception {
-        Path root = reactor("format-fix", "config-show", 0);
-        Path beta = root.resolve("beta/pom.xml");
         String dependencies = separateRealmDependencies(temporaryDirectory.resolve("local-repo"));
-        Files.writeString(beta, Files.readString(beta).replace("<configuration>", dependencies + "<configuration>"));
-        Result result = run(root, "-T", "3", "validate");
+        writeModules(robusta("format-fix", "--exit=0"), robusta("config-show", "--exit=0", dependencies));
+        Result result = run("-T", "3", "validate");
         assertEquals(0, result.exitCode(), result.output());
-        assertSerialActivity(root.resolve("activity"), 2);
+        assertSerialActivity(activity, 2);
     }
 
     @Test
     void serialControlRemainsSerial() throws Exception {
-        Path root = reactor("format-fix", "version", 0);
-        Result result = run(root, "validate");
+        writeModules(robusta("format-fix", "--exit=0"), robusta("version", "--exit=0"));
+        Result result = run("validate");
         assertEquals(0, result.exitCode(), result.output());
-        assertSerialActivity(root.resolve("activity"), 2);
+        assertSerialActivity(activity, 2);
     }
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
     void nativeFailureReleasesTheSlotForAnotherModule(int exitCode) throws Exception {
-        Path root = reactor("format-fix", "version", exitCode);
-        Result result = run(root, "-T", "3", "--fail-at-end", "validate");
+        writeModules(robusta("format-fix", "--exit=" + exitCode), robusta("version", "--exit=0"));
+        Result result = run("-T", "3", "--fail-at-end", "validate");
         assertEquals(1, result.exitCode(), result.output());
         assertTrue(result.output().contains("beta") && result.output().contains("SUCCESS"), result.output());
-        assertSerialActivity(root.resolve("activity"), 2);
+        assertSerialActivity(activity, 2);
     }
 
     @Test
     void unrelatedMavenWorkCanRunWhileTheNativeProcessWaits() throws Exception {
-        Path root = reactor("format-fix", "version", 0);
-        Path alpha = root.resolve("alpha/pom.xml");
-        Files.writeString(alpha, Files.readString(alpha).replace("--exit=0", "--exit=0 --await-release"));
-        Path beta = root.resolve("beta/pom.xml");
-        String unrelated = nativeReleasePlugin(temporaryDirectory.resolve("local-repo"), root.resolve("activity"));
-        String build = "<build><plugins>" + unrelated + "</plugins></build></project>";
-        Files.writeString(beta, minimalPom("beta").replace("</project>", build));
-        Result result = run(root, "-T", "3", "validate");
+        String unrelated = nativeReleasePlugin(temporaryDirectory.resolve("local-repo"), activity);
+        writeModules(robusta("format-fix", "--exit=0 --await-release"), unrelated);
+        Result result = run("-T", "3", "validate");
         assertEquals(0, result.exitCode(), result.output());
-        assertEquals("1", Files.readString(root.resolve("activity/release")));
-        assertSerialActivity(root.resolve("activity"), 1);
+        assertEquals("1", Files.readString(activity.resolve("release")));
+        assertSerialActivity(activity, 1);
     }
 
-    private Path reactor(String first, String second, int exitCode) throws Exception {
-        Path root = createProject(temporaryDirectory, "root", minimalPom("root")
-                .replace("<packaging>jar</packaging>", "<packaging>pom</packaging>")
-                .replace("</project>", "<modules><module>alpha</module><module>beta</module></modules></project>"));
-        Files.createDirectory(root.resolve("activity"));
-        for (String name : List.of("alpha", "beta")) {
-            String goal = name.equals("alpha") ? first : second;
-            String activity = root.resolve("activity").toString().replace('\\', '/');
-            String args = "--activity=\"" + activity + "\""
-                    + " --exit=" + (name.equals("alpha") ? exitCode : 0);
-            String binding = """
-                <build><plugins><plugin>
+    private void writeModules(String alpha, String beta) throws Exception {
+        writeModule("alpha", alpha);
+        writeModule("beta", beta);
+    }
+
+    private void writeModule(String name, String plugin) throws Exception {
+        String build = "<build><plugins>" + plugin + "</plugins></build></project>";
+        Path module = Files.createDirectory(root.resolve(name));
+        Files.writeString(module.resolve("pom.xml"), minimalPom(name).replace("</project>", build));
+    }
+
+    private String robusta(String goal, String args) {
+        return robusta(goal, args, "");
+    }
+
+    private String robusta(String goal, String args, String dependencies) {
+        String activityArg = "--activity=\"" + activity.toString().replace('\\', '/') + "\"";
+        return """
+                <plugin>
                   <groupId>rs.robusta</groupId><artifactId>robusta-maven-plugin</artifactId><version>%s</version>
-                  <configuration><args>%s</args></configuration>
+                  %s<configuration><args>%s %s</args></configuration>
                   <executions><execution><phase>validate</phase><goals><goal>%s</goal></goals></execution></executions>
-                </plugin></plugins></build></project>
-                """.formatted(pluginVersion(), args, goal);
-            createProject(root, name, minimalPom(name).replace("</project>", binding));
-        }
-        return root;
+                </plugin>
+                """.formatted(pluginVersion(), dependencies, activityArg, args, goal);
     }
 
-    private Result run(Path root, String... arguments) throws Exception {
+    private Result run(String... arguments) throws Exception {
         return runFakeMaven(root, temporaryDirectory.resolve("local-repo"), arguments);
     }
 
