@@ -88,7 +88,7 @@ fn constructor_field_assignment() {
         panic!("expected an assignment");
     };
     assert_eq!(assignment.op, AssignOp::Assign);
-    let Expression::FieldAccess(access) = &assignment.target else {
+    let AssignmentTarget::FieldAccess(access) = &assignment.target else {
         panic!("expected a field access target");
     };
     assert!(matches!(access.target, Expression::This(_)));
@@ -106,6 +106,32 @@ fn assignment_is_right_associative() {
         panic!("expected an assignment");
     };
     assert!(matches!(&assignment.value, Expression::Assignment(_)));
+}
+
+#[test]
+fn assignment_target_keeps_its_parentheses() {
+    let allocator = Allocator::new();
+    let (statements, _) = first_method_statements(
+        &allocator,
+        "class A { void f(int x, int[] a) { x = 1; ((x)) = 2; (a[0]) = 3; } }",
+    );
+    let Expression::Assignment(plain) = expression_stmt(&statements[0]) else {
+        panic!("expected an assignment");
+    };
+    assert!(matches!(&plain.target, AssignmentTarget::Identifier(name) if name.name == "x"));
+    let Expression::Assignment(name) = expression_stmt(&statements[1]) else {
+        panic!("expected an assignment");
+    };
+    let AssignmentTarget::Parenthesized(outer) = &name.target else {
+        panic!("expected a parenthesized target");
+    };
+    assert!(matches!(&outer.expression, Expression::Parenthesized(_)));
+    assert_eq!(name.target.get_identifier_reference().map(|name| name.name), Some("x"));
+    let Expression::Assignment(element) = expression_stmt(&statements[2]) else {
+        panic!("expected an assignment");
+    };
+    assert!(matches!(&element.target, AssignmentTarget::Parenthesized(_)));
+    assert!(element.target.get_identifier_reference().is_none());
 }
 
 #[test]
@@ -560,7 +586,7 @@ fn parses_array_creations_accesses_and_initializers() {
     let Expression::Assignment(assignment) = &assign_stmt.expression else {
         panic!("expected an assignment");
     };
-    let Expression::ArrayAccess(outer) = &assignment.target else {
+    let AssignmentTarget::ArrayAccess(outer) = &assignment.target else {
         panic!("expected an array access target");
     };
     assert!(matches!(&outer.array, Expression::ArrayAccess(_)));

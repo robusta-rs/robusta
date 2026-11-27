@@ -115,6 +115,22 @@ impl<'a> Expression<'a> {
     }
 }
 
+impl<'a> AssignmentTarget<'a> {
+    /// The name this target is, looking through parentheses: `x` in `x = 1` or `(x) = 1`.
+    pub fn get_identifier_reference(&self) -> Option<&IdentifierReference<'a>> {
+        match self {
+            Self::Identifier(name) => Some(name),
+            Self::Parenthesized(parenthesized) => {
+                match parenthesized.expression.without_parentheses() {
+                    Expression::Identifier(name) => Some(name),
+                    _ => None,
+                }
+            }
+            Self::FieldAccess(_) | Self::ArrayAccess(_) => None,
+        }
+    }
+}
+
 impl FieldAccess<'_> {
     /// Whether this is a dotted name such as `a.b.c`, which only resolving `a` can
     /// tell from a field access (JLS 6.5).

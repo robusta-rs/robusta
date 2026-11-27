@@ -1,5 +1,7 @@
 //! Java grammar productions
 
+mod grammar;
+
 mod annotations;
 mod class;
 mod declaration;

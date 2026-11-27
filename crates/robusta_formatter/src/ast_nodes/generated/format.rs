@@ -2479,6 +2479,44 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AssignmentExpress
         self.format_trailing_comments(f);
     }
 }
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AssignmentTarget<'a>> {
+    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
+        match self.inner {
+            AssignmentTarget::Identifier(field_0) => {
+                AstNode::<IdentifierReference<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+            AssignmentTarget::FieldAccess(field_0) => {
+                AstNode::<FieldAccess<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+            AssignmentTarget::ArrayAccess(field_0) => {
+                AstNode::<ArrayAccess<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+            AssignmentTarget::Parenthesized(field_0) => {
+                AstNode::<ParenthesizedExpression<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+        }
+    }
+}
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ConditionalExpression<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {

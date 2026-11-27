@@ -1042,6 +1042,18 @@ impl ContentEq for AssignmentExpression<'_> {
     }
 }
 
+impl ContentEq for AssignmentTarget<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Identifier(a), Self::Identifier(b)) => a.content_eq(b),
+            (Self::FieldAccess(a), Self::FieldAccess(b)) => a.content_eq(b),
+            (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Parenthesized(a), Self::Parenthesized(b)) => a.content_eq(b),
+            _ => false,
+        }
+    }
+}
+
 impl ContentEq for ConditionalExpression<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.condition, &other.condition)

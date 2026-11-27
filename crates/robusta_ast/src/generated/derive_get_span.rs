@@ -936,6 +936,17 @@ impl GetSpan for AssignmentExpression<'_> {
     }
 }
 
+impl GetSpan for AssignmentTarget<'_> {
+    fn span(&self) -> Span {
+        match self {
+            Self::Identifier(it) => GetSpan::span(&**it),
+            Self::FieldAccess(it) => GetSpan::span(&**it),
+            Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Parenthesized(it) => GetSpan::span(&**it),
+        }
+    }
+}
+
 impl GetSpan for ConditionalExpression<'_> {
     #[inline]
     fn span(&self) -> Span {

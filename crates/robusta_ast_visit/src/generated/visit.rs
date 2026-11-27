@@ -581,6 +581,11 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
+    fn visit_assignment_target(&mut self, it: &'a AssignmentTarget<'a>) {
+        walk_assignment_target(self, it);
+    }
+
+    #[inline]
     fn visit_conditional_expression(&mut self, it: &'a ConditionalExpression<'a>) {
         walk_conditional_expression(self, it);
     }
@@ -2185,9 +2190,19 @@ pub mod walk {
     ) {
         let kind = AstKind::AssignmentExpression(it);
         visitor.enter_node(kind);
-        visitor.visit_expression(&it.target);
+        visitor.visit_assignment_target(&it.target);
         visitor.visit_expression(&it.value);
         visitor.leave_node(kind);
+    }
+
+    #[inline]
+    pub fn walk_assignment_target<'a, V: Visit<'a>>(visitor: &mut V, it: &'a AssignmentTarget<'a>) {
+        match it {
+            AssignmentTarget::Identifier(it) => visitor.visit_identifier_reference(it),
+            AssignmentTarget::FieldAccess(it) => visitor.visit_field_access(it),
+            AssignmentTarget::ArrayAccess(it) => visitor.visit_array_access(it),
+            AssignmentTarget::Parenthesized(it) => visitor.visit_parenthesized_expression(it),
+        }
     }
 
     #[inline]

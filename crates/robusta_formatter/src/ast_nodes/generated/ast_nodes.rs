@@ -6028,7 +6028,7 @@ impl<'a> AstNode<'_, 'a, AssignmentExpression<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::AssignmentExpression(self)
     }
-    pub fn target(&self) -> AstNode<'_, 'a, Expression<'a>> {
+    pub fn target(&self) -> AstNode<'_, 'a, AssignmentTarget<'a>> {
         AstNode {
             inner: &self.inner.target,
             parent: self.as_ast_nodes(),
@@ -6040,6 +6040,74 @@ impl<'a> AstNode<'_, 'a, AssignmentExpression<'a>> {
             inner: &self.inner.value,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
+        }
+    }
+}
+impl<'parent, 'a> AstNode<'parent, 'a, AssignmentTarget<'a>> {
+    pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
+        match self.inner {
+            AssignmentTarget::Identifier(field_0) => AstNodeKind::IdentifierReference(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AssignmentTarget::FieldAccess(field_0) => AstNodeKind::FieldAccess(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AssignmentTarget::ArrayAccess(field_0) => AstNodeKind::ArrayAccess(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AssignmentTarget::Parenthesized(field_0) => {
+                AstNodeKind::ParenthesizedExpression(AstNode {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                })
+            }
+        }
+    }
+    pub fn as_identifier(&self) -> Option<AstNode<'parent, 'a, IdentifierReference<'a>>> {
+        match self.inner {
+            AssignmentTarget::Identifier(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_field_access(&self) -> Option<AstNode<'parent, 'a, FieldAccess<'a>>> {
+        match self.inner {
+            AssignmentTarget::FieldAccess(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_array_access(&self) -> Option<AstNode<'parent, 'a, ArrayAccess<'a>>> {
+        match self.inner {
+            AssignmentTarget::ArrayAccess(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_parenthesized(&self) -> Option<AstNode<'parent, 'a, ParenthesizedExpression<'a>>> {
+        match self.inner {
+            AssignmentTarget::Parenthesized(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
         }
     }
 }

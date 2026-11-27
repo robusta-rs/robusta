@@ -3778,13 +3778,13 @@ impl<'a> SwitchRuleBody<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -5555,13 +5555,13 @@ impl<'a> VariableInitializer<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -6115,13 +6115,13 @@ impl<'a> Expression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -7403,13 +7403,13 @@ impl<'a> AssignmentExpression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -7425,19 +7425,89 @@ impl<'a> AssignmentExpression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn boxed(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
         Box::new_in(Self::new(span, target, op, value, builder), &builder.allocator())
+    }
+}
+
+impl<'a> AssignmentTarget<'a> {
+    /// Build an [`AssignmentTarget::Identifier`].
+    ///
+    /// This node contains an [`IdentifierReference`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `name`: See [`IdentifierName::name`].
+    #[inline]
+    pub fn new_identifier_reference(
+        span: Span,
+        name: &'a str,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Identifier(IdentifierReference::boxed(span, name, builder.builder()))
+    }
+
+    /// Build an [`AssignmentTarget::FieldAccess`].
+    ///
+    /// This node contains a [`FieldAccess`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `target`
+    /// * `name`
+    #[inline]
+    pub fn new_field_access(
+        span: Span,
+        target: Expression<'a>,
+        name: IdentifierName<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::FieldAccess(FieldAccess::boxed(span, target, name, builder.builder()))
+    }
+
+    /// Build an [`AssignmentTarget::ArrayAccess`].
+    ///
+    /// This node contains an [`ArrayAccess`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `array`
+    /// * `index`
+    #[inline]
+    pub fn new_array_access(
+        span: Span,
+        array: Expression<'a>,
+        index: Expression<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
+    }
+
+    /// Build an [`AssignmentTarget::Parenthesized`].
+    ///
+    /// This node contains a [`ParenthesizedExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `expression`
+    #[inline]
+    pub fn new_parenthesized_expression(
+        span: Span,
+        expression: Expression<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Parenthesized(ParenthesizedExpression::boxed(span, expression, builder.builder()))
     }
 }
 
@@ -8041,13 +8111,13 @@ impl<'a> LambdaBody<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -8605,13 +8675,13 @@ impl<'a> MethodReferenceTarget<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -10686,13 +10756,13 @@ impl<'a> AnnotationArgument<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -11287,13 +11357,13 @@ impl<'a> ElementValue<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
+    /// * `target`
     /// * `op`
     /// * `value`
     #[inline]
     pub fn new_assignment_expression(
         span: Span,
-        target: Expression<'a>,
+        target: AssignmentTarget<'a>,
         op: AssignOp,
         value: Expression<'a>,
         builder: &impl GetAstBuilder<'a>,

@@ -894,7 +894,7 @@ fn yield_identifier_can_start_statement_expressions() {
     let Expression::Assignment(array_assign) = &array_assign_stmt.expression else {
         panic!("expected an array assignment");
     };
-    assert!(matches!(&array_assign.target, Expression::ArrayAccess(_)));
+    assert!(matches!(&array_assign.target, AssignmentTarget::ArrayAccess(_)));
 
     let Statement::Expression(increment_stmt) = &statements[3] else {
         panic!("expected an increment statement");
