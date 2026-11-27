@@ -5,7 +5,7 @@ use markdown::mdast::Node;
 use robusta_allocator::Allocator;
 use robusta_ast::{ClassMember, Comment, CompilationUnitContent, TypeDeclaration};
 use robusta_formatter_core::{Format, SourceText, text_width};
-use robusta_javadoc::markdown::{block_end, continuation_prefix, parse, span};
+use robusta_javadoc::markdown::{block_end, continuation_prefix, parse, remove_margin, span};
 use robusta_javadoc::{Javadoc, JavadocKind, Structure, balanced_inline_end};
 
 use crate::ast_nodes::{AstNode, AstNodes};
@@ -177,7 +177,8 @@ fn format_content(context: SnippetContext<'_>, content: &str, kind: JavadocKind)
         cursor = range.end;
     }
     result.push_str(&content[cursor..]);
-    Some(result)
+    // A code line rewritten under its fence's prefix can indent the least-indented line.
+    Some(if kind == JavadocKind::Markdown { remove_margin(&result) } else { result })
 }
 
 /// The body of a standalone snippet or a `<pre>{@code ...}</pre>`.

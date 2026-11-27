@@ -5,6 +5,7 @@ mod utils;
 
 pub use javadoc::{Javadoc, JavadocKind};
 pub use javadoc_tag::{Tag, TagForm};
+pub use utils::markdown_margin;
 
 #[cfg(test)]
 pub mod tests {

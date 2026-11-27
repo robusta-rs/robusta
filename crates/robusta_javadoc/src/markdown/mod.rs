@@ -157,6 +157,12 @@ pub fn continuation_prefix(content: &str, start: usize) -> String {
         .collect()
 }
 
+/// `content` without the indentation all its lines share, which javadoc removes when it
+/// reads the comment.
+pub fn remove_margin(content: &str) -> String {
+    crate::parser::markdown_margin(content.split('\n').collect()).join("\n")
+}
+
 /// Indented code with the prefix its lines continue.
 pub struct IndentedCode {
     pub range: Range<usize>,

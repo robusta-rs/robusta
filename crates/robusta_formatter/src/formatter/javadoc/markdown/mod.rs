@@ -5,7 +5,9 @@ use std::ops::Range;
 use markdown::mdast::{AlignKind, Heading, Node, Table, TableCell};
 
 use robusta_formatter_core::IndentWidth;
-use robusta_javadoc::markdown::{code_gap, columns, indented_range, parse, quote_content, span};
+use robusta_javadoc::markdown::{
+    code_gap, columns, indented_range, parse, quote_content, remove_margin, span,
+};
 use robusta_javadoc::{Structure, TagForm};
 
 use super::normalize::capitalize_first;
@@ -69,7 +71,10 @@ fn normalize(content: &str, structure: &Structure, capitalize: bool) -> Option<S
             }),
         );
     }
-    apply(content, &mut edits).filter(|normalized| normalized != content)
+    // A code line rewritten under its block's prefix can indent the least-indented line.
+    apply(content, &mut edits)
+        .map(|normalized| remove_margin(&normalized))
+        .filter(|normalized| normalized != content)
 }
 
 /// Whether any rule could apply. Plain prose skips the Markdown parser.
