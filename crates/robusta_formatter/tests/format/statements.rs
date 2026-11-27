@@ -702,12 +702,10 @@ fn line_comments_before_a_statement_head_follow_its_opener() {
     assert_snapshot!(fmt(source), @"
     class A {
       void m() {
-        if (
-          // a
+        if ( // a
           x
         ) {}
-        try {} catch (
-          // c
+        try {} catch ( // c
           E e
         ) {}
       }

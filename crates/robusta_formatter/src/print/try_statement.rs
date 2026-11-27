@@ -1,6 +1,8 @@
 use crate::ast_nodes::AstNode;
 use crate::formatter::prelude::*;
-use crate::formatter::separated::{format_delimited_frame, format_undelimited_list};
+use crate::formatter::separated::{
+    format_after_opening_paren_comment, format_parenthesized_frame, format_undelimited_list,
+};
 use crate::formatter::trivia::{
     FormatTrailingComments, format_hoisted_leading_comments, format_leading_comments,
 };
@@ -78,7 +80,8 @@ fn format_resource_specification<'ast>(
 ) {
     let last_end = resources.last().expect("a resource specification has a resource").span().end;
     let count = resources.len();
-    format_delimited_frame(f, "(", ")", None, |f| {
+    let first_start = resources.first().expect("a resource").span().start;
+    format_parenthesized_frame(f, first_start, None, |f| {
         for (index, resource) in resources.iter().enumerate() {
             if index > 0 {
                 soft_line_break_or_space().fmt(f);
@@ -144,18 +147,18 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
             let comments = f.comments().comments_before_character(name_end, b')');
             FormatTrailingComments::Comments(comments).fmt(f);
         });
-        if leading_comment_with_break || trailing_comment_with_break {
-            write!(
-                f,
-                [soft_block_indent(&format_once(|f| {
-                    format_leading_comments(Span::empty(first_start)).fmt(f);
-                    format_catch_parameter(f, self);
-                    trailing.fmt(f);
-                }))]
-            );
-        } else {
+        let parameter = format_once(|f| {
+            format_leading_comments(Span::empty(first_start)).fmt(f);
             format_catch_parameter(f, self);
             trailing.fmt(f);
+        });
+        if !format_after_opening_paren_comment(f, first_start, &parameter) {
+            if leading_comment_with_break || trailing_comment_with_break {
+                soft_block_indent(&parameter).fmt(f);
+            } else {
+                format_catch_parameter(f, self);
+                trailing.fmt(f);
+            }
         }
         ")".fmt(f);
         format_head_body(&self.block(), f);

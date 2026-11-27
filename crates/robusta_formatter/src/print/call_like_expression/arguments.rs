@@ -12,7 +12,8 @@ use robusta_span::{GetSpan, Span};
 
 use crate::ast_nodes::{AstNode, AstNodeListElement};
 use crate::formatter::prelude::*;
-use crate::formatter::trivia::{format_dangling_comments, format_trailing_comments};
+use crate::formatter::separated::format_empty_parentheses;
+use crate::formatter::trivia::{format_opening_paren_comment, format_trailing_comments};
 use crate::print::array_element_list::can_concisely_print_array_list;
 use crate::print::lambda_expression::{
     FormatLambdaExpression, FormatLambdaExpressionOptions, FunctionCacheMode,
@@ -68,12 +69,11 @@ pub fn format_arguments<'p, 'a, T: Argument<'a>>(
 ) where
     AstNode<'p, 'a, T>: Format<'a, JavaFormatContext<'a>>,
 {
-    if arguments.is_empty() {
+    let Some(first) = arguments.first() else {
         // A class body may follow the `)`.
-        let span = Span::new(arguments.parent().span().start, close_end);
-        write!(f, ["(", format_dangling_comments(span).with_soft_block_indent(), ")"]);
+        format_empty_parentheses(f, Span::new(arguments.parent().span().start, close_end));
         return;
-    }
+    };
 
     // A blank line (two line breaks) after the comma between arguments puts every argument on
     // its own line. Line breaks before the comma don't count, as printing drops them.
@@ -84,6 +84,8 @@ pub fn format_arguments<'p, 'a, T: Argument<'a>>(
 
     if has_empty_line || T::is_function_composition(arguments) {
         format_all_args_broken_out(arguments, true, f);
+    } else if !f.comments().opening_paren_line_comment(first.span().start).is_empty() {
+        format_all_args_broken_out(arguments, false, f);
     } else if let Some(group_layout) = T::grouped_layout(arguments, f) {
         write_grouped_arguments(arguments, group_layout, f);
     } else {
@@ -140,11 +142,15 @@ fn format_all_args_broken_out<'p, 'a, T: Argument<'a>>(
     AstNode<'p, 'a, T>: Format<'a, JavaFormatContext<'a>>,
 {
     let last_index = node.len() - 1;
+    let first_start = node.first().expect("argument").span().start;
     let last = node.last().expect("argument").span();
     write!(
         f,
         [group(&format_args!(
             "(",
+            format_with(|f| {
+                format_opening_paren_comment(first_start, f);
+            }),
             soft_block_indent(&format_once(|f| {
                 for (index, argument) in node.iter().enumerate() {
                     if index > 0 {

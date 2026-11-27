@@ -1279,8 +1279,8 @@ fn nested_parenthesized_expressions_keep_boundary_comments_inside() {
     assert_snapshot!(fmt(source), @"
     class A {
       int f(int x) {
-        return (/* open */ (// inner-open
-        x // inner-close
+        return (/* open */ ( // inner-open
+          x // inner-close
         ) /* close */);
       }
     }
@@ -1363,25 +1363,20 @@ fn comments_before_commented_empty_creation_arguments_break_inside_the_list() {
     }";
     assert_snapshot!(fmt(source), @"
     class A {
-      Object a = new Inner<String>(
-        // before
+      Object a = new Inner<String>( // before
         /* inside */
       );
-      Object b = outer.new Inner<String>(
-        // before
+      Object b = outer.new Inner<String>( // before
         /* inside */
       );
-      Object c = new Inner<String>(
-        // before
+      Object c = new Inner<String>( // before
         /* next */
         /* inside */
       );
-      Object d = outer.new Inner<>(
-        // before
+      Object d = outer.new Inner<>( // before
         /* inside */
       );
-      Object e = outer.new Inner(
-        // before
+      Object e = outer.new Inner( // before
         // inside
       );
       Object f = new Inner<String>(
@@ -2690,16 +2685,13 @@ fn line_comments_before_a_call_list_move_inside_it() {
     assert_snapshot!(fmt(source), @"
     class A {
       void m() {
-        foo(
-          // a
+        foo( // a
           x
         );
-        a.b(
-          // b
+        a.b( // b
           y
         ).c(z);
-        a.<T>/* t */ d(
-          // d
+        a.<T>/* t */ d( // d
         );
       }
     }

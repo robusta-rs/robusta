@@ -1,8 +1,7 @@
 use crate::ast_nodes::AstNode;
 use crate::ast_nodes::impls::ast_nodes::format_node_leading_comments;
 use crate::formatter::prelude::*;
-use crate::formatter::separated::format_delimited_frame;
-use crate::formatter::trivia::format_dangling_comments;
+use crate::formatter::separated::{format_empty_parentheses, format_parenthesized_frame};
 use crate::print::annotations::{format_modifiers_inline, format_type_annotations};
 use crate::print::array_dimension::format_array_type_dimensions;
 use crate::print::{FormatWrite, format_name_after_type, format_qualified_keyword};
@@ -15,7 +14,7 @@ use robusta_ast::{
     Annotation, BindingIdentifier, FormalParameter, FormalParameters, Modifier, ReceiverParameter,
     RecordComponent, RecordHeader,
 };
-use robusta_formatter_core::{GroupId, format_args, write};
+use robusta_formatter_core::{GroupId, format_args};
 use robusta_span::GetSpan;
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordHeader<'a>> {
@@ -34,13 +33,12 @@ pub fn format_record_header<'ast>(
 ) -> Option<GroupId> {
     write_comments_between_blocks(f.comments().comments_before(header.span.start), f);
     let components = header.components();
-    if components.is_empty() {
-        let comments = format_dangling_comments(header.span);
-        write!(f, ["(", comments.with_soft_block_indent(), ")"]);
+    let Some(first) = components.first() else {
+        format_empty_parentheses(f, header.span);
         return None;
-    }
+    };
     let group_id = f.state().group_id("record_components");
-    format_delimited_frame(f, "(", ")", Some(group_id), |f| {
+    format_parenthesized_frame(f, first.span.start, Some(group_id), |f| {
         f.join_with(&format_args!(",", soft_line_break_or_space())).entries(components.iter());
     });
     Some(group_id)
@@ -55,6 +53,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, FormalParameters<'a>> {
 /// A parameter list's `(…)`, or a concise lambda's parameter. The comments
 /// before the `(` stay before it, and an empty list keeps a comment between its
 /// delimiters, so `void i(/* empty */)` does not push the comment into the body.
+/// A line comment right after the `(` stays on its line, and the list breaks.
 ///
 /// Returns the group the entries break in, which an empty or concise list does
 /// not have.
@@ -70,13 +69,16 @@ pub fn format_parameter_list<'ast>(
         parameter.fmt(f);
         return None;
     }
-    if receiver.is_none() && parameters.is_empty() {
-        let comments = format_dangling_comments(list.span);
-        write!(f, ["(", comments.with_soft_block_indent(), ")"]);
+    let Some(first_start) = receiver
+        .as_ref()
+        .map(|receiver| receiver.span.start)
+        .or_else(|| parameters.first().map(|parameter| parameter.span.start))
+    else {
+        format_empty_parentheses(f, list.span);
         return None;
-    }
+    };
     let group_id = f.state().group_id("parameters");
-    format_delimited_frame(f, "(", ")", Some(group_id), |f| {
+    format_parenthesized_frame(f, first_start, Some(group_id), |f| {
         f.join_with(&format_args!(",", soft_line_break_or_space()))
             .entries(receiver)
             .entries(parameters.iter());

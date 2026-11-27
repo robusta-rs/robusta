@@ -261,6 +261,17 @@ impl<'a, 'c> Comments<'a, 'c> {
         &comments[..count]
     }
 
+    /// The first pending comment before `pos` when it is a line comment on the
+    /// line of a `(` printed before it: one right after the `(`, or one that
+    /// trailed the code before the `(` and moved after it. Otherwise empty.
+    pub(crate) fn opening_paren_line_comment(&self, pos: u32) -> &'c [Comment] {
+        let comments = self.comments_before(pos);
+        match comments.first() {
+            Some(comment) if comment.is_line() && !comment.preceded_by_newline() => &comments[..1],
+            _ => &[],
+        }
+    }
+
     /// Pending comments that end at or after `pos`.
     pub(crate) fn comments_after(&self, pos: u32) -> &'c [Comment] {
         let comments = self.unprinted_comments();

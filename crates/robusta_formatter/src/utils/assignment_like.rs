@@ -4,9 +4,9 @@ use std::iter;
 
 use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
+use crate::formatter::separated::format_empty_parentheses;
 use crate::formatter::trivia::{
-    FormatTrailingComments, format_dangling_comments, format_trailing_comments,
-    is_alignable_block_comment,
+    FormatTrailingComments, format_trailing_comments, is_alignable_block_comment,
 };
 use crate::print::array_dimension::format_array_type_dimensions;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
@@ -107,15 +107,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                 write_comments_before_opener(name_end, b'(', f);
                 let open_end = f.comments().position_after_character(name_end, b'(');
                 let close_end = f.comments().position_after_character(open_end, b')');
-                write!(
-                    f,
-                    [
-                        "(",
-                        format_dangling_comments(Span::new(open_end, close_end))
-                            .with_soft_block_indent(),
-                        ")"
-                    ]
-                );
+                format_empty_parentheses(f, Span::new(open_end, close_end));
                 format_array_type_dimensions(f, close_end, &element.post_paren_dimensions());
                 false
             }

@@ -7,6 +7,7 @@ use robusta_span::GetSpan;
 
 use crate::ast_nodes::AstNode;
 use crate::formatter::prelude::*;
+use crate::formatter::separated::format_after_opening_paren_comment;
 use crate::formatter::trivia::{FormatTrailingComments, format_hoisted_leading_comments};
 use crate::print::intersection_type::format_type_bounds;
 use crate::print::{
@@ -36,7 +37,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CastExpression<'a>> {
         "(".fmt(f);
         // Only a comment breaks the line inside the parentheses. The types
         // break only when they do not fit before the break after the `)`.
-        if let Some(types) = f.intern(&format_types) {
+        if !format_after_opening_paren_comment(f, self.ty.span().start, &format_types)
+            && let Some(types) = f.intern(&format_types)
+        {
             let will_break = types.will_break();
             let types = format_once(|f| f.write_element(types));
             if will_break {

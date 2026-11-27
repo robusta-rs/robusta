@@ -623,7 +623,7 @@ fn structural_comment_breaks_leave_no_blank_line_after_spaces() {
         ),
         (
             "class A { void m(// first  \n int a) {} }",
-            "class A {\n  void m(\n    // first\n    int a\n  ) {}\n}\n",
+            "class A {\n  void m( // first\n    int a\n  ) {}\n}\n",
         ),
         (
             "class A { void m(int a // last  \n) {} }",
@@ -1224,13 +1224,59 @@ fn a_comment_kept_before_an_opener_indents_as_a_wrapped_line_and_a_calls_moves_i
 }
 
 #[test]
+fn a_line_comment_after_an_opening_parenthesis_keeps_its_line() {
+    let source = "class Orders {
+  boolean ship() {
+    audit // each order once
+        (orders, refunds);
+    ship( // fastest carrier first
+        carriers, priority);
+    notify(
+        // the customer first
+        customer);
+    if ( // never due once paid
+        paid && !refunded) {
+      close();
+    }
+    return ( // settings before the zone
+        lenient == other.lenient);
+  }
+}";
+    assert_snapshot!(format_stable(source), @"
+    class Orders {
+      boolean ship() {
+        audit( // each order once
+          orders,
+          refunds
+        );
+        ship( // fastest carrier first
+          carriers,
+          priority
+        );
+        notify(
+          // the customer first
+          customer
+        );
+        if ( // never due once paid
+          paid && !refunded
+        ) {
+          close();
+        }
+        return ( // settings before the zone
+          lenient == other.lenient
+        );
+      }
+    }
+    ");
+}
+
+#[test]
 fn a_comment_before_an_empty_call_list_moves_inside_it() {
     let source = "class A { void m() { flush // pending writes\n(); reset\n/* state */\n(); } }";
     assert_snapshot!(fmt(source), @"
     class A {
       void m() {
-        flush(
-          // pending writes
+        flush( // pending writes
         );
         reset(
           /* state */
@@ -1418,8 +1464,7 @@ fn annotation_element_keeps_line_comments_inside_its_parentheses() {
         // x
       );
 
-      int other(
-        // y
+      int other( // y
       ) default 1;
     }
     ");
