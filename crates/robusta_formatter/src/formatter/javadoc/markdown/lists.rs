@@ -23,10 +23,14 @@ impl Normalizer<'_> {
             return scope;
         };
         let content = self.content;
-        // The start of the list's line when no blank line comes before it.
+        // The start of the list's line when no blank line comes before it. A blank line inside
+        // the block before, such as the end of a fence that the list closes, is not one.
         let line_start = content[..range.start].rfind('\n').and_then(|newline| {
-            let previous = content[..newline].rsplit('\n').next().unwrap_or_default();
-            (index > 0 && !quote_content(previous).trim().is_empty()).then_some(newline + 1)
+            let before = span(&siblings[index.checked_sub(1)?])?;
+            let previous_start = content[..newline].rfind('\n').map_or(0, |newline| newline + 1);
+            let blank = quote_content(&content[previous_start..newline]).trim().is_empty()
+                && before.end <= previous_start;
+            (!blank).then_some(newline + 1)
         });
         let interrupts = line_start.is_some() && matches!(siblings[index - 1], Node::Paragraph(_));
         // A different marker is what separates adjacent lists of the same kind.
