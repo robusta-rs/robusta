@@ -17,7 +17,7 @@ use crate::utils::member_chain::MemberChain;
 use crate::utils::statement_body::{format_on_wrapped_line, write_comments_before_opener};
 use robusta_ast::{
     AnnotationInterfaceElementDeclaration, AssignmentExpression, AssignmentTarget, Comment,
-    ElementValuePair, Expression, IdentifierReference, ResourceDeclaration, VariableDeclarator,
+    ElementValuePair, Expression, IdentifierReference, VariableDeclarator,
 };
 use robusta_formatter_core::{FormatElements, format_args, text_width, write};
 use robusta_span::{GetSpan, Span};
@@ -27,7 +27,6 @@ pub enum AssignmentLike<'a, 'b> {
     VariableDeclarator(&'b AstNode<'b, 'a, VariableDeclarator<'a>>),
     AssignmentExpression(&'b AstNode<'b, 'a, AssignmentExpression<'a>>),
     ElementValuePair(&'b AstNode<'b, 'a, ElementValuePair<'a>>),
-    ResourceDeclaration(&'b AstNode<'b, 'a, ResourceDeclaration<'a>>),
     AnnotationInterfaceElementDeclaration(
         &'b AstNode<'b, 'a, AnnotationInterfaceElementDeclaration<'a>>,
     ),
@@ -98,11 +97,6 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                     u32::from(f.options().indent_width.value() + MIN_OVERLAP_FOR_BREAK);
                 text_width(name.name, f.options().indent_width) < text_width_for_break
             }
-            // The resource prints its modifiers and type.
-            Self::ResourceDeclaration(resource) => {
-                format_content_without_comments_after(&resource.name(), resource.name.span.end, f);
-                false
-            }
             // The element prints its modifiers and type.
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 let name_end = element.name.span.end;
@@ -156,7 +150,6 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
                 .map_or(declarator.name.span.end, |dimension| dimension.span.end),
             Self::AssignmentExpression(assignment) => assignment.target.span().end,
             Self::ElementValuePair(pair) => pair.name.span.end,
-            Self::ResourceDeclaration(resource) => resource.name.span.end,
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 element.post_paren_dimensions.last().map_or_else(
                     || f.comments().position_after_character(element.name.span.end, b')'),
@@ -246,7 +239,6 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
             }
             Self::AssignmentExpression(assignment) => assignment.value().fmt(f),
             Self::ElementValuePair(pair) => pair.value().fmt(f),
-            Self::ResourceDeclaration(resource) => resource.init().fmt(f),
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 element
                     .default_value()
@@ -303,7 +295,6 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
             }
             Self::AssignmentExpression(assignment) => assignment.value.span().start,
             Self::ElementValuePair(pair) => pair.value.span().start,
-            Self::ResourceDeclaration(resource) => resource.init.span().start,
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 element.default_value.as_ref().map_or(element.span.end, |value| value.span().start)
             }
@@ -318,7 +309,6 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
             }
             Self::AssignmentExpression(assignment) => Some(assignment.value()),
             Self::ElementValuePair(pair) => pair.value().as_expression(),
-            Self::ResourceDeclaration(resource) => Some(resource.init()),
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 element.default_value().and_then(|value| value.as_expression())
             }
@@ -336,7 +326,7 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
         };
         // Two assignments are not a chain: `a = b = 0;`, `int a = b = 0;`, and `() -> a = b = 0`.
         let upper_chain_is_eligible = match assignment.parent() {
-            AstNodes::VariableDeclarator(_) | AstNodes::ResourceDeclaration(_) => !right_is_tail,
+            AstNodes::VariableDeclarator(_) => !right_is_tail,
             AstNodes::AssignmentExpression(parent) => {
                 !right_is_tail
                     || !matches!(

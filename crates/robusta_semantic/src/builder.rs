@@ -9,10 +9,10 @@ use robusta_allocator::{Address, GetAddress, UnstableAddress};
 use robusta_ast::{
     AnnotationInterfaceDeclaration, AnnotationInterfaceElementDeclaration, AstKind,
     BindingIdentifier, CatchClause, ClassDeclaration, ClassType, CompactConstructorDeclaration,
-    CompilationUnit, EnhancedForStatement, EnumConstant, EnumDeclaration, FormalParameter,
-    IdentifierReference, ImportDeclaration, ImportKind, InterfaceDeclaration, MethodDeclaration,
-    ModifierKind, RecordComponent, RecordDeclaration, ResourceDeclaration, Statement, Type,
-    TypeDeclarationKind, TypeParameter, TypePattern, VariableDeclarator, VariableInitializer,
+    CompilationUnit, EnumConstant, EnumDeclaration, FormalParameter, IdentifierReference,
+    ImportDeclaration, ImportKind, InterfaceDeclaration, MethodDeclaration, ModifierKind,
+    RecordComponent, RecordDeclaration, Statement, Type, TypeDeclarationKind, TypeParameter,
+    VariableDeclarator, VariableInitializer,
 };
 use robusta_ast_visit::Visit;
 use robusta_span::{GetSpan, Span};
@@ -642,32 +642,6 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
         self.leave_node(kind);
     }
 
-    fn visit_enhanced_for_statement(&mut self, stmt: &'a EnhancedForStatement<'a>) {
-        let kind = AstKind::EnhancedForStatement(stmt);
-        self.enter_node(kind);
-        self.enter_scope(&stmt.scope_id);
-        stmt.bind(self);
-        self.visit_modifiers(&stmt.modifiers);
-        self.visit_variable_type(&stmt.ty);
-        self.visit_binding_identifier(&stmt.name);
-        self.visit_array_type_dimensions(&stmt.dims);
-        self.visit_expression(&stmt.iterable);
-        self.visit_statement(&stmt.body);
-        self.leave_scope();
-        self.leave_node(kind);
-    }
-
-    fn visit_resource_declaration(&mut self, decl: &'a ResourceDeclaration<'a>) {
-        let kind = AstKind::ResourceDeclaration(decl);
-        self.enter_node(kind);
-        decl.bind(self);
-        self.visit_modifiers(&decl.modifiers);
-        self.visit_variable_type(&decl.ty);
-        self.visit_binding_identifier(&decl.name);
-        self.visit_expression(&decl.init);
-        self.leave_node(kind);
-    }
-
     fn visit_catch_clause(&mut self, clause: &'a CatchClause<'a>) {
         let kind = AstKind::CatchClause(clause);
         self.enter_node(kind);
@@ -678,16 +652,6 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
         self.visit_binding_identifier(&clause.name);
         self.visit_block(&clause.block);
         self.leave_scope();
-        self.leave_node(kind);
-    }
-
-    fn visit_type_pattern(&mut self, pattern: &'a TypePattern<'a>) {
-        let kind = AstKind::TypePattern(pattern);
-        self.enter_node(kind);
-        pattern.bind(self);
-        self.visit_modifiers(&pattern.modifiers);
-        self.visit_variable_type(&pattern.ty);
-        self.visit_binding_identifier(&pattern.name);
         self.leave_node(kind);
     }
 

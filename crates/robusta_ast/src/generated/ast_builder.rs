@@ -2760,29 +2760,20 @@ impl<'a> Statement<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
-    /// * `dims`: See [`VariableDeclarator::dims`].
+    /// * `declaration`: One declarator without an initializer.
     /// * `iterable`
     /// * `body`
     #[inline]
     pub fn new_enhanced_for_statement(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
+        declaration: LocalVariableDeclaration<'a>,
         iterable: Expression<'a>,
         body: Statement<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::EnhancedFor(EnhancedForStatement::boxed(
             span,
-            modifiers,
-            ty,
-            name,
-            dims,
+            declaration,
             iterable,
             body,
             builder.builder(),
@@ -4271,19 +4262,13 @@ impl<'a> EnhancedForStatement<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
-    /// * `dims`: See [`VariableDeclarator::dims`].
+    /// * `declaration`: One declarator without an initializer.
     /// * `iterable`
     /// * `body`
     #[inline]
     pub fn new(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
+        declaration: LocalVariableDeclaration<'a>,
         iterable: Expression<'a>,
         body: Statement<'a>,
         builder: &impl GetAstBuilder<'a>,
@@ -4292,10 +4277,7 @@ impl<'a> EnhancedForStatement<'a> {
         EnhancedForStatement {
             node_id: Cell::new(builder.node_id()),
             span,
-            modifiers: modifiers.into_in(builder.allocator()),
-            ty,
-            name,
-            dims: dims.into_in(builder.allocator()),
+            declaration,
             iterable,
             body,
             scope_id: Default::default(),
@@ -4309,28 +4291,19 @@ impl<'a> EnhancedForStatement<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
-    /// * `dims`: See [`VariableDeclarator::dims`].
+    /// * `declaration`: One declarator without an initializer.
     /// * `iterable`
     /// * `body`
     #[inline]
     pub fn boxed(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        dims: impl IntoIn<'a, Vec<'a, ArrayTypeDimension<'a>>>,
+        declaration: LocalVariableDeclaration<'a>,
         iterable: Expression<'a>,
         body: Statement<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
-        Box::new_in(
-            Self::new(span, modifiers, ty, name, dims, iterable, body, builder),
-            &builder.allocator(),
-        )
+        Box::new_in(Self::new(span, declaration, iterable, body, builder), &builder.allocator())
     }
 }
 
@@ -4563,29 +4536,26 @@ impl<'a> TryStatement<'a> {
 impl<'a> Resource<'a> {
     /// Build a [`Resource::Declaration`].
     ///
-    /// This node contains a [`ResourceDeclaration`] that will be stored in the memory arena.
+    /// This node contains a [`LocalVariableDeclaration`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     /// * `modifiers`
     /// * `ty`
-    /// * `name`
-    /// * `init`
+    /// * `declarators`
     #[inline]
-    pub fn new_resource_declaration(
+    pub fn new_local_variable_declaration(
         span: Span,
         modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
         ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        init: Expression<'a>,
+        declarators: impl IntoIn<'a, Vec<'a, VariableDeclarator<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Declaration(ResourceDeclaration::boxed(
+        Self::Declaration(LocalVariableDeclaration::boxed(
             span,
             modifiers,
             ty,
-            name,
-            init,
+            declarators,
             builder.builder(),
         ))
     }
@@ -4658,63 +4628,6 @@ impl<'a> ResourceAccess<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Field(FieldAccess::boxed(span, target, name, builder.builder()))
-    }
-}
-
-impl<'a> ResourceDeclaration<'a> {
-    /// Build a [`ResourceDeclaration`].
-    ///
-    /// If you want the built node to be allocated in the memory arena,
-    /// use [`ResourceDeclaration::boxed`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
-    /// * `init`
-    #[inline]
-    pub fn new(
-        span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        init: Expression<'a>,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        let builder = builder.builder();
-        ResourceDeclaration {
-            node_id: Cell::new(builder.node_id()),
-            span,
-            modifiers: modifiers.into_in(builder.allocator()),
-            ty,
-            name,
-            init,
-        }
-    }
-
-    /// Build a [`ResourceDeclaration`], and store it in the memory arena.
-    ///
-    /// Returns a [`Box`] containing the newly-allocated node.
-    /// If you want a stack-allocated node, use [`ResourceDeclaration::new`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
-    /// * `init`
-    #[inline]
-    pub fn boxed(
-        span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
-        init: Expression<'a>,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Box<'a, Self> {
-        let builder = builder.builder();
-        Box::new_in(Self::new(span, modifiers, ty, name, init, builder), &builder.allocator())
     }
 }
 
@@ -7044,18 +6957,14 @@ impl<'a> InstanceofRhs<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
+    /// * `declaration`: One declarator without an initializer or dimensions (JLS §14.30.1).
     #[inline]
     pub fn new_type_pattern(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
+        declaration: LocalVariableDeclaration<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::TypePattern(TypePattern::boxed(span, modifiers, ty, name, builder.builder()))
+        Self::TypePattern(TypePattern::boxed(span, declaration, builder.builder()))
     }
 
     /// Build an [`InstanceofRhs::RecordPattern`].
@@ -7084,18 +6993,14 @@ impl<'a> Pattern<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
+    /// * `declaration`: One declarator without an initializer or dimensions (JLS §14.30.1).
     #[inline]
     pub fn new_type_pattern(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
+        declaration: LocalVariableDeclaration<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::TypePattern(TypePattern::boxed(span, modifiers, ty, name, builder.builder()))
+        Self::TypePattern(TypePattern::boxed(span, declaration, builder.builder()))
     }
 
     /// Build a [`Pattern::RecordPattern`].
@@ -7125,25 +7030,15 @@ impl<'a> TypePattern<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
+    /// * `declaration`: One declarator without an initializer or dimensions (JLS §14.30.1).
     #[inline]
     pub fn new(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
+        declaration: LocalVariableDeclaration<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
-        TypePattern {
-            node_id: Cell::new(builder.node_id()),
-            span,
-            modifiers: modifiers.into_in(builder.allocator()),
-            ty,
-            name,
-        }
+        TypePattern { node_id: Cell::new(builder.node_id()), span, declaration }
     }
 
     /// Build a [`TypePattern`], and store it in the memory arena.
@@ -7153,19 +7048,15 @@ impl<'a> TypePattern<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
+    /// * `declaration`: One declarator without an initializer or dimensions (JLS §14.30.1).
     #[inline]
     pub fn boxed(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
+        declaration: LocalVariableDeclaration<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
-        Box::new_in(Self::new(span, modifiers, ty, name, builder), &builder.allocator())
+        Box::new_in(Self::new(span, declaration, builder), &builder.allocator())
     }
 }
 
@@ -7234,18 +7125,14 @@ impl<'a> ComponentPattern<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `ty`
-    /// * `name`
+    /// * `declaration`: One declarator without an initializer or dimensions (JLS §14.30.1).
     #[inline]
     pub fn new_type_pattern(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        ty: VariableType<'a>,
-        name: BindingIdentifier<'a>,
+        declaration: LocalVariableDeclaration<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::TypePattern(TypePattern::boxed(span, modifiers, ty, name, builder.builder()))
+        Self::TypePattern(TypePattern::boxed(span, declaration, builder.builder()))
     }
 
     /// Build a [`ComponentPattern::RecordPattern`].

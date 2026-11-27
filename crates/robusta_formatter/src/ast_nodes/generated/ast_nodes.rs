@@ -63,7 +63,6 @@ pub enum AstNodes<'parent, 'a> {
     ThrowStatement(&'parent AstNode<'parent, 'a, ThrowStatement<'a>>),
     AssertStatement(&'parent AstNode<'parent, 'a, AssertStatement<'a>>),
     TryStatement(&'parent AstNode<'parent, 'a, TryStatement<'a>>),
-    ResourceDeclaration(&'parent AstNode<'parent, 'a, ResourceDeclaration<'a>>),
     CatchClause(&'parent AstNode<'parent, 'a, CatchClause<'a>>),
     SynchronizedStatement(&'parent AstNode<'parent, 'a, SynchronizedStatement<'a>>),
     LabeledStatement(&'parent AstNode<'parent, 'a, LabeledStatement<'a>>),
@@ -185,7 +184,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ThrowStatement(node) => node.span(),
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
-            Self::ResourceDeclaration(node) => node.span(),
             Self::CatchClause(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
@@ -305,7 +303,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ThrowStatement(node) => node.parent(),
             Self::AssertStatement(node) => node.parent(),
             Self::TryStatement(node) => node.parent(),
-            Self::ResourceDeclaration(node) => node.parent(),
             Self::CatchClause(node) => node.parent(),
             Self::SynchronizedStatement(node) => node.parent(),
             Self::LabeledStatement(node) => node.parent(),
@@ -427,7 +424,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ThrowStatement(_) => "ThrowStatement",
             Self::AssertStatement(_) => "AssertStatement",
             Self::TryStatement(_) => "TryStatement",
-            Self::ResourceDeclaration(_) => "ResourceDeclaration",
             Self::CatchClause(_) => "CatchClause",
             Self::SynchronizedStatement(_) => "SynchronizedStatement",
             Self::LabeledStatement(_) => "LabeledStatement",
@@ -549,7 +545,6 @@ pub enum AstNodeKind<'parent, 'a> {
     ThrowStatement(AstNode<'parent, 'a, ThrowStatement<'a>>),
     AssertStatement(AstNode<'parent, 'a, AssertStatement<'a>>),
     TryStatement(AstNode<'parent, 'a, TryStatement<'a>>),
-    ResourceDeclaration(AstNode<'parent, 'a, ResourceDeclaration<'a>>),
     CatchClause(AstNode<'parent, 'a, CatchClause<'a>>),
     SynchronizedStatement(AstNode<'parent, 'a, SynchronizedStatement<'a>>),
     LabeledStatement(AstNode<'parent, 'a, LabeledStatement<'a>>),
@@ -674,7 +669,6 @@ impl<'a> AstNodeKind<'_, 'a> {
             Self::ThrowStatement(node) => AstNodes::ThrowStatement(node),
             Self::AssertStatement(node) => AstNodes::AssertStatement(node),
             Self::TryStatement(node) => AstNodes::TryStatement(node),
-            Self::ResourceDeclaration(node) => AstNodes::ResourceDeclaration(node),
             Self::CatchClause(node) => AstNodes::CatchClause(node),
             Self::SynchronizedStatement(node) => AstNodes::SynchronizedStatement(node),
             Self::LabeledStatement(node) => AstNodes::LabeledStatement(node),
@@ -799,7 +793,6 @@ impl GetSpan for AstNodeKind<'_, '_> {
             Self::ThrowStatement(node) => node.span(),
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
-            Self::ResourceDeclaration(node) => node.span(),
             Self::CatchClause(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
@@ -3876,34 +3869,9 @@ impl<'a> AstNode<'_, 'a, EnhancedForStatement<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::EnhancedForStatement(self)
     }
-    pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, Modifier<'a>>> {
+    pub fn declaration(&self) -> AstNode<'_, 'a, LocalVariableDeclaration<'a>> {
         AstNode {
-            inner: &self.inner.modifiers,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.ty.span().start,
-        }
-    }
-    pub fn ty(&self) -> AstNode<'_, 'a, VariableType<'a>> {
-        AstNode {
-            inner: &self.inner.ty,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.name.span().start,
-        }
-    }
-    pub fn name(&self) -> AstNode<'_, 'a, BindingIdentifier<'a>> {
-        AstNode {
-            inner: &self.inner.name,
-            parent: self.as_ast_nodes(),
-            following_span_start: self
-                .inner
-                .dims
-                .first()
-                .map_or(self.inner.iterable.span().start, |it| it.span().start),
-        }
-    }
-    pub fn dims(&self) -> AstNode<'_, 'a, Vec<'a, ArrayTypeDimension<'a>>> {
-        AstNode {
-            inner: &self.inner.dims,
+            inner: &self.inner.declaration,
             parent: self.as_ast_nodes(),
             following_span_start: self.inner.iterable.span().start,
         }
@@ -4012,7 +3980,7 @@ impl<'a> AstNode<'_, 'a, TryStatement<'a>> {
 impl<'parent, 'a> AstNode<'parent, 'a, Resource<'a>> {
     pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
         match self.inner {
-            Resource::Declaration(field_0) => AstNodeKind::ResourceDeclaration(AstNode {
+            Resource::Declaration(field_0) => AstNodeKind::LocalVariableDeclaration(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -4029,7 +3997,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, Resource<'a>> {
             }),
         }
     }
-    pub fn as_declaration(&self) -> Option<AstNode<'parent, 'a, ResourceDeclaration<'a>>> {
+    pub fn as_declaration(&self) -> Option<AstNode<'parent, 'a, LocalVariableDeclaration<'a>>> {
         match self.inner {
             Resource::Declaration(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
@@ -4100,39 +4068,6 @@ impl<'parent, 'a> AstNode<'parent, 'a, ResourceAccess<'a>> {
                 following_span_start: self.following_span_start,
             }),
             ResourceAccess::Identifier(..) => None,
-        }
-    }
-}
-impl<'a> AstNode<'_, 'a, ResourceDeclaration<'a>> {
-    pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::ResourceDeclaration(self)
-    }
-    pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, Modifier<'a>>> {
-        AstNode {
-            inner: &self.inner.modifiers,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.ty.span().start,
-        }
-    }
-    pub fn ty(&self) -> AstNode<'_, 'a, VariableType<'a>> {
-        AstNode {
-            inner: &self.inner.ty,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.name.span().start,
-        }
-    }
-    pub fn name(&self) -> AstNode<'_, 'a, BindingIdentifier<'a>> {
-        AstNode {
-            inner: &self.inner.name,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.init.span().start,
-        }
-    }
-    pub fn init(&self) -> AstNode<'_, 'a, Expression<'a>> {
-        AstNode {
-            inner: &self.inner.init,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.following_span_start,
         }
     }
 }
@@ -5857,23 +5792,9 @@ impl<'a> AstNode<'_, 'a, TypePattern<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::TypePattern(self)
     }
-    pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, Modifier<'a>>> {
+    pub fn declaration(&self) -> AstNode<'_, 'a, LocalVariableDeclaration<'a>> {
         AstNode {
-            inner: &self.inner.modifiers,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.ty.span().start,
-        }
-    }
-    pub fn ty(&self) -> AstNode<'_, 'a, VariableType<'a>> {
-        AstNode {
-            inner: &self.inner.ty,
-            parent: self.as_ast_nodes(),
-            following_span_start: self.inner.name.span().start,
-        }
-    }
-    pub fn name(&self) -> AstNode<'_, 'a, BindingIdentifier<'a>> {
-        AstNode {
-            inner: &self.inner.name,
+            inner: &self.inner.declaration,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
         }

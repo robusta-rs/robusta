@@ -622,39 +622,39 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, DoStatement<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let node = self.inner();
-        let dimensions = self.dims();
+        // The header prints the variable's parts itself: they wrap inside the
+        // `for` parentheses as dart format wraps an `if`, and the dimensions
+        // group with the `:` and the iterable.
+        let declaration = self.declaration();
+        let declarator = declaration.declarators().get(0).expect("one loop variable");
+        let dimensions = declarator.dims();
         // Own-line comments between the variable and the `:` lead the statement.
         // Those after the `:` stay with the iterable, which wraps after it.
-        let variable_end =
-            node.dims.last().map_or(node.name.span.end, |dimension| dimension.span.end);
+        let variable_end = node.declaration.span.end;
         let colon_start = f.comments().position_after_character(variable_end, b':') - 1;
         let comments = f.comments().own_line_comments_before(colon_start);
         if comments.first().is_some_and(|comment| comment.span.start > variable_end) {
             FormatLeadingComments::Comments(comments).fmt(f);
         }
-        let variable_start = node
-            .modifiers
-            .first()
-            .map_or_else(|| node.ty.span().start, |modifier| modifier.span().start);
         let head = format_once(|f| {
-            format_modifiers_inline(f, &self.modifiers());
-            format_content_without_comments_after(&self.ty(), node.ty.span().end, f);
+            format_modifiers_inline(f, &declaration.modifiers());
+            let ty = declaration.ty();
+            format_content_without_comments_after(&ty, ty.span().end, f);
             wrapped_indent(
                 true,
                 &format_once(|f| {
-                    write_type_name_separator(node.name.span.start, f);
-                    let name = self.name();
+                    write_type_name_separator(declarator.name.span.start, f);
+                    let name = declarator.name();
+                    format_content_without_comments_after(&name, name.span.end, f);
                     if dimensions.is_empty() {
-                        name.fmt(f);
-                    } else {
-                        format_content_without_comments_after(&name, name.span.end, f);
+                        declaration.format_trailing_comments(f);
                     }
                 }),
             )
             .fmt(f);
             group(&format_once(|f| {
                 if !dimensions.is_empty() {
-                    format_array_type_dimensions(f, node.name.span.end, &dimensions);
+                    format_array_type_dimensions(f, declarator.name.span.end, &dimensions);
                     write_comments_before_opener(variable_end, b':', f);
                 }
                 write!(f, [space(), ":"]);
@@ -682,7 +682,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnhancedForStatement<'a>> {
         });
         let content = format_once(|f| {
             write!(f, ["for", space(), "("]);
-            if format_after_opening_paren_comment(f, variable_start, &head) {
+            if format_after_opening_paren_comment(f, node.declaration.span.start, &head) {
                 ")".fmt(f);
             } else {
                 write!(f, [head, line_suffix_boundary(), ")"]);

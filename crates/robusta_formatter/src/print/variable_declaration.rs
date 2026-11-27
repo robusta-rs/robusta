@@ -29,9 +29,13 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, LocalVariableDeclaration<'a>> {
         let node = self.inner();
         let wrapped = node.ty.as_type().is_some_and(|ty| type_wraps_line(f, ty));
         let (ty, declarators) = (&self.ty(), &self.declarators());
-        // A basic `for` initializer uses the same production, but its semicolon
-        // separates the header's clauses, so the `for` header prints it.
-        if matches!(self.parent(), AstNodes::ForStatement(_)) {
+        // A basic `for` initializer, a resource, and a type pattern use the same
+        // production inside other code: their annotations stay on their line,
+        // and the code around them prints any `;` that follows.
+        if matches!(
+            self.parent(),
+            AstNodes::ForStatement(_) | AstNodes::TryStatement(_) | AstNodes::TypePattern(_)
+        ) {
             format_modifiers_inline(f, &self.modifiers());
             format_type_and_declarators(f, ty, wrapped, declarators, None);
         } else {

@@ -569,13 +569,6 @@ impl GetSpan for ResourceAccess<'_> {
     }
 }
 
-impl GetSpan for ResourceDeclaration<'_> {
-    #[inline]
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 impl GetSpan for CatchClause<'_> {
     #[inline]
     fn span(&self) -> Span {

@@ -7,7 +7,7 @@ InventoryLedger.java:
   sys peak growth: 18549 # 18.55 kB
   arena allocs: 469
   arena reallocs: 2
-  arena size: 270096 # 270.10 kB
+  arena size: 271648 # 271.65 kB
 
 RetryPolicy.java:
   file size: 5348 # 5.35 kB

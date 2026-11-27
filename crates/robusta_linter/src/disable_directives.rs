@@ -377,9 +377,7 @@ fn annotated_declaration_span(kind: AstKind<'_>) -> Option<Span> {
         | AstKind::ConstructorDeclaration(_)
         | AstKind::CompactConstructorDeclaration(_)
         | AstKind::FormalParameter(_)
-        | AstKind::LocalVariableDeclaration(_)
-        | AstKind::ResourceDeclaration(_) => Some(kind.span()),
-        AstKind::EnhancedForStatement(node) => Some(Span::new(node.span.start, node.name.span.end)),
+        | AstKind::LocalVariableDeclaration(_) => Some(kind.span()),
         AstKind::CatchClause(node) => Some(Span::new(node.span.start, node.name.span.end)),
         _ => None,
     }
@@ -998,6 +996,19 @@ mod tests {
 
         assert!(lint(source).is_empty());
         assert_eq!(lint(&source.cow_replace("robusta:", "other:")).len(), 4);
+    }
+
+    #[test]
+    fn annotations_on_header_variables_cover_only_their_declarations() {
+        let suppressed = "@SuppressWarnings(\"robusta:modifier-order\") final public";
+        let source = format!(
+            "class A {{ void f(Object o, Iterable<A> xs) throws Exception {{ \
+            for ({suppressed} A x : xs) {{}} for (final public A y : xs) {{}} \
+            try ({suppressed} A r = new A(); final public A s = new A()) {{}} \
+            if (o instanceof {suppressed} A a && o instanceof final public A b) {{}} }} }}"
+        );
+
+        assert_eq!(rule_ids(&lint(&source)), ["modifier-order"; 3]);
     }
 
     #[test]

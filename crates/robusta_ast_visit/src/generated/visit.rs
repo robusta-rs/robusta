@@ -368,11 +368,6 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_resource_declaration(&mut self, it: &'a ResourceDeclaration<'a>) {
-        walk_resource_declaration(self, it);
-    }
-
-    #[inline]
     fn visit_catch_clause(&mut self, it: &'a CatchClause<'a>) {
         walk_catch_clause(self, it);
     }
@@ -1661,6 +1656,7 @@ pub mod walk {
         visitor.leave_node(kind);
     }
 
+    #[inline]
     pub fn walk_enhanced_for_statement<'a, V: Visit<'a>>(
         visitor: &mut V,
         it: &'a EnhancedForStatement<'a>,
@@ -1668,10 +1664,7 @@ pub mod walk {
         let kind = AstKind::EnhancedForStatement(it);
         visitor.enter_node(kind);
         visitor.enter_scope(&it.scope_id);
-        visitor.visit_modifiers(&it.modifiers);
-        visitor.visit_variable_type(&it.ty);
-        visitor.visit_binding_identifier(&it.name);
-        visitor.visit_array_type_dimensions(&it.dims);
+        visitor.visit_local_variable_declaration(&it.declaration);
         visitor.visit_expression(&it.iterable);
         visitor.visit_statement(&it.body);
         visitor.leave_scope();
@@ -1738,7 +1731,7 @@ pub mod walk {
     #[inline]
     pub fn walk_resource<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Resource<'a>) {
         match it {
-            Resource::Declaration(it) => visitor.visit_resource_declaration(it),
+            Resource::Declaration(it) => visitor.visit_local_variable_declaration(it),
             match_resource_access!(Resource) => {
                 visitor.visit_resource_access(it.to_resource_access())
             }
@@ -1751,20 +1744,6 @@ pub mod walk {
             ResourceAccess::Identifier(it) => visitor.visit_identifier_reference(it),
             ResourceAccess::Field(it) => visitor.visit_field_access(it),
         }
-    }
-
-    #[inline]
-    pub fn walk_resource_declaration<'a, V: Visit<'a>>(
-        visitor: &mut V,
-        it: &'a ResourceDeclaration<'a>,
-    ) {
-        let kind = AstKind::ResourceDeclaration(it);
-        visitor.enter_node(kind);
-        visitor.visit_modifiers(&it.modifiers);
-        visitor.visit_variable_type(&it.ty);
-        visitor.visit_binding_identifier(&it.name);
-        visitor.visit_expression(&it.init);
-        visitor.leave_node(kind);
     }
 
     #[inline]
@@ -2106,9 +2085,7 @@ pub mod walk {
     pub fn walk_type_pattern<'a, V: Visit<'a>>(visitor: &mut V, it: &'a TypePattern<'a>) {
         let kind = AstKind::TypePattern(it);
         visitor.enter_node(kind);
-        visitor.visit_modifiers(&it.modifiers);
-        visitor.visit_variable_type(&it.ty);
-        visitor.visit_binding_identifier(&it.name);
+        visitor.visit_local_variable_declaration(&it.declaration);
         visitor.leave_node(kind);
     }
 

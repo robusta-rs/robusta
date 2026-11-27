@@ -125,9 +125,7 @@ impl MemberLayout {
         object_is_member_chain: bool,
     ) -> Self {
         let is_nested = match parent {
-            AstNodes::AssignmentExpression(_)
-            | AstNodes::VariableDeclarator(_)
-            | AstNodes::ResourceDeclaration(_) => {
+            AstNodes::AssignmentExpression(_) | AstNodes::VariableDeclarator(_) => {
                 let is_call_with_arguments =
                     matches!(object, Some(Expression::MethodCall(call)) if !call.args.is_empty());
                 if is_call_with_arguments || object_is_member_chain {

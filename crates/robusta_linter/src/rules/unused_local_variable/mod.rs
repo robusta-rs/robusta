@@ -27,7 +27,7 @@ declare_robusta_lint! {
         summary: "Reports local variables whose value is never read.",
         category: Correctness,
         fix: RuleFixMeta::Fixable(FixKind::ALL),
-        node_types: [VariableDeclarator, TypePattern],
+        node_types: [VariableDeclarator],
         settings: UnusedLocalVariableConfig = UnusedLocalVariableConfig::DEFAULT,
     }
 }
@@ -64,10 +64,12 @@ impl Rule for UnusedLocalVariable {
         {
             return;
         }
-        if symbol.kind() == SymbolKind::PatternVariable
-            && !matches!(context.nodes().parent_kind(node.id()), AstKind::InstanceofExpression(_))
-        {
-            return;
+        if symbol.kind() == SymbolKind::PatternVariable {
+            let nodes = context.nodes();
+            let pattern_id = nodes.parent_id(nodes.parent_id(node.id()));
+            if !matches!(nodes.parent_kind(pattern_id), AstKind::InstanceofExpression(_)) {
+                return;
+            }
         }
         let local = Local { semantic, symbol_id, effect_cache: std::cell::Cell::new(None) };
         if local.is_read() {

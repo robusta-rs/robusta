@@ -111,8 +111,6 @@ impl UnstableAddress for AssertStatement<'_> {}
 
 impl UnstableAddress for TryStatement<'_> {}
 
-impl UnstableAddress for ResourceDeclaration<'_> {}
-
 impl UnstableAddress for CatchClause<'_> {}
 
 impl UnstableAddress for SynchronizedStatement<'_> {}
