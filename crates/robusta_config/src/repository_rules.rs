@@ -8,12 +8,12 @@ use crate::gitignore::{add_line, decision, lines};
 
 /// The `.gitignore` and `info/exclude` rules read during one walk.
 ///
-/// Each directory's rules are read once, by whichever thread reaches the
-/// directory first. A directory without rules shares its parent's chain.
+/// A path's rules stop at its nearest repository, or else run up to the
+/// filesystem root. Each directory's rules are read once, by whichever thread
+/// reaches the directory first. A directory without rules shares its parent's
+/// chain.
+#[derive(Default)]
 pub struct RepositoryRules {
-    /// Whether rules stop at the nearest repository, or else run up to the
-    /// filesystem root, for a walk that starts outside any repository.
-    stop_at_repository: bool,
     directories: RwLock<FxHashMap<PathBuf, Option<Arc<DirectoryRules>>>>,
 }
 
@@ -24,10 +24,6 @@ struct DirectoryRules {
 }
 
 impl RepositoryRules {
-    pub fn new(stop_at_repository: bool) -> Self {
-        Self { stop_at_repository, directories: RwLock::default() }
-    }
-
     /// Whether the rules of the directories above `path` exclude it.
     ///
     /// The closest `.gitignore` with an opinion decides, then the closest
@@ -57,8 +53,7 @@ impl RepositoryRules {
         }
         let git = directory.join(".git");
         let has_git = git.exists();
-        let is_boundary = self.stop_at_repository && (has_git || directory.join(".jj").exists());
-        let parent = if is_boundary {
+        let parent = if has_git || directory.join(".jj").exists() {
             None
         } else {
             directory.parent().and_then(|parent| self.directory(parent))
@@ -121,7 +116,7 @@ mod tests {
         write(&root.join(".gitignore"), "ignored\n!kept\nnested\n");
         write(&root.join("sub/.gitignore"), "!nested\n");
 
-        let rules = RepositoryRules::new(true);
+        let rules = RepositoryRules::default();
 
         assert!(rules.is_ignored(&root.join("excluded"), false));
         assert!(rules.is_ignored(&root.join("ignored"), false));
@@ -132,15 +127,16 @@ mod tests {
     }
 
     #[test]
-    fn rules_stop_at_a_repository_only_when_asked() {
+    fn rules_stop_at_a_repository() {
         let temp = tempfile::tempdir().expect("create temp directory");
         let root = temp.path();
         std::fs::create_dir_all(root.join("repository/.jj")).expect("create repository marker");
         write(&root.join(".gitignore"), "outer\n");
-        let path = root.join("repository/outer");
 
-        assert!(!RepositoryRules::new(true).is_ignored(&path, false));
-        assert!(RepositoryRules::new(false).is_ignored(&path, false));
+        let rules = RepositoryRules::default();
+
+        assert!(rules.is_ignored(&root.join("outer"), false));
+        assert!(!rules.is_ignored(&root.join("repository/outer"), false));
     }
 
     #[test]
@@ -153,7 +149,7 @@ mod tests {
         write(&root.join("modules/one/info/exclude"), "own\n");
         write(&root.join("submodule/.git"), "gitdir: ../modules/one\n");
 
-        let rules = RepositoryRules::new(true);
+        let rules = RepositoryRules::default();
 
         assert!(rules.is_ignored(&root.join("linked/shared"), false));
         assert!(rules.is_ignored(&root.join("submodule/own"), false));
@@ -167,7 +163,7 @@ mod tests {
         std::fs::create_dir_all(root.join(".git")).expect("create repository marker");
         write(&root.join(".gitignore"), "\u{feff}first\nOpen[.java\nend\\\n[[:word:]]\nlast\r\n");
 
-        let rules = RepositoryRules::new(true);
+        let rules = RepositoryRules::default();
 
         assert!(rules.is_ignored(&root.join("first"), false));
         assert!(rules.is_ignored(&root.join("last"), false));

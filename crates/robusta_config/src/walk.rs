@@ -202,7 +202,7 @@ pub fn collect_java_files(
     // The rules above a symlinked root are those of the directory it names.
     let canonical_root = root.canonicalize().unwrap_or_else(|_| walk_root.clone());
     let is_symlinked = canonical_root != walk_root;
-    let rules = RepositoryRules::new(find_vcs_boundary(&canonical_root).is_some());
+    let rules = RepositoryRules::default();
     let walker = WalkBuilder::new(root)
         // The walker's own ignore filters read a different pattern grammar.
         .standard_filters(false)
@@ -265,7 +265,7 @@ fn is_gitignored(path: &Path) -> bool {
     if path == base {
         return false;
     }
-    let rules = RepositoryRules::new(vcs_root.is_some());
+    let rules = RepositoryRules::default();
     let mut ancestors: Vec<_> =
         path.ancestors().skip(1).take_while(|ancestor| *ancestor != base).collect();
     ancestors.reverse();
@@ -670,15 +670,25 @@ mod tests {
     fn parent_gitignore_does_not_cross_repository_boundary() {
         let temp = tempfile::tempdir().expect("create temp directory");
         let repository = temp.path().join("repo");
-        let included = repository.join("Included.java");
         std::fs::create_dir_all(repository.join(".git")).expect("create repository marker");
-        std::fs::write(temp.path().join(".gitignore"), "*\n").expect("write parent gitignore");
-        std::fs::write(&included, "class Included {}").expect("write included source");
+        std::fs::write(temp.path().join(".gitignore"), "Hidden.java\n")
+            .expect("write parent gitignore");
+        std::fs::write(repository.join(".gitignore"), "Ignored.java\n")
+            .expect("write repository gitignore");
+        for name in ["Hidden.java", "Outer.java", "repo/Hidden.java", "repo/Ignored.java"] {
+            std::fs::write(temp.path().join(name), "class A {}").expect("write Java source");
+        }
+        let matcher = IgnoreMatcher::default();
+        let hidden = repository.join("Hidden.java");
 
-        let files = collect_java_files(&repository, &IgnoreMatcher::default(), 1)
-            .expect("walk should succeed");
-
-        assert_eq!(files, vec![included]);
+        assert!(!matcher.is_ignored_by_walk(&hidden, temp.path()));
+        assert!(matcher.is_ignored_by_walk(&repository.join("Ignored.java"), temp.path()));
+        assert!(matcher.is_ignored_by_walk(&temp.path().join("Hidden.java"), temp.path()));
+        assert_eq!(walk_sorted(&repository, &matcher), vec![hidden.clone()]);
+        assert_eq!(
+            walk_sorted(temp.path(), &matcher),
+            vec![temp.path().join("Outer.java"), hidden]
+        );
     }
 
     #[test]
