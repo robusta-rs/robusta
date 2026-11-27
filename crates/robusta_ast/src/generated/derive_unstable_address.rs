@@ -165,9 +165,9 @@ impl UnstableAddress for ArrayDimension<'_> {}
 
 impl UnstableAddress for ArrayAccess<'_> {}
 
-impl UnstableAddress for UnaryExpression<'_> {}
+impl UnstableAddress for UpdateExpression<'_> {}
 
-impl UnstableAddress for PostfixExpression<'_> {}
+impl UnstableAddress for UnaryExpression<'_> {}
 
 impl UnstableAddress for CastExpression<'_> {}
 

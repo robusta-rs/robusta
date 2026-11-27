@@ -38,6 +38,9 @@ pub fn is_header_condition(parent: &AstNodes<'_, '_>, span: Span) -> bool {
         AstNodes::ParenthesizedExpression(_)
         | AstNodes::UnaryExpression(_)
         | AstNodes::CastExpression(_) => is_header_condition(parent.parent(), parent.span()),
+        AstNodes::UpdateExpression(update) if update.prefix => {
+            is_header_condition(parent.parent(), parent.span())
+        }
         _ => false,
     }
 }

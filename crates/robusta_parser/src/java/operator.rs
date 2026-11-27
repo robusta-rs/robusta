@@ -1,10 +1,10 @@
 use robusta_lexer::TokenKind;
-use robusta_syntax::operator::{AssignOp, BinaryOp, PostfixOp};
+use robusta_syntax::operator::{AssignOp, BinaryOp, UpdateOp};
 
-pub fn postfix_op(kind: TokenKind) -> Option<PostfixOp> {
+pub fn update_op(kind: TokenKind) -> Option<UpdateOp> {
     Some(match kind {
-        TokenKind::PlusPlus => PostfixOp::Increment,
-        TokenKind::MinusMinus => PostfixOp::Decrement,
+        TokenKind::PlusPlus => UpdateOp::Increment,
+        TokenKind::MinusMinus => UpdateOp::Decrement,
         _ => return None,
     })
 }

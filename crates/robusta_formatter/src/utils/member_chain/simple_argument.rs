@@ -1,9 +1,9 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/050d1328112e3546635fe7352b726995fa2524ef/crates/oxc_formatter/src/utils/member_chain/simple_argument.rs
 
 use robusta_ast::{
-    ArrayCreation, ArrayInitializer, Expression, VariableInitializer, match_expression,
+    ArrayCreation, ArrayInitializer, AssignmentTarget, Expression, VariableInitializer,
+    match_expression,
 };
-use robusta_syntax::operator::UnaryOp;
 
 use crate::formatter::JavaFormatter;
 
@@ -62,13 +62,9 @@ impl<'a, 'b> SimpleArgument<'a, 'b> {
             | Expression::QualifiedSuper(_)
             | Expression::Identifier(_)
             | Expression::ClassLiteral(_) => true,
-            Expression::Unary(unary) => match unary.op {
-                UnaryOp::Not | UnaryOp::Minus | UnaryOp::Plus | UnaryOp::BitNot => {
-                    self.with(&unary.operand).is_simple_impl(depth)
-                }
-                UnaryOp::PreIncrement | UnaryOp::PreDecrement => is_simple_name(&unary.operand),
-            },
-            Expression::Postfix(postfix) => is_simple_name(&postfix.operand),
+            Expression::Unary(unary) => self.with(&unary.operand).is_simple_impl(depth),
+            // An update is simple when it changes a plain variable name.
+            Expression::Update(update) => matches!(update.target, AssignmentTarget::Identifier(_)),
             Expression::FieldAccess(access) => self.with(&access.target).is_simple_impl(depth),
             Expression::ArrayAccess(access) => {
                 self.with(&access.index).is_simple_impl(depth)
@@ -127,9 +123,4 @@ impl<'a, 'b> SimpleArgument<'a, 'b> {
                 }
             })
     }
-}
-
-/// An update's operand is simple when it is a plain variable name.
-fn is_simple_name(operand: &Expression<'_>) -> bool {
-    matches!(operand, Expression::Identifier(_))
 }

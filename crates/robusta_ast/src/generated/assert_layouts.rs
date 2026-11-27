@@ -7,7 +7,7 @@ use oxc_index::nonmax::NonMaxU32;
 use robusta_span::Span;
 use robusta_syntax::{
     node::NodeId,
-    operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp},
+    operator::{AssignOp, BinaryOp, UnaryOp, UpdateOp},
     reference::ReferenceId,
     scope::ScopeId,
     symbol::SymbolId,
@@ -759,6 +759,15 @@ const _: () = {
     assert!(offset_of!(ArrayAccess, array) == 16);
     assert!(offset_of!(ArrayAccess, index) == 32);
 
+    // Padding: 2 bytes
+    assert!(size_of::<UpdateExpression>() == 32);
+    assert!(align_of::<UpdateExpression>() == 8);
+    assert!(offset_of!(UpdateExpression, span) == 0);
+    assert!(offset_of!(UpdateExpression, node_id) == 8);
+    assert!(offset_of!(UpdateExpression, op) == 12);
+    assert!(offset_of!(UpdateExpression, prefix) == 13);
+    assert!(offset_of!(UpdateExpression, target) == 16);
+
     // Padding: 3 bytes
     assert!(size_of::<UnaryExpression>() == 32);
     assert!(align_of::<UnaryExpression>() == 8);
@@ -766,14 +775,6 @@ const _: () = {
     assert!(offset_of!(UnaryExpression, node_id) == 8);
     assert!(offset_of!(UnaryExpression, op) == 12);
     assert!(offset_of!(UnaryExpression, operand) == 16);
-
-    // Padding: 3 bytes
-    assert!(size_of::<PostfixExpression>() == 32);
-    assert!(align_of::<PostfixExpression>() == 8);
-    assert!(offset_of!(PostfixExpression, span) == 0);
-    assert!(offset_of!(PostfixExpression, node_id) == 8);
-    assert!(offset_of!(PostfixExpression, op) == 12);
-    assert!(offset_of!(PostfixExpression, operand) == 16);
 
     // Padding: 4 bytes
     assert!(size_of::<CastExpression>() == 72);
@@ -1183,8 +1184,8 @@ const _: () = {
     assert!(size_of::<UnaryOp>() == 1);
     assert!(align_of::<UnaryOp>() == 1);
 
-    assert!(size_of::<PostfixOp>() == 1);
-    assert!(align_of::<PostfixOp>() == 1);
+    assert!(size_of::<UpdateOp>() == 1);
+    assert!(align_of::<UpdateOp>() == 1);
 
     assert!(size_of::<BinaryOp>() == 1);
     assert!(align_of::<BinaryOp>() == 1);
@@ -1949,6 +1950,15 @@ const _: () = {
     assert!(offset_of!(ArrayAccess, array) == 12);
     assert!(offset_of!(ArrayAccess, index) == 20);
 
+    // Padding: 2 bytes
+    assert!(size_of::<UpdateExpression>() == 24);
+    assert!(align_of::<UpdateExpression>() == 4);
+    assert!(offset_of!(UpdateExpression, span) == 0);
+    assert!(offset_of!(UpdateExpression, node_id) == 8);
+    assert!(offset_of!(UpdateExpression, op) == 12);
+    assert!(offset_of!(UpdateExpression, prefix) == 13);
+    assert!(offset_of!(UpdateExpression, target) == 16);
+
     // Padding: 3 bytes
     assert!(size_of::<UnaryExpression>() == 24);
     assert!(align_of::<UnaryExpression>() == 4);
@@ -1956,14 +1966,6 @@ const _: () = {
     assert!(offset_of!(UnaryExpression, node_id) == 8);
     assert!(offset_of!(UnaryExpression, op) == 12);
     assert!(offset_of!(UnaryExpression, operand) == 16);
-
-    // Padding: 3 bytes
-    assert!(size_of::<PostfixExpression>() == 24);
-    assert!(align_of::<PostfixExpression>() == 4);
-    assert!(offset_of!(PostfixExpression, span) == 0);
-    assert!(offset_of!(PostfixExpression, node_id) == 8);
-    assert!(offset_of!(PostfixExpression, op) == 12);
-    assert!(offset_of!(PostfixExpression, operand) == 16);
 
     // Padding: 0 bytes
     assert!(size_of::<CastExpression>() == 44);
@@ -2373,8 +2375,8 @@ const _: () = {
     assert!(size_of::<UnaryOp>() == 1);
     assert!(align_of::<UnaryOp>() == 1);
 
-    assert!(size_of::<PostfixOp>() == 1);
-    assert!(align_of::<PostfixOp>() == 1);
+    assert!(size_of::<UpdateOp>() == 1);
+    assert!(align_of::<UpdateOp>() == 1);
 
     assert!(size_of::<BinaryOp>() == 1);
     assert!(align_of::<BinaryOp>() == 1);

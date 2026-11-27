@@ -167,33 +167,40 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ClassLiteral<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UnaryExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         self.op.as_str().fmt(f);
-        let operand = self.operand();
-        let (glued, layout) = comments_after_prefix_operator(operand.span().start, false, f);
-        // A comment ending its line keeps it, and the operand is indented
-        // below it as a wrapped line.
-        if matches!(layout, OperandLayout::HardBreak) {
-            FormatTrailingComments::Comments(glued).fmt(f);
-            let in_header = is_header_condition(self.parent(), self.span);
-            wrapped_indent(in_header, &format_args!(hard_line_break(), operand)).fmt(f);
-            return;
-        }
         // `- -x` must keep its space: fused to `--x` it would tokenize as
         // a decrement and change meaning (same for `+ +x`, `- --x`, and
         // `+ ++x`).
-        let would_fuse = if let Expression::Unary(inner) = operand.inner() {
-            match self.op {
-                UnaryOp::Plus => matches!(inner.op, UnaryOp::Plus | UnaryOp::PreIncrement),
-                UnaryOp::Minus => matches!(inner.op, UnaryOp::Minus | UnaryOp::PreDecrement),
-                _ => false,
-            }
-        } else {
-            false
+        let inner_op = match &self.operand {
+            Expression::Unary(inner) => inner.op.as_str(),
+            Expression::Update(inner) if inner.prefix => inner.op.as_str(),
+            _ => "",
         };
-        if would_fuse {
-            space().fmt(f);
-        }
-        operand.fmt(f);
+        let would_fuse = matches!(self.op, UnaryOp::Plus | UnaryOp::Minus)
+            && inner_op.starts_with(self.op.as_str());
+        format_prefix_operand(&self.as_ast_nodes(), &self.operand(), would_fuse, f);
     }
+}
+
+/// Writes the operand after a prefix operator, separated by a space when
+/// `spaced`. A comment ending the operator's line keeps it, and the operand is
+/// indented below it as a wrapped line.
+fn format_prefix_operand<'a>(
+    operator: &AstNodes<'_, 'a>,
+    operand: &(impl Format<'a, JavaFormatContext<'a>> + GetSpan),
+    spaced: bool,
+    f: &mut JavaFormatter<'_, 'a>,
+) {
+    let (glued, layout) = comments_after_prefix_operator(operand.span().start, false, f);
+    if matches!(layout, OperandLayout::HardBreak) {
+        FormatTrailingComments::Comments(glued).fmt(f);
+        let in_header = is_header_condition(operator.parent(), operator.span());
+        wrapped_indent(in_header, &format_args!(hard_line_break(), operand)).fmt(f);
+        return;
+    }
+    if spaced {
+        space().fmt(f);
+    }
+    operand.fmt(f);
 }
 
 /// Where the operand of a prefix operator starts after the comments between
@@ -255,18 +262,23 @@ pub fn comments_after_prefix_operator<'a>(
     (glued, layout)
 }
 
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, PostfixExpression<'a>> {
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, UpdateExpression<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let operand = self.operand();
-        let operand_end = operand.span().end;
+        let target = self.target();
+        if self.prefix {
+            self.op.as_str().fmt(f);
+            format_prefix_operand(&self.as_ast_nodes(), &target, false, f);
+            return;
+        }
+        let target_end = target.span().end;
         if matches!(self.parent(), AstNodes::ExpressionStatement(_) | AstNodes::SwitchRule(_))
-            && f.comments().has_comment_in_span(Span::new(operand_end, self.span.end))
+            && f.comments().has_comment_in_span(Span::new(target_end, self.span.end))
         {
-            format_content_without_comments_after(&operand, operand_end, f);
+            format_content_without_comments_after(&target, target_end, f);
             let comments = f.comments().comments_before(self.span.end);
             write_comments_between_blocks(comments, f);
         } else {
-            operand.fmt(f);
+            target.fmt(f);
         }
         self.op.as_str().fmt(f);
     }

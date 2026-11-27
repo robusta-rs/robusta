@@ -91,8 +91,8 @@ pub enum AstNodes<'parent, 'a> {
     ArrayCreation(&'parent AstNode<'parent, 'a, ArrayCreation<'a>>),
     ArrayDimension(&'parent AstNode<'parent, 'a, ArrayDimension<'a>>),
     ArrayAccess(&'parent AstNode<'parent, 'a, ArrayAccess<'a>>),
+    UpdateExpression(&'parent AstNode<'parent, 'a, UpdateExpression<'a>>),
     UnaryExpression(&'parent AstNode<'parent, 'a, UnaryExpression<'a>>),
-    PostfixExpression(&'parent AstNode<'parent, 'a, PostfixExpression<'a>>),
     CastExpression(&'parent AstNode<'parent, 'a, CastExpression<'a>>),
     InstanceofExpression(&'parent AstNode<'parent, 'a, InstanceofExpression<'a>>),
     TypePattern(&'parent AstNode<'parent, 'a, TypePattern<'a>>),
@@ -213,8 +213,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ArrayCreation(node) => node.span(),
             Self::ArrayDimension(node) => node.span(),
             Self::ArrayAccess(node) => node.span(),
+            Self::UpdateExpression(node) => node.span(),
             Self::UnaryExpression(node) => node.span(),
-            Self::PostfixExpression(node) => node.span(),
             Self::CastExpression(node) => node.span(),
             Self::InstanceofExpression(node) => node.span(),
             Self::TypePattern(node) => node.span(),
@@ -335,8 +335,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ArrayCreation(node) => node.parent(),
             Self::ArrayDimension(node) => node.parent(),
             Self::ArrayAccess(node) => node.parent(),
+            Self::UpdateExpression(node) => node.parent(),
             Self::UnaryExpression(node) => node.parent(),
-            Self::PostfixExpression(node) => node.parent(),
             Self::CastExpression(node) => node.parent(),
             Self::InstanceofExpression(node) => node.parent(),
             Self::TypePattern(node) => node.parent(),
@@ -459,8 +459,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::ArrayCreation(_) => "ArrayCreation",
             Self::ArrayDimension(_) => "ArrayDimension",
             Self::ArrayAccess(_) => "ArrayAccess",
+            Self::UpdateExpression(_) => "UpdateExpression",
             Self::UnaryExpression(_) => "UnaryExpression",
-            Self::PostfixExpression(_) => "PostfixExpression",
             Self::CastExpression(_) => "CastExpression",
             Self::InstanceofExpression(_) => "InstanceofExpression",
             Self::TypePattern(_) => "TypePattern",
@@ -583,8 +583,8 @@ pub enum AstNodeKind<'parent, 'a> {
     ArrayCreation(AstNode<'parent, 'a, ArrayCreation<'a>>),
     ArrayDimension(AstNode<'parent, 'a, ArrayDimension<'a>>),
     ArrayAccess(AstNode<'parent, 'a, ArrayAccess<'a>>),
+    UpdateExpression(AstNode<'parent, 'a, UpdateExpression<'a>>),
     UnaryExpression(AstNode<'parent, 'a, UnaryExpression<'a>>),
-    PostfixExpression(AstNode<'parent, 'a, PostfixExpression<'a>>),
     CastExpression(AstNode<'parent, 'a, CastExpression<'a>>),
     InstanceofExpression(AstNode<'parent, 'a, InstanceofExpression<'a>>),
     TypePattern(AstNode<'parent, 'a, TypePattern<'a>>),
@@ -712,8 +712,8 @@ impl<'a> AstNodeKind<'_, 'a> {
             Self::ArrayCreation(node) => AstNodes::ArrayCreation(node),
             Self::ArrayDimension(node) => AstNodes::ArrayDimension(node),
             Self::ArrayAccess(node) => AstNodes::ArrayAccess(node),
+            Self::UpdateExpression(node) => AstNodes::UpdateExpression(node),
             Self::UnaryExpression(node) => AstNodes::UnaryExpression(node),
-            Self::PostfixExpression(node) => AstNodes::PostfixExpression(node),
             Self::CastExpression(node) => AstNodes::CastExpression(node),
             Self::InstanceofExpression(node) => AstNodes::InstanceofExpression(node),
             Self::TypePattern(node) => AstNodes::TypePattern(node),
@@ -837,8 +837,8 @@ impl GetSpan for AstNodeKind<'_, '_> {
             Self::ArrayCreation(node) => node.span(),
             Self::ArrayDimension(node) => node.span(),
             Self::ArrayAccess(node) => node.span(),
+            Self::UpdateExpression(node) => node.span(),
             Self::UnaryExpression(node) => node.span(),
-            Self::PostfixExpression(node) => node.span(),
             Self::CastExpression(node) => node.span(),
             Self::InstanceofExpression(node) => node.span(),
             Self::TypePattern(node) => node.span(),
@@ -3296,12 +3296,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchRuleBody<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchRuleBody::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            SwitchRuleBody::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchRuleBody::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            SwitchRuleBody::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -3559,9 +3559,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchRuleBody<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            SwitchRuleBody::Unary(field_0) => Some(AstNode {
+            SwitchRuleBody::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -3569,9 +3569,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchRuleBody<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            SwitchRuleBody::Postfix(field_0) => Some(AstNode {
+            SwitchRuleBody::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -4471,12 +4471,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, VariableInitializer<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            VariableInitializer::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            VariableInitializer::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            VariableInitializer::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            VariableInitializer::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -4732,9 +4732,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, VariableInitializer<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            VariableInitializer::Unary(field_0) => Some(AstNode {
+            VariableInitializer::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -4742,9 +4742,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, VariableInitializer<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            VariableInitializer::Postfix(field_0) => Some(AstNode {
+            VariableInitializer::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -4959,12 +4959,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, Expression<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            Expression::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            Expression::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            Expression::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            Expression::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -5200,9 +5200,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, Expression<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            Expression::Unary(field_0) => Some(AstNode {
+            Expression::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -5210,9 +5210,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, Expression<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            Expression::Postfix(field_0) => Some(AstNode {
+            Expression::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -5667,21 +5667,21 @@ impl<'a> AstNode<'_, 'a, ArrayAccess<'a>> {
         }
     }
 }
-impl<'a> AstNode<'_, 'a, UnaryExpression<'a>> {
+impl<'a> AstNode<'_, 'a, UpdateExpression<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::UnaryExpression(self)
+        AstNodes::UpdateExpression(self)
     }
-    pub fn operand(&self) -> AstNode<'_, 'a, Expression<'a>> {
+    pub fn target(&self) -> AstNode<'_, 'a, AssignmentTarget<'a>> {
         AstNode {
-            inner: &self.inner.operand,
+            inner: &self.inner.target,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
         }
     }
 }
-impl<'a> AstNode<'_, 'a, PostfixExpression<'a>> {
+impl<'a> AstNode<'_, 'a, UnaryExpression<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::PostfixExpression(self)
+        AstNodes::UnaryExpression(self)
     }
     pub fn operand(&self) -> AstNode<'_, 'a, Expression<'a>> {
         AstNode {
@@ -6293,12 +6293,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, LambdaBody<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            LambdaBody::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            LambdaBody::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            LambdaBody::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            LambdaBody::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -6544,9 +6544,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, LambdaBody<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            LambdaBody::Unary(field_0) => Some(AstNode {
+            LambdaBody::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -6554,9 +6554,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, LambdaBody<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            LambdaBody::Postfix(field_0) => Some(AstNode {
+            LambdaBody::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -6801,12 +6801,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, MethodReferenceTarget<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            MethodReferenceTarget::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            MethodReferenceTarget::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            MethodReferenceTarget::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            MethodReferenceTarget::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -7072,9 +7072,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, MethodReferenceTarget<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            MethodReferenceTarget::Unary(field_0) => Some(AstNode {
+            MethodReferenceTarget::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -7082,9 +7082,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, MethodReferenceTarget<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            MethodReferenceTarget::Postfix(field_0) => Some(AstNode {
+            MethodReferenceTarget::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8176,12 +8176,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationArgument<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            AnnotationArgument::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            AnnotationArgument::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            AnnotationArgument::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            AnnotationArgument::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8451,9 +8451,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationArgument<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            AnnotationArgument::Unary(field_0) => Some(AstNode {
+            AnnotationArgument::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8461,9 +8461,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationArgument<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            AnnotationArgument::Postfix(field_0) => Some(AstNode {
+            AnnotationArgument::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8702,12 +8702,12 @@ impl<'parent, 'a> AstNode<'parent, 'a, ElementValue<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            ElementValue::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
+            ElementValue::Update(field_0) => AstNodeKind::UpdateExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            ElementValue::Postfix(field_0) => AstNodeKind::PostfixExpression(AstNode {
+            ElementValue::Unary(field_0) => AstNodeKind::UnaryExpression(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8963,9 +8963,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, ElementValue<'a>> {
             _ => None,
         }
     }
-    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
+    pub fn as_update(&self) -> Option<AstNode<'parent, 'a, UpdateExpression<'a>>> {
         match self.inner {
-            ElementValue::Unary(field_0) => Some(AstNode {
+            ElementValue::Update(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -8973,9 +8973,9 @@ impl<'parent, 'a> AstNode<'parent, 'a, ElementValue<'a>> {
             _ => None,
         }
     }
-    pub fn as_postfix(&self) -> Option<AstNode<'parent, 'a, PostfixExpression<'a>>> {
+    pub fn as_unary(&self) -> Option<AstNode<'parent, 'a, UnaryExpression<'a>>> {
         match self.inner {
-            ElementValue::Postfix(field_0) => Some(AstNode {
+            ElementValue::Unary(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,

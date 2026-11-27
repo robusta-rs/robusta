@@ -521,13 +521,13 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_unary_expression(&mut self, it: &'a UnaryExpression<'a>) {
-        walk_unary_expression(self, it);
+    fn visit_update_expression(&mut self, it: &'a UpdateExpression<'a>) {
+        walk_update_expression(self, it);
     }
 
     #[inline]
-    fn visit_postfix_expression(&mut self, it: &'a PostfixExpression<'a>) {
-        walk_postfix_expression(self, it);
+    fn visit_unary_expression(&mut self, it: &'a UnaryExpression<'a>) {
+        walk_unary_expression(self, it);
     }
 
     #[inline]
@@ -1955,8 +1955,8 @@ pub mod walk {
             }
             Expression::ArrayCreation(it) => visitor.visit_array_creation(it),
             Expression::ArrayAccess(it) => visitor.visit_array_access(it),
+            Expression::Update(it) => visitor.visit_update_expression(it),
             Expression::Unary(it) => visitor.visit_unary_expression(it),
-            Expression::Postfix(it) => visitor.visit_postfix_expression(it),
             Expression::Cast(it) => visitor.visit_cast_expression(it),
             Expression::Instanceof(it) => visitor.visit_instanceof_expression(it),
             Expression::Binary(it) => visitor.visit_binary_expression(it),
@@ -2092,19 +2092,16 @@ pub mod walk {
     }
 
     #[inline]
-    pub fn walk_unary_expression<'a, V: Visit<'a>>(visitor: &mut V, it: &'a UnaryExpression<'a>) {
-        let kind = AstKind::UnaryExpression(it);
+    pub fn walk_update_expression<'a, V: Visit<'a>>(visitor: &mut V, it: &'a UpdateExpression<'a>) {
+        let kind = AstKind::UpdateExpression(it);
         visitor.enter_node(kind);
-        visitor.visit_expression(&it.operand);
+        visitor.visit_assignment_target(&it.target);
         visitor.leave_node(kind);
     }
 
     #[inline]
-    pub fn walk_postfix_expression<'a, V: Visit<'a>>(
-        visitor: &mut V,
-        it: &'a PostfixExpression<'a>,
-    ) {
-        let kind = AstKind::PostfixExpression(it);
+    pub fn walk_unary_expression<'a, V: Visit<'a>>(visitor: &mut V, it: &'a UnaryExpression<'a>) {
+        let kind = AstKind::UnaryExpression(it);
         visitor.enter_node(kind);
         visitor.visit_expression(&it.operand);
         visitor.leave_node(kind);

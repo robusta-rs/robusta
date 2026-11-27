@@ -899,12 +899,12 @@ fn yield_identifier_can_start_statement_expressions() {
     let Statement::Expression(increment_stmt) = &statements[3] else {
         panic!("expected an increment statement");
     };
-    assert!(matches!(&increment_stmt.expression, Expression::Postfix(_)));
+    assert!(matches!(&increment_stmt.expression, Expression::Update(_)));
 
     let Statement::Expression(decrement_stmt) = &statements[4] else {
         panic!("expected a decrement statement");
     };
-    assert!(matches!(&decrement_stmt.expression, Expression::Postfix(_)));
+    assert!(matches!(&decrement_stmt.expression, Expression::Update(_)));
 
     let assignment_ops = statements[5..]
         .iter()

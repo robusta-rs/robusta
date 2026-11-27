@@ -53,7 +53,7 @@ impl Generator for AstBuilderGenerator {
             ///@@line_break
             use robusta_allocator::{Box, GetAllocator, IntoIn, Vec};
             use robusta_span::Span;
-            use robusta_syntax::operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp};
+            use robusta_syntax::operator::{AssignOp, BinaryOp, UnaryOp, UpdateOp};
 
             ///@@line_break
             use crate::{ast::*, builder::{AstBuild, GetAstBuilder}};

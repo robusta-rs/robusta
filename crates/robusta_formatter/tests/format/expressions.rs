@@ -1820,6 +1820,94 @@ fn operand_after_a_prefix_operator_comment_in_a_header_takes_its_wrapped_indent(
 }
 
 #[test]
+fn comments_after_a_prefix_increment_follow_the_prefix_operator_rule() {
+    let source = "class A { void m() {
+        ++ // c
+        x;
+        y = --
+        /* c */ x;
+    } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void m() {
+        ++ // c
+          x;
+        y = --/* c */ x;
+      }
+    }
+    ");
+}
+
+#[test]
+fn assignments_break_after_the_operator_before_a_prefix_increment_in_a_short_chain() {
+    let source = "class A { void m() {
+        counter = someObject.compute(++index);
+        counter = someObject.compute(index++);
+        counter = ++holder.compute(argument).count;
+        counter = holder.compute(argument).count++;
+    } }";
+    let options = Options { line_width: crate::fixtures::line_width(40), ..Options::default() };
+    assert_snapshot!(fmt_with_options(source, &options), @"
+    class A {
+      void m() {
+        counter =
+          someObject.compute(++index);
+        counter = someObject.compute(
+          index++
+        );
+        counter =
+          ++holder.compute(argument).count;
+        counter = holder.compute(argument)
+          .count++;
+      }
+    }
+    ");
+}
+
+#[test]
+fn a_prefix_increment_keeps_a_header_and_a_parenthesized_object_layout() {
+    let source = "class A { void m() {
+        switch (++holder.first().second().third().count) { default -> {} }
+        int v = ++(ready ? firstHolder : secondHolder).count;
+        int w = (ready ? firstHolder : secondHolder).count++;
+    } }";
+    let options = Options { line_width: crate::fixtures::line_width(40), ..Options::default() };
+    assert_snapshot!(fmt_with_options(source, &options), @"
+    class A {
+      void m() {
+        switch (++holder
+            .first()
+            .second()
+            .third().count) {
+          default -> {}
+        }
+        int v = ++(
+          ready ? firstHolder : secondHolder
+        ).count;
+        int w = (ready
+          ? firstHolder
+          : secondHolder
+        ).count++;
+      }
+    }
+    ");
+}
+
+#[test]
+fn increments_of_names_are_simple_member_chain_arguments() {
+    let source = "class A { void m() {
+        result = builder.withFirstArgument(++index).withSecondArgument(index++).build().finish().now();
+    } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void m() {
+        result = builder.withFirstArgument(++index).withSecondArgument(index++).build().finish().now();
+      }
+    }
+    ");
+}
+
+#[test]
 fn parentheses_are_preserved_verbatim() {
     let source = "class A { int f(int a, int b) { return (a + b) * (a - b); } }";
     assert_snapshot!(fmt(source), @"

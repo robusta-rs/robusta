@@ -440,8 +440,8 @@ impl GetSpan for SwitchRuleBody<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),
@@ -683,8 +683,8 @@ impl GetSpan for VariableInitializer<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),
@@ -726,8 +726,8 @@ impl GetSpan for Expression<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),
@@ -841,14 +841,14 @@ impl GetSpan for ArrayAccess<'_> {
     }
 }
 
-impl GetSpan for UnaryExpression<'_> {
+impl GetSpan for UpdateExpression<'_> {
     #[inline]
     fn span(&self) -> Span {
         self.span
     }
 }
 
-impl GetSpan for PostfixExpression<'_> {
+impl GetSpan for UnaryExpression<'_> {
     #[inline]
     fn span(&self) -> Span {
         self.span
@@ -1003,8 +1003,8 @@ impl GetSpan for MethodReferenceTarget<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),
@@ -1311,8 +1311,8 @@ impl GetSpan for AnnotationArgument<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),
@@ -1356,8 +1356,8 @@ impl GetSpan for ElementValue<'_> {
             Self::QualifiedClassInstanceCreation(it) => GetSpan::span(&**it),
             Self::ArrayCreation(it) => GetSpan::span(&**it),
             Self::ArrayAccess(it) => GetSpan::span(&**it),
+            Self::Update(it) => GetSpan::span(&**it),
             Self::Unary(it) => GetSpan::span(&**it),
-            Self::Postfix(it) => GetSpan::span(&**it),
             Self::Cast(it) => GetSpan::span(&**it),
             Self::Instanceof(it) => GetSpan::span(&**it),
             Self::Binary(it) => GetSpan::span(&**it),

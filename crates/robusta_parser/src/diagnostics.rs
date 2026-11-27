@@ -67,11 +67,6 @@ parser_diagnostics! {
     message_with_help(message: &'static str, span: Span, help: &'static str) @ span => {
         RobustaDiagnostic::error(message, span).with_help(help)
     };
-
-    variable_operand(op: &'static str, span: Span) @ span => {
-        RobustaDiagnostic::error(format!("the operand of `{op}` must be a variable"), span)
-            .with_label(primary_labeled_span(span, format!("`{op}` requires a variable")))
-    };
 }
 
 impl ParserDiagnostic {
@@ -87,10 +82,6 @@ impl ParserDiagnostic {
                 (Self::expected { what: left, .. }, Self::expected { what: right, .. }) => {
                     left == right
                 }
-                (
-                    Self::variable_operand { op: left, .. },
-                    Self::variable_operand { op: right, .. },
-                ) => left == right,
                 _ => false,
             },
         }
@@ -102,7 +93,7 @@ impl ParserDiagnostic {
                 Some(message)
             }
             Self::Eager(diagnostic) => Some(&diagnostic.message),
-            Self::expected { .. } | Self::variable_operand { .. } => None,
+            Self::expected { .. } => None,
         }
     }
 
@@ -111,9 +102,6 @@ impl ParserDiagnostic {
             Self::expected { what, .. } => message.strip_prefix("expected ") == Some(*what),
             Self::message { message: own, .. } | Self::message_with_help { message: own, .. } => {
                 message == *own
-            }
-            Self::variable_operand { op, .. } => {
-                message.strip_circumfix("the operand of `", "` must be a variable") == Some(*op)
             }
             Self::Eager(diagnostic) => message == diagnostic.message,
         }

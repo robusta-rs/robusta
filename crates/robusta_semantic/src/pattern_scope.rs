@@ -385,10 +385,7 @@ fn may_be_constant<'a>(
             may_be_constant(&parenthesized.expression, names, before)
         }
         Expression::Cast(cast) => may_be_constant(&cast.operand, names, before),
-        Expression::Unary(unary) => {
-            !matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-                && may_be_constant(&unary.operand, names, before)
-        }
+        Expression::Unary(unary) => may_be_constant(&unary.operand, names, before),
         Expression::Binary(binary) => {
             may_be_constant(&binary.lhs, names, before)
                 && may_be_constant(&binary.rhs, names, before)

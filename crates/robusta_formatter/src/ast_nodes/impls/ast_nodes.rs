@@ -247,6 +247,7 @@ pub fn format_node_leading_comments<'a>(
         | AstNodes::ElementValuePair(_)
         | AstNodes::UnaryExpression(_)
         | AstNodes::CastExpression(_) => true,
+        AstNodes::UpdateExpression(update) => update.prefix,
         // A length after its `[`, not an annotation before it.
         AstNodes::ArrayDimension(parent) => {
             parent.annotations.last().is_none_or(|last| start >= last.span.end)

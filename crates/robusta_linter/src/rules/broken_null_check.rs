@@ -33,7 +33,7 @@ use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
 use robusta_semantic::{AstNode, NodeId, ReferenceKind, SymbolId, SymbolKind};
 use robusta_span::{GetSpan, Span};
-use robusta_syntax::operator::{BinaryOp, UnaryOp};
+use robusta_syntax::operator::BinaryOp;
 
 use crate::{LintContext, Rule, RuleFixMeta, utils::names_java_lang_type};
 
@@ -351,16 +351,13 @@ enum OperandType {
 
 fn operand_type(expression: &Expression<'_>, context: &LintContext<'_, '_, '_>) -> OperandType {
     match expression.without_parentheses() {
+        // A unary operator yields a primitive, while `++x` has the type of `x`,
+        // which may be a wrapper (JLS 15.15).
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)
         | Expression::CharLiteral(_)
-        | Expression::BooleanLiteral(_) => OperandType::Primitive,
-        // `++x` and `--x` have the type of `x`, which may be a wrapper (JLS 15.15.1).
-        Expression::Unary(unary)
-            if !matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement) =>
-        {
-            OperandType::Primitive
-        }
+        | Expression::BooleanLiteral(_)
+        | Expression::Unary(_) => OperandType::Primitive,
         // Every binary operator yields a primitive, except `+` concatenating a
         // `String` (JLS 15.17-15.24).
         Expression::Binary(binary)

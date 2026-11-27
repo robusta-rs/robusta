@@ -507,8 +507,8 @@ impl ContentEq for SwitchRuleBody<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -775,8 +775,8 @@ impl ContentEq for VariableInitializer<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -820,8 +820,8 @@ impl ContentEq for Expression<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -941,17 +941,18 @@ impl ContentEq for ArrayAccess<'_> {
     }
 }
 
+impl ContentEq for UpdateExpression<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        ContentEq::content_eq(&self.op, &other.op)
+            && ContentEq::content_eq(&self.prefix, &other.prefix)
+            && ContentEq::content_eq(&self.target, &other.target)
+    }
+}
+
 impl ContentEq for UnaryExpression<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.op, &other.op)
             && ContentEq::content_eq(&self.operand, &other.operand)
-    }
-}
-
-impl ContentEq for PostfixExpression<'_> {
-    fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.operand, &other.operand)
-            && ContentEq::content_eq(&self.op, &other.op)
     }
 }
 
@@ -1106,8 +1107,8 @@ impl ContentEq for LambdaBody<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -1153,8 +1154,8 @@ impl ContentEq for MethodReferenceTarget<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -1471,8 +1472,8 @@ impl ContentEq for AnnotationArgument<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),
@@ -1519,8 +1520,8 @@ impl ContentEq for ElementValue<'_> {
             }
             (Self::ArrayCreation(a), Self::ArrayCreation(b)) => a.content_eq(b),
             (Self::ArrayAccess(a), Self::ArrayAccess(b)) => a.content_eq(b),
+            (Self::Update(a), Self::Update(b)) => a.content_eq(b),
             (Self::Unary(a), Self::Unary(b)) => a.content_eq(b),
-            (Self::Postfix(a), Self::Postfix(b)) => a.content_eq(b),
             (Self::Cast(a), Self::Cast(b)) => a.content_eq(b),
             (Self::Instanceof(a), Self::Instanceof(b)) => a.content_eq(b),
             (Self::Binary(a), Self::Binary(b)) => a.content_eq(b),

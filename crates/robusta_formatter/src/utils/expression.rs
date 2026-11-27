@@ -2,7 +2,7 @@ use robusta_ast::{AssignmentTarget, Expression};
 
 /// The expression that starts `expression`, such as `a` in `a.b()`, `a + b`,
 /// `a ? b : c`, or `(a)`, whose parentheses stay on its first token, or
-/// `expression` itself when it starts with its own token or the name it assigns.
+/// `expression` itself when it starts with its own token or the name it changes.
 pub fn leftmost<'e, 'a>(mut expression: &'e Expression<'a>) -> &'e Expression<'a> {
     loop {
         expression = match expression {
@@ -18,17 +18,28 @@ pub fn leftmost<'e, 'a>(mut expression: &'e Expression<'a>) -> &'e Expression<'a
                 None => return expression,
             },
             Expression::QualifiedClassInstanceCreation(creation) => &creation.qualifier,
-            Expression::Postfix(postfix) => &postfix.operand,
+            Expression::Update(update) if !update.prefix => match target_start(&update.target) {
+                Some(start) => start,
+                None => return expression,
+            },
             Expression::Binary(binary) => &binary.lhs,
             Expression::Instanceof(instanceof) => &instanceof.operand,
-            Expression::Assignment(assignment) => match &assignment.target {
-                AssignmentTarget::FieldAccess(access) => &access.target,
-                AssignmentTarget::ArrayAccess(access) => &access.array,
-                AssignmentTarget::Parenthesized(parenthesized) => &parenthesized.expression,
-                AssignmentTarget::Identifier(_) => return expression,
+            Expression::Assignment(assignment) => match target_start(&assignment.target) {
+                Some(start) => start,
+                None => return expression,
             },
             Expression::Conditional(conditional) => &conditional.condition,
             _ => return expression,
         };
+    }
+}
+
+/// The expression that starts `target`, or `None` when `target` is a name.
+fn target_start<'e, 'a>(target: &'e AssignmentTarget<'a>) -> Option<&'e Expression<'a>> {
+    match target {
+        AssignmentTarget::FieldAccess(access) => Some(&access.target),
+        AssignmentTarget::ArrayAccess(access) => Some(&access.array),
+        AssignmentTarget::Parenthesized(parenthesized) => Some(&parenthesized.expression),
+        AssignmentTarget::Identifier(_) => None,
     }
 }

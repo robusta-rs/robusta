@@ -237,6 +237,7 @@ pub fn should_extra_indent(mut parent: &AstNodes<'_, '_>, mut span: Span) -> boo
         AstNodes::ThrowStatement(statement) => statement.value.span() == span,
         AstNodes::YieldStatement(statement) => statement.value.span() == span,
         AstNodes::UnaryExpression(unary) => unary.operand.span() == span,
+        AstNodes::UpdateExpression(update) => update.prefix && update.target.span() == span,
         _ => false,
     }
 }

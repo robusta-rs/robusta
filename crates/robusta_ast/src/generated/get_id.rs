@@ -1377,6 +1377,20 @@ impl ArrayAccess<'_> {
     }
 }
 
+impl UpdateExpression<'_> {
+    /// Get [`NodeId`] of [`UpdateExpression`].
+    #[inline]
+    pub fn node_id(&self) -> NodeId {
+        self.node_id.get()
+    }
+
+    /// Set [`NodeId`] of [`UpdateExpression`].
+    #[inline]
+    pub fn set_node_id(&self, node_id: NodeId) {
+        self.node_id.set(node_id);
+    }
+}
+
 impl UnaryExpression<'_> {
     /// Get [`NodeId`] of [`UnaryExpression`].
     #[inline]
@@ -1385,20 +1399,6 @@ impl UnaryExpression<'_> {
     }
 
     /// Set [`NodeId`] of [`UnaryExpression`].
-    #[inline]
-    pub fn set_node_id(&self, node_id: NodeId) {
-        self.node_id.set(node_id);
-    }
-}
-
-impl PostfixExpression<'_> {
-    /// Get [`NodeId`] of [`PostfixExpression`].
-    #[inline]
-    pub fn node_id(&self) -> NodeId {
-        self.node_id.get()
-    }
-
-    /// Set [`NodeId`] of [`PostfixExpression`].
     #[inline]
     pub fn set_node_id(&self, node_id: NodeId) {
         self.node_id.set(node_id);
@@ -2347,8 +2347,8 @@ impl SwitchRuleBody<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -2386,8 +2386,8 @@ impl SwitchRuleBody<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -2514,8 +2514,8 @@ impl VariableInitializer<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -2552,8 +2552,8 @@ impl VariableInitializer<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -2591,8 +2591,8 @@ impl Expression<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -2628,8 +2628,8 @@ impl Expression<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -2792,8 +2792,8 @@ impl LambdaBody<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -2830,8 +2830,8 @@ impl LambdaBody<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -2869,8 +2869,8 @@ impl MethodReferenceTarget<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -2910,8 +2910,8 @@ impl MethodReferenceTarget<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -3132,8 +3132,8 @@ impl AnnotationArgument<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -3172,8 +3172,8 @@ impl AnnotationArgument<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),
@@ -3213,8 +3213,8 @@ impl ElementValue<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.node_id(),
             Self::ArrayCreation(it) => it.node_id(),
             Self::ArrayAccess(it) => it.node_id(),
+            Self::Update(it) => it.node_id(),
             Self::Unary(it) => it.node_id(),
-            Self::Postfix(it) => it.node_id(),
             Self::Cast(it) => it.node_id(),
             Self::Instanceof(it) => it.node_id(),
             Self::Binary(it) => it.node_id(),
@@ -3252,8 +3252,8 @@ impl ElementValue<'_> {
             Self::QualifiedClassInstanceCreation(it) => it.set_node_id(node_id),
             Self::ArrayCreation(it) => it.set_node_id(node_id),
             Self::ArrayAccess(it) => it.set_node_id(node_id),
+            Self::Update(it) => it.set_node_id(node_id),
             Self::Unary(it) => it.set_node_id(node_id),
-            Self::Postfix(it) => it.set_node_id(node_id),
             Self::Cast(it) => it.set_node_id(node_id),
             Self::Instanceof(it) => it.set_node_id(node_id),
             Self::Binary(it) => it.set_node_id(node_id),

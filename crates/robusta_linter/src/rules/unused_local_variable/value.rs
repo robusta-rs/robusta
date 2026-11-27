@@ -1,7 +1,6 @@
 use robusta_ast::{AstKind, Expression, TypeArguments};
 use robusta_semantic::{AstNodes, NodeId};
 use robusta_span::{GetSpan, Span};
-use robusta_syntax::operator::UnaryOp;
 
 use crate::FixKind;
 
@@ -46,13 +45,8 @@ impl Value {
                 AstKind::ClassBody(_) => skipped = Some(child),
                 AstKind::MethodCall(_)
                 | AstKind::AssignmentExpression(_)
-                | AstKind::PostfixExpression(_)
+                | AstKind::UpdateExpression(_)
                 | AstKind::SwitchExpression(_) => value.effect = true,
-                AstKind::UnaryExpression(unary)
-                    if matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement) =>
-                {
-                    value.effect = true;
-                }
                 _ => {}
             }
         }
