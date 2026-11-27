@@ -41,8 +41,15 @@ pub fn parse(content: &str, options: &ParseOptions) -> Option<Node> {
     Some(root)
 }
 
-/// The thematic break that ends a paragraph before a zero-padded first item.
+/// The thematic break that repairs insert to close blocks.
 const BREAK: &str = "***";
+
+/// A thematic break on a line of its own before `line`, behind the quote markers and indentation
+/// that `line` starts with, which closes the blocks that `line` does not continue.
+fn break_before(content: &str, line: usize) -> Repair<'_> {
+    let marker = content.len() - content[line..].trim_start_matches([' ', '\t', '>']).len();
+    (line - 1, format!("{}{BREAK}", &content[line - 1..marker]).into())
+}
 
 /// Remove the thematic breaks that repairs inserted, which span no source text.
 fn remove_inserted_breaks(node: &mut Node) {
@@ -109,7 +116,7 @@ fn padded_first_item<'a>(container: &Node, block: &Node, content: &'a str) -> Op
             && digits > 1
             && text[..digits].trim_start_matches('0') == "1"
             && after_list_marker(text).is_some_and(|rest| !blank_first_line(rest)))
-        .then(|| (line - 1, format!("{}{BREAK}", &content[line - 1..marker]).into()))
+        .then(|| break_before(content, line))
     })
 }
 
@@ -160,8 +167,9 @@ fn wide_tabs(node: &Node, content: &str, repairs: &mut Vec<Repair<'_>>) {
 /// before it, so that `a\n> <b>` starts an HTML block and `a\n> 2. c` and `[a]: b\n2. c` a list,
 /// indentation before the first list it reads without that guard, so that `- a\n\nb\n2. c`
 /// continues the paragraph `b`, the containers of the paragraph before the first lazy line it
-/// does not continue, or a break before the first zero-padded item it reads with the guard.
-/// Later ones wait, as that block can take them in.
+/// does not continue, a break before the first line it reads lazily after a setext heading, or
+/// a break before the first zero-padded item it reads with the guard. Later ones wait, as that
+/// block can take them in.
 fn next_guard_repair<'a>(
     node: &Node,
     content: &'a str,
@@ -216,6 +224,17 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
     {
         let line = content[..range.start].rfind('\n')? + 1;
         return lazy_line_containers(content, paragraph.start, line);
+    }
+    // A setext underline closes its paragraph, so no line after it is lazy, but markdown-rs
+    // keeps a paragraph line that lacks the heading's containers in them, as in
+    // `- a\n  ==\nb`. A break before it, behind the same markers, closes them first.
+    if let Node::Heading(_) = before
+        && content[before_range.clone()].contains('\n')
+        && matches!(block, Node::Paragraph(_) | Node::Definition(_))
+        && let line = content[..range.start].rfind('\n')? + 1
+        && lazy_line_containers(content, before_range.start, line).is_some()
+    {
+        return Some(break_before(content, line));
     }
     reads_stale_guard(before, block, content).then(|| (before_range.end, gap.into()))
 }
@@ -293,8 +312,8 @@ fn continues_paragraph(block: &Node, content: &str) -> bool {
 }
 
 /// The quote markers and indentation that the lazy line at `line` lacks to continue the
-/// containers of the paragraph at `paragraph`. Missing quote markers go after the last one the
-/// line has, and indentation alone before its text.
+/// containers of the paragraph or setext heading at `paragraph`. Missing quote markers go after
+/// the last one the line has, and indentation alone before its text.
 fn lazy_line_containers(content: &str, paragraph: usize, line: usize) -> Option<Repair<'_>> {
     let text = line + content[line..].find(|ch| !matches!(ch, ' ' | '\t' | '>'))?;
     let first = content[..paragraph].rfind('\n').map_or(0, |newline| newline + 1);
