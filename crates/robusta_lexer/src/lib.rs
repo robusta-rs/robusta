@@ -18,6 +18,7 @@ mod trivia_builder;
 mod unicode;
 mod whitespace;
 
+pub use string::string_literal_value;
 pub use token::{LexResult, Token, TokenKind};
 use trivia_builder::TriviaBuilder;
 pub use unicode::{Translated, translate};
