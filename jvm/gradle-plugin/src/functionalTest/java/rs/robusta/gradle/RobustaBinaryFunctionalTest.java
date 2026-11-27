@@ -9,6 +9,7 @@ import static rs.robusta.gradle.FunctionalTestSupport.kotlinString;
 import static rs.robusta.gradle.FunctionalTestSupport.newTestKitDirectory;
 import static rs.robusta.gradle.FunctionalTestSupport.pluginVersion;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -126,6 +127,41 @@ class RobustaBinaryFunctionalTest {
     }
 
     @Test
+    void resolvesFromTheRootPluginRepositoriesWhenASubprojectListsItsOwn() throws Exception {
+        Path testKitDirectory = newTestKitDirectory("subproject-repositories");
+        Path initScript = fakeRepository(testKitDirectory, true);
+        Path project = createMultiProject("subproject-repositories", """
+                plugins {
+                    id("rs.robusta") apply false
+                }
+                """, otherRepository(testKitDirectory) + """
+
+                apply(plugin = "rs.robusta")
+                """);
+
+        BuildResult result =
+                runner(project, initScript, testKitDirectory, ":app:robustaVersion").build();
+
+        assertTrue(result.getOutput().contains("fake robusta stdout"), result.getOutput());
+    }
+
+    @Test
+    void resolvesFromTheSubprojectPluginRepositoriesWhenTheRootListsItsOwn() throws Exception {
+        Path testKitDirectory = newTestKitDirectory("root-repositories");
+        Path initScript = fakeRepository(testKitDirectory, true);
+        Path project = createMultiProject("root-repositories", otherRepository(testKitDirectory), """
+                plugins {
+                    id("rs.robusta")
+                }
+                """);
+
+        BuildResult result =
+                runner(project, initScript, testKitDirectory, ":app:robustaVersion").build();
+
+        assertTrue(result.getOutput().contains("fake robusta stdout"), result.getOutput());
+    }
+
+    @Test
     void concurrentBuildsShareOneAtomicExtraction() throws Exception {
         Path firstProject = createPluginProject(temporaryDirectory, "concurrent-a");
         Path secondProject = createPluginProject(temporaryDirectory, "concurrent-b");
@@ -153,6 +189,30 @@ class RobustaBinaryFunctionalTest {
         return BinaryRepository.initScript(
                 testKitDirectory.resolve("binary"),
                 BinaryRepository.createFake(testKitDirectory.resolve("binary/repository"), validChecksum));
+    }
+
+    private Path createMultiProject(String name, String rootScript, String appScript)
+            throws IOException {
+        Path project = createProject(temporaryDirectory, name, rootScript);
+        Files.writeString(
+                project.resolve("settings.gradle.kts"),
+                "rootProject.name = \"" + name + "\"\ninclude(\"app\")\n",
+                StandardCharsets.UTF_8);
+        Files.createDirectories(project.resolve("app"));
+        Files.writeString(project.resolve("app/build.gradle.kts"), appScript, StandardCharsets.UTF_8);
+        return project;
+    }
+
+    /** A {@code buildscript} block listing a repository that holds no binary jar. */
+    private static String otherRepository(Path testKitDirectory) throws IOException {
+        Path repository = Files.createDirectories(testKitDirectory.resolve("other"));
+        return """
+                buildscript {
+                    repositories {
+                        maven { url = uri("%s") }
+                    }
+                }
+                """.formatted(kotlinString(repository));
     }
 
     private static Path extracted(Path testKitDirectory) {
