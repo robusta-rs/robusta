@@ -17,7 +17,7 @@ use robusta_ast::{
 use robusta_ast_visit::Visit;
 use robusta_span::{GetSpan, Span};
 use robusta_str::Ident;
-use robusta_syntax::operator::{AssignOp, UnaryOp};
+use robusta_syntax::operator::AssignOp;
 
 use crate::{
     AstNodes, NodeId, Reference, ReferenceKind, ScopeId, Scoping, Semantic, Symbol, SymbolId,
@@ -218,8 +218,8 @@ impl<'a> SemanticBuilder<'a> {
     }
 
     /// Whether the name at `address` is read, written, or both: only the
-    /// target of an assignment or the operand of an update writes it. Either
-    /// may be a parenthesized variable (JLS 15.8.5), so parentheses are looked
+    /// target of an assignment or an update writes it. The target may be a
+    /// parenthesized variable (JLS 15.8.5), so parentheses are looked
     /// through.
     fn expression_reference_kind(&self, address: Address) -> ReferenceKind {
         let mut operand = address;
@@ -235,13 +235,7 @@ impl<'a> SemanticBuilder<'a> {
                         ReferenceKind::ReadWrite
                     };
                 }
-                AstKind::UnaryExpression(unary)
-                    if matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-                        && unary.operand.address() == operand =>
-                {
-                    return ReferenceKind::ReadWrite;
-                }
-                AstKind::PostfixExpression(postfix) if postfix.operand.address() == operand => {
+                AstKind::UpdateExpression(update) if update.target.address() == operand => {
                     return ReferenceKind::ReadWrite;
                 }
                 _ => break,

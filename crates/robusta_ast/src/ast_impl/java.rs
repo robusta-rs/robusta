@@ -1,5 +1,4 @@
 use robusta_span::Span;
-use robusta_syntax::operator::UnaryOp;
 
 use crate::{ast::*, match_element_value};
 
@@ -78,17 +77,14 @@ impl<'a> Expression<'a> {
     ///
     /// Parentheses disqualify it: `f();` is legal, `(f());` is not.
     pub fn is_statement_expression(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Assignment(_)
-            | Self::Postfix(_)
-            | Self::MethodCall(_)
-            | Self::ClassInstanceCreation(_)
-            | Self::QualifiedClassInstanceCreation(_) => true,
-            Self::Unary(unary) => {
-                matches!(unary.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-            }
-            _ => false,
-        }
+                | Self::Update(_)
+                | Self::MethodCall(_)
+                | Self::ClassInstanceCreation(_)
+                | Self::QualifiedClassInstanceCreation(_)
+        )
     }
 
     /// The class body of `new Foo() {}` or `outer.new Foo() {}` (JLS §15.9.5).

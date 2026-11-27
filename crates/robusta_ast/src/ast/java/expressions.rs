@@ -26,8 +26,8 @@ pub enum Expression<'a> {
     QualifiedClassInstanceCreation(Box<'a, QualifiedClassInstanceCreation<'a>>) = 15,
     ArrayCreation(Box<'a, ArrayCreation<'a>>) = 16,
     ArrayAccess(Box<'a, ArrayAccess<'a>>) = 17,
-    Unary(Box<'a, UnaryExpression<'a>>) = 18,
-    Postfix(Box<'a, PostfixExpression<'a>>) = 19,
+    Update(Box<'a, UpdateExpression<'a>>) = 18,
+    Unary(Box<'a, UnaryExpression<'a>>) = 19,
     Cast(Box<'a, CastExpression<'a>>) = 20,
     Instanceof(Box<'a, InstanceofExpression<'a>>) = 21,
     Binary(Box<'a, BinaryExpression<'a>>) = 22,
@@ -207,7 +207,20 @@ pub struct ArrayAccess<'a> {
     pub index: Expression<'a>,
 }
 
-/// A prefix expression (JLS §15.15), excluding postfix `++`/`--`.
+/// `++x`, `x++`, `--x`, or `x--` (JLS §15.14.2–3, §15.15.1–2).
+#[ast(visit)]
+#[derive(Debug)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
+pub struct UpdateExpression<'a> {
+    pub node_id: Cell<NodeId>,
+    pub span: Span,
+    pub op: UpdateOp,
+    /// Whether `op` comes before the target, as in `++x`.
+    pub prefix: bool,
+    pub target: AssignmentTarget<'a>,
+}
+
+/// `+x`, `-x`, `~x`, or `!x` (JLS §15.15.3–6).
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetSpan, UnstableAddress)]
@@ -216,17 +229,6 @@ pub struct UnaryExpression<'a> {
     pub span: Span,
     pub op: UnaryOp,
     pub operand: Expression<'a>,
-}
-
-/// `x++` or `x--` with a variable operand (JLS §15.14.2–3).
-#[ast(visit)]
-#[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct PostfixExpression<'a> {
-    pub node_id: Cell<NodeId>,
-    pub span: Span,
-    pub operand: Expression<'a>,
-    pub op: PostfixOp,
 }
 
 /// `(Type) operand` or `(Type & Bound …) operand` (JLS §15.16).
@@ -331,8 +333,8 @@ pub struct AssignmentExpression<'a> {
     pub value: Expression<'a>,
 }
 
-/// The variable an assignment changes: a name, field access, or array access, which
-/// parentheses may enclose (JLS §15.26.1).
+/// The variable an assignment or update changes: a name, field access, or array access,
+/// which parentheses may enclose (JLS §15.26.1).
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetAddress, GetSpan)]

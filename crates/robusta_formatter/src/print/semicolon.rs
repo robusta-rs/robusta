@@ -61,10 +61,11 @@ impl<'b, T> FormatContentWithSemicolon<'b, T> {
         expression: &Expression<'_>,
         f: &JavaFormatter<'_, '_>,
     ) -> Self {
-        if let Expression::Postfix(postfix) = expression
+        if let Expression::Update(update) = expression
+            && !update.prefix
             && let Some(comment) = f.comments().comments_before(self.content_end).last()
             && comment.is_line()
-            && f.comments().end_of_line_comments_after(postfix.operand.span().end).last()
+            && f.comments().end_of_line_comments_after(update.target.span().end).last()
                 == Some(comment)
         {
             self.content_end = comment.span.start;

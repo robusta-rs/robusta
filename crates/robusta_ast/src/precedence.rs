@@ -12,8 +12,14 @@ impl GetPrecedence for Expression<'_> {
             Self::Conditional(_) => Precedence::Conditional,
             Self::Binary(binary) => binary.op.precedence(),
             Self::Instanceof(_) => Precedence::Compare,
+            Self::Update(update) => {
+                if update.prefix {
+                    Precedence::Prefix
+                } else {
+                    Precedence::Postfix
+                }
+            }
             Self::Unary(_) | Self::Cast(_) | Self::Switch(_) => Precedence::Prefix,
-            Self::Postfix(_) => Precedence::Postfix,
             Self::ArrayCreation(_) => Precedence::New,
             Self::IntLiteral(_)
             | Self::FloatLiteral(_)

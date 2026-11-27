@@ -9,12 +9,10 @@ use crate::precedence::{GetPrecedence, Precedence};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[generate_derive(ContentEq)]
 pub enum UnaryOp {
-    Plus = 0,         // +
-    Minus = 1,        // -
-    Not = 2,          // !
-    BitNot = 3,       // ~
-    PreIncrement = 4, // ++
-    PreDecrement = 5, // --
+    Plus = 0,   // +
+    Minus = 1,  // -
+    Not = 2,    // !
+    BitNot = 3, // ~
 }
 
 impl UnaryOp {
@@ -24,8 +22,6 @@ impl UnaryOp {
             UnaryOp::Minus => "-",
             UnaryOp::Not => "!",
             UnaryOp::BitNot => "~",
-            UnaryOp::PreIncrement => "++",
-            UnaryOp::PreDecrement => "--",
         }
     }
 }
@@ -33,16 +29,16 @@ impl UnaryOp {
 #[ast]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[generate_derive(ContentEq)]
-pub enum PostfixOp {
+pub enum UpdateOp {
     Increment = 0, // ++
     Decrement = 1, // --
 }
 
-impl PostfixOp {
+impl UpdateOp {
     pub fn as_str(self) -> &'static str {
         match self {
-            PostfixOp::Increment => "++",
-            PostfixOp::Decrement => "--",
+            UpdateOp::Increment => "++",
+            UpdateOp::Decrement => "--",
         }
     }
 }

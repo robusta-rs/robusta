@@ -360,6 +360,30 @@ fn comments_before_a_postfix_operator_in_an_unbraced_body_are_stable() {
 }
 
 #[test]
+fn a_line_comment_before_a_postfix_operator_moves_behind_the_semicolon() {
+    let source = "class A { void m(int x) {
+        x // c
+        ++;
+        switch (x) {
+            case 1 -> x // after
+            --;
+            default -> {}
+        }
+    } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void m(int x) {
+        x++; // c
+        switch (x) {
+          case 1 -> x--; // after
+          default -> {}
+        }
+      }
+    }
+    ");
+}
+
+#[test]
 fn comments_before_a_postfix_operator_in_a_switch_rule_are_stable() {
     for operand in ["k", "c[k]"] {
         for comment in [" // c\n", "\n// c\n", "\n/* c */\n", " /* c */ // d\n"] {

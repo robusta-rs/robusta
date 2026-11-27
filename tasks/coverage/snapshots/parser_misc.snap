@@ -1,7 +1,7 @@
 parser_misc Summary:
 AST Parsed     : 25/25 (100.00%)
 Positive Passed: 25/25 (100.00%)
-Negative Passed: 175/175 (100.00%)
+Negative Passed: 176/176 (100.00%)
 
   x an array creation cannot use explicit constructor type arguments
    ,-[misc/fail/annotated-array-creation-constructor-type-arguments.java:1:38]
@@ -722,11 +722,16 @@ Negative Passed: 175/175 (100.00%)
    :                    `-- a member name expected here
    `----
 
-  x the operand of `++` must be a variable
+  x this expression cannot be assigned to
    ,-[misc/fail/increment-of-increment.java:1:22]
  1 | class A { void f() { x++++; } }
-   :                      ^|^
-   :                       `-- `++` requires a variable
+   :                      ^^^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/increment-of-parenthesized-binary-expression.java:1:24]
+ 1 | class A { void f() { ++(x + 1); } }
+   :                        ^^^^^^^
    `----
 
   x this expression cannot be used as a statement
@@ -917,18 +922,16 @@ Negative Passed: 175/175 (100.00%)
  1 | non - sealed class A {}
    `----
 
-  x the operand of `++` must be a variable
+  x this expression cannot be assigned to
    ,-[misc/fail/postfix-increment-of-call.java:1:22]
  1 | class A { void f() { g()++; } }
-   :                      ^|^
-   :                       `-- `++` requires a variable
+   :                      ^^^
    `----
 
-  x the operand of `++` must be a variable
+  x this expression cannot be assigned to
    ,-[misc/fail/prefix-increment-of-literal.java:1:24]
  1 | class A { void f() { ++5; } }
-   :                        |
-   :                        `-- `++` requires a variable
+   :                        ^
    `----
 
   x expected a member access or method reference after qualified `super`

@@ -409,6 +409,29 @@ fn text_blocks_setting_breaks_the_groups_around_a_text_block() {
 }
 
 #[test]
+fn text_blocks_setting_breaks_before_a_text_block_that_starts_an_increment() {
+    let source = r#"class A {
+  void m() {
+    count = """
+        text
+        """.length++;
+  }
+}"#;
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class A {
+      void m() {
+        count =
+          """
+          text
+          """.length++;
+      }
+    }
+    "#);
+}
+
+#[test]
 fn text_blocks_setting_breaks_before_a_cast_parenthesized_or_assert_message_text_block() {
     let source = r#"class A {
   Object cast = (Object) """

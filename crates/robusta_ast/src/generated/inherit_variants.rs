@@ -1104,8 +1104,8 @@ impl<'a> SwitchRuleBody<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -1227,8 +1227,8 @@ impl<'a> TryFrom<SwitchRuleBody<'a>> for Expression<'a> {
             }
             SwitchRuleBody::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             SwitchRuleBody::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            SwitchRuleBody::Update(o) => Ok(Expression::Update(o)),
             SwitchRuleBody::Unary(o) => Ok(Expression::Unary(o)),
-            SwitchRuleBody::Postfix(o) => Ok(Expression::Postfix(o)),
             SwitchRuleBody::Cast(o) => Ok(Expression::Cast(o)),
             SwitchRuleBody::Instanceof(o) => Ok(Expression::Instanceof(o)),
             SwitchRuleBody::Binary(o) => Ok(Expression::Binary(o)),
@@ -1270,8 +1270,8 @@ impl<'a> From<Expression<'a>> for SwitchRuleBody<'a> {
             }
             Expression::ArrayCreation(o) => SwitchRuleBody::ArrayCreation(o),
             Expression::ArrayAccess(o) => SwitchRuleBody::ArrayAccess(o),
+            Expression::Update(o) => SwitchRuleBody::Update(o),
             Expression::Unary(o) => SwitchRuleBody::Unary(o),
-            Expression::Postfix(o) => SwitchRuleBody::Postfix(o),
             Expression::Cast(o) => SwitchRuleBody::Cast(o),
             Expression::Instanceof(o) => SwitchRuleBody::Instanceof(o),
             Expression::Binary(o) => SwitchRuleBody::Binary(o),
@@ -1425,8 +1425,8 @@ impl<'a> VariableInitializer<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -1550,8 +1550,8 @@ impl<'a> TryFrom<VariableInitializer<'a>> for Expression<'a> {
             }
             VariableInitializer::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             VariableInitializer::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            VariableInitializer::Update(o) => Ok(Expression::Update(o)),
             VariableInitializer::Unary(o) => Ok(Expression::Unary(o)),
-            VariableInitializer::Postfix(o) => Ok(Expression::Postfix(o)),
             VariableInitializer::Cast(o) => Ok(Expression::Cast(o)),
             VariableInitializer::Instanceof(o) => Ok(Expression::Instanceof(o)),
             VariableInitializer::Binary(o) => Ok(Expression::Binary(o)),
@@ -1593,8 +1593,8 @@ impl<'a> From<Expression<'a>> for VariableInitializer<'a> {
             }
             Expression::ArrayCreation(o) => VariableInitializer::ArrayCreation(o),
             Expression::ArrayAccess(o) => VariableInitializer::ArrayAccess(o),
+            Expression::Update(o) => VariableInitializer::Update(o),
             Expression::Unary(o) => VariableInitializer::Unary(o),
-            Expression::Postfix(o) => VariableInitializer::Postfix(o),
             Expression::Cast(o) => VariableInitializer::Cast(o),
             Expression::Instanceof(o) => VariableInitializer::Instanceof(o),
             Expression::Binary(o) => VariableInitializer::Binary(o),
@@ -2100,8 +2100,8 @@ impl<'a> LambdaBody<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -2223,8 +2223,8 @@ impl<'a> TryFrom<LambdaBody<'a>> for Expression<'a> {
             }
             LambdaBody::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             LambdaBody::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            LambdaBody::Update(o) => Ok(Expression::Update(o)),
             LambdaBody::Unary(o) => Ok(Expression::Unary(o)),
-            LambdaBody::Postfix(o) => Ok(Expression::Postfix(o)),
             LambdaBody::Cast(o) => Ok(Expression::Cast(o)),
             LambdaBody::Instanceof(o) => Ok(Expression::Instanceof(o)),
             LambdaBody::Binary(o) => Ok(Expression::Binary(o)),
@@ -2266,8 +2266,8 @@ impl<'a> From<Expression<'a>> for LambdaBody<'a> {
             }
             Expression::ArrayCreation(o) => LambdaBody::ArrayCreation(o),
             Expression::ArrayAccess(o) => LambdaBody::ArrayAccess(o),
+            Expression::Update(o) => LambdaBody::Update(o),
             Expression::Unary(o) => LambdaBody::Unary(o),
-            Expression::Postfix(o) => LambdaBody::Postfix(o),
             Expression::Cast(o) => LambdaBody::Cast(o),
             Expression::Instanceof(o) => LambdaBody::Instanceof(o),
             Expression::Binary(o) => LambdaBody::Binary(o),
@@ -2305,8 +2305,8 @@ impl<'a> MethodReferenceTarget<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -2430,8 +2430,8 @@ impl<'a> TryFrom<MethodReferenceTarget<'a>> for Expression<'a> {
             }
             MethodReferenceTarget::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             MethodReferenceTarget::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            MethodReferenceTarget::Update(o) => Ok(Expression::Update(o)),
             MethodReferenceTarget::Unary(o) => Ok(Expression::Unary(o)),
-            MethodReferenceTarget::Postfix(o) => Ok(Expression::Postfix(o)),
             MethodReferenceTarget::Cast(o) => Ok(Expression::Cast(o)),
             MethodReferenceTarget::Instanceof(o) => Ok(Expression::Instanceof(o)),
             MethodReferenceTarget::Binary(o) => Ok(Expression::Binary(o)),
@@ -2473,8 +2473,8 @@ impl<'a> From<Expression<'a>> for MethodReferenceTarget<'a> {
             }
             Expression::ArrayCreation(o) => MethodReferenceTarget::ArrayCreation(o),
             Expression::ArrayAccess(o) => MethodReferenceTarget::ArrayAccess(o),
+            Expression::Update(o) => MethodReferenceTarget::Update(o),
             Expression::Unary(o) => MethodReferenceTarget::Unary(o),
-            Expression::Postfix(o) => MethodReferenceTarget::Postfix(o),
             Expression::Cast(o) => MethodReferenceTarget::Cast(o),
             Expression::Instanceof(o) => MethodReferenceTarget::Instanceof(o),
             Expression::Binary(o) => MethodReferenceTarget::Binary(o),
@@ -3574,8 +3574,8 @@ impl<'a> AnnotationArgument<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -3701,8 +3701,8 @@ impl<'a> TryFrom<AnnotationArgument<'a>> for ElementValue<'a> {
             }
             AnnotationArgument::ArrayCreation(o) => Ok(ElementValue::ArrayCreation(o)),
             AnnotationArgument::ArrayAccess(o) => Ok(ElementValue::ArrayAccess(o)),
+            AnnotationArgument::Update(o) => Ok(ElementValue::Update(o)),
             AnnotationArgument::Unary(o) => Ok(ElementValue::Unary(o)),
-            AnnotationArgument::Postfix(o) => Ok(ElementValue::Postfix(o)),
             AnnotationArgument::Cast(o) => Ok(ElementValue::Cast(o)),
             AnnotationArgument::Instanceof(o) => Ok(ElementValue::Instanceof(o)),
             AnnotationArgument::Binary(o) => Ok(ElementValue::Binary(o)),
@@ -3746,8 +3746,8 @@ impl<'a> From<ElementValue<'a>> for AnnotationArgument<'a> {
             }
             ElementValue::ArrayCreation(o) => AnnotationArgument::ArrayCreation(o),
             ElementValue::ArrayAccess(o) => AnnotationArgument::ArrayAccess(o),
+            ElementValue::Update(o) => AnnotationArgument::Update(o),
             ElementValue::Unary(o) => AnnotationArgument::Unary(o),
-            ElementValue::Postfix(o) => AnnotationArgument::Postfix(o),
             ElementValue::Cast(o) => AnnotationArgument::Cast(o),
             ElementValue::Instanceof(o) => AnnotationArgument::Instanceof(o),
             ElementValue::Binary(o) => AnnotationArgument::Binary(o),
@@ -3785,8 +3785,8 @@ impl<'a> AnnotationArgument<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -3910,8 +3910,8 @@ impl<'a> TryFrom<AnnotationArgument<'a>> for Expression<'a> {
             }
             AnnotationArgument::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             AnnotationArgument::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            AnnotationArgument::Update(o) => Ok(Expression::Update(o)),
             AnnotationArgument::Unary(o) => Ok(Expression::Unary(o)),
-            AnnotationArgument::Postfix(o) => Ok(Expression::Postfix(o)),
             AnnotationArgument::Cast(o) => Ok(Expression::Cast(o)),
             AnnotationArgument::Instanceof(o) => Ok(Expression::Instanceof(o)),
             AnnotationArgument::Binary(o) => Ok(Expression::Binary(o)),
@@ -3953,8 +3953,8 @@ impl<'a> From<Expression<'a>> for AnnotationArgument<'a> {
             }
             Expression::ArrayCreation(o) => AnnotationArgument::ArrayCreation(o),
             Expression::ArrayAccess(o) => AnnotationArgument::ArrayAccess(o),
+            Expression::Update(o) => AnnotationArgument::Update(o),
             Expression::Unary(o) => AnnotationArgument::Unary(o),
-            Expression::Postfix(o) => AnnotationArgument::Postfix(o),
             Expression::Cast(o) => AnnotationArgument::Cast(o),
             Expression::Instanceof(o) => AnnotationArgument::Instanceof(o),
             Expression::Binary(o) => AnnotationArgument::Binary(o),
@@ -3992,8 +3992,8 @@ impl<'a> ElementValue<'a> {
                 | Self::QualifiedClassInstanceCreation(_)
                 | Self::ArrayCreation(_)
                 | Self::ArrayAccess(_)
+                | Self::Update(_)
                 | Self::Unary(_)
-                | Self::Postfix(_)
                 | Self::Cast(_)
                 | Self::Instanceof(_)
                 | Self::Binary(_)
@@ -4115,8 +4115,8 @@ impl<'a> TryFrom<ElementValue<'a>> for Expression<'a> {
             }
             ElementValue::ArrayCreation(o) => Ok(Expression::ArrayCreation(o)),
             ElementValue::ArrayAccess(o) => Ok(Expression::ArrayAccess(o)),
+            ElementValue::Update(o) => Ok(Expression::Update(o)),
             ElementValue::Unary(o) => Ok(Expression::Unary(o)),
-            ElementValue::Postfix(o) => Ok(Expression::Postfix(o)),
             ElementValue::Cast(o) => Ok(Expression::Cast(o)),
             ElementValue::Instanceof(o) => Ok(Expression::Instanceof(o)),
             ElementValue::Binary(o) => Ok(Expression::Binary(o)),
@@ -4158,8 +4158,8 @@ impl<'a> From<Expression<'a>> for ElementValue<'a> {
             }
             Expression::ArrayCreation(o) => ElementValue::ArrayCreation(o),
             Expression::ArrayAccess(o) => ElementValue::ArrayAccess(o),
+            Expression::Update(o) => ElementValue::Update(o),
             Expression::Unary(o) => ElementValue::Unary(o),
-            Expression::Postfix(o) => ElementValue::Postfix(o),
             Expression::Cast(o) => ElementValue::Cast(o),
             Expression::Instanceof(o) => ElementValue::Instanceof(o),
             Expression::Binary(o) => ElementValue::Binary(o),
@@ -4226,8 +4226,8 @@ macro_rules! match_expression {
             | $ty::QualifiedClassInstanceCreation(_)
             | $ty::ArrayCreation(_)
             | $ty::ArrayAccess(_)
+            | $ty::Update(_)
             | $ty::Unary(_)
-            | $ty::Postfix(_)
             | $ty::Cast(_)
             | $ty::Instanceof(_)
             | $ty::Binary(_)
@@ -4292,8 +4292,8 @@ macro_rules! match_element_value {
             | $ty::QualifiedClassInstanceCreation(_)
             | $ty::ArrayCreation(_)
             | $ty::ArrayAccess(_)
+            | $ty::Update(_)
             | $ty::Unary(_)
-            | $ty::Postfix(_)
             | $ty::Cast(_)
             | $ty::Instanceof(_)
             | $ty::Binary(_)

@@ -459,7 +459,7 @@ fn generate_assertions(schema: &Schema) -> Output {
         use robusta_span::Span;
         use robusta_syntax::{
             node::NodeId,
-            operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp},
+            operator::{AssignOp, BinaryOp, UnaryOp, UpdateOp},
             reference::ReferenceId,
             scope::ScopeId,
             symbol::SymbolId,

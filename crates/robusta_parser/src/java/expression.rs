@@ -1,6 +1,6 @@
 use super::{
-    grammar::{CoverGrammar, is_variable},
-    operator::{assign_op, binary_op, postfix_op},
+    grammar::CoverGrammar,
+    operator::{assign_op, binary_op, update_op},
 };
 use crate::*;
 
@@ -253,17 +253,12 @@ impl<'a> Parser<'a> {
             TokenKind::Minus => UnaryOp::Minus,
             TokenKind::Bang => UnaryOp::Not,
             TokenKind::Tilde => UnaryOp::BitNot,
-            TokenKind::PlusPlus => UnaryOp::PreIncrement,
-            TokenKind::MinusMinus => UnaryOp::PreDecrement,
             TokenKind::LParen if self.at_cast() => return self.cast_expression(),
             TokenKind::Switch => return self.switch_expression(),
-            _ => return self.postfix_expression(),
+            _ => return self.update_expression(),
         };
         let start = self.bump().span;
         let operand = self.unary_expression()?;
-        if matches!(op, UnaryOp::PreIncrement | UnaryOp::PreDecrement) {
-            Self::require_variable(&operand, op.as_str())?;
-        }
         Ok(Expression::new_unary_expression(start.cover(operand.span()), op, operand, self))
     }
 
@@ -351,23 +346,33 @@ impl<'a> Parser<'a> {
         Ok(Expression::new_switch_expression(start.cover(end), selector, cases, self))
     }
 
-    /// Require a variable for `++`/`--` (JLS §15.14.2, §15.15.1).
-    fn require_variable(expression: &Expression<'a>, op: &'static str) -> Result<()> {
-        if is_variable(expression) {
-            Ok(())
-        } else {
-            Err(diagnostics::variable_operand(op, expression.span()))
+    /// Parse `++`/`--` before a unary expression (JLS §15.15.1–2), or a primary
+    /// chain and the `++`/`--` after it (JLS §15.14). `.<T>name` requires a call.
+    /// No chain link may follow `++`/`--`.
+    fn update_expression(&mut self) -> Result<Expression<'a>> {
+        if let Some(op) = update_op(self.kind()) {
+            let start = self.bump().span;
+            let target = AssignmentTarget::cover(self.unary_expression()?)?;
+            return Ok(Expression::new_update_expression(
+                start.cover(target.span()),
+                op,
+                true,
+                target,
+                self,
+            ));
         }
-    }
-
-    /// Parse primary chains, then postfix operators (JLS §15.14).
-    /// `.<T>name` requires a call. No chain link may follow `++`/`--`.
-    fn postfix_expression(&mut self) -> Result<Expression<'a>> {
         let mut expr = self.primary_chain()?;
-        while let Some(op) = postfix_op(self.kind()) {
-            Self::require_variable(&expr, op.as_str())?;
+        // `x++++` is `(x++)++`, which the cover grammar rejects.
+        while let Some(op) = update_op(self.kind()) {
+            let target = AssignmentTarget::cover(expr)?;
             let end = self.bump().span;
-            expr = Expression::new_postfix_expression(expr.span().cover(end), expr, op, self);
+            expr = Expression::new_update_expression(
+                target.span().cover(end),
+                op,
+                false,
+                target,
+                self,
+            );
         }
         Ok(expr)
     }

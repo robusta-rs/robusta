@@ -17,7 +17,7 @@ use std::cell::Cell;
 
 use robusta_allocator::{Box, GetAllocator, IntoIn, Vec};
 use robusta_span::Span;
-use robusta_syntax::operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp};
+use robusta_syntax::operator::{AssignOp, BinaryOp, UnaryOp, UpdateOp};
 
 use crate::{
     ast::*,
@@ -3678,6 +3678,26 @@ impl<'a> SwitchRuleBody<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build a [`SwitchRuleBody::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build a [`SwitchRuleBody::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -3694,24 +3714,6 @@ impl<'a> SwitchRuleBody<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build a [`SwitchRuleBody::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build a [`SwitchRuleBody::Cast`].
@@ -5455,6 +5457,26 @@ impl<'a> VariableInitializer<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build a [`VariableInitializer::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build a [`VariableInitializer::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -5471,24 +5493,6 @@ impl<'a> VariableInitializer<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build a [`VariableInitializer::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build a [`VariableInitializer::Cast`].
@@ -6015,6 +6019,26 @@ impl<'a> Expression<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build an [`Expression::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build an [`Expression::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -6031,24 +6055,6 @@ impl<'a> Expression<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build an [`Expression::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build an [`Expression::Cast`].
@@ -6828,6 +6834,52 @@ impl<'a> ArrayAccess<'a> {
     }
 }
 
+impl<'a> UpdateExpression<'a> {
+    /// Build a [`UpdateExpression`].
+    ///
+    /// If you want the built node to be allocated in the memory arena,
+    /// use [`UpdateExpression::boxed`] instead.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        let builder = builder.builder();
+        UpdateExpression { node_id: Cell::new(builder.node_id()), span, op, prefix, target }
+    }
+
+    /// Build a [`UpdateExpression`], and store it in the memory arena.
+    ///
+    /// Returns a [`Box`] containing the newly-allocated node.
+    /// If you want a stack-allocated node, use [`UpdateExpression::new`] instead.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn boxed(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Box<'a, Self> {
+        let builder = builder.builder();
+        Box::new_in(Self::new(span, op, prefix, target, builder), &builder.allocator())
+    }
+}
+
 impl<'a> UnaryExpression<'a> {
     /// Build a [`UnaryExpression`].
     ///
@@ -6867,48 +6919,6 @@ impl<'a> UnaryExpression<'a> {
     ) -> Box<'a, Self> {
         let builder = builder.builder();
         Box::new_in(Self::new(span, op, operand, builder), &builder.allocator())
-    }
-}
-
-impl<'a> PostfixExpression<'a> {
-    /// Build a [`PostfixExpression`].
-    ///
-    /// If you want the built node to be allocated in the memory arena,
-    /// use [`PostfixExpression::boxed`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        let builder = builder.builder();
-        PostfixExpression { node_id: Cell::new(builder.node_id()), span, operand, op }
-    }
-
-    /// Build a [`PostfixExpression`], and store it in the memory arena.
-    ///
-    /// Returns a [`Box`] containing the newly-allocated node.
-    /// If you want a stack-allocated node, use [`PostfixExpression::new`] instead.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn boxed(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Box<'a, Self> {
-        let builder = builder.builder();
-        Box::new_in(Self::new(span, operand, op, builder), &builder.allocator())
     }
 }
 
@@ -8011,6 +8021,26 @@ impl<'a> LambdaBody<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build a [`LambdaBody::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build a [`LambdaBody::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -8027,24 +8057,6 @@ impl<'a> LambdaBody<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build a [`LambdaBody::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build a [`LambdaBody::Cast`].
@@ -8575,6 +8587,26 @@ impl<'a> MethodReferenceTarget<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build a [`MethodReferenceTarget::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build a [`MethodReferenceTarget::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -8591,24 +8623,6 @@ impl<'a> MethodReferenceTarget<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build a [`MethodReferenceTarget::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build a [`MethodReferenceTarget::Cast`].
@@ -10656,6 +10670,26 @@ impl<'a> AnnotationArgument<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build an [`AnnotationArgument::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build an [`AnnotationArgument::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -10672,24 +10706,6 @@ impl<'a> AnnotationArgument<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build an [`AnnotationArgument::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build an [`AnnotationArgument::Cast`].
@@ -11257,6 +11273,26 @@ impl<'a> ElementValue<'a> {
         Self::ArrayAccess(ArrayAccess::boxed(span, array, index, builder.builder()))
     }
 
+    /// Build an [`ElementValue::Update`].
+    ///
+    /// This node contains a [`UpdateExpression`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `op`
+    /// * `prefix`: Whether `op` comes before the target, as in `++x`.
+    /// * `target`
+    #[inline]
+    pub fn new_update_expression(
+        span: Span,
+        op: UpdateOp,
+        prefix: bool,
+        target: AssignmentTarget<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Update(UpdateExpression::boxed(span, op, prefix, target, builder.builder()))
+    }
+
     /// Build an [`ElementValue::Unary`].
     ///
     /// This node contains a [`UnaryExpression`] that will be stored in the memory arena.
@@ -11273,24 +11309,6 @@ impl<'a> ElementValue<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Unary(UnaryExpression::boxed(span, op, operand, builder.builder()))
-    }
-
-    /// Build an [`ElementValue::Postfix`].
-    ///
-    /// This node contains a [`PostfixExpression`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `operand`
-    /// * `op`
-    #[inline]
-    pub fn new_postfix_expression(
-        span: Span,
-        operand: Expression<'a>,
-        op: PostfixOp,
-        builder: &impl GetAstBuilder<'a>,
-    ) -> Self {
-        Self::Postfix(PostfixExpression::boxed(span, operand, op, builder.builder()))
     }
 
     /// Build an [`ElementValue::Cast`].

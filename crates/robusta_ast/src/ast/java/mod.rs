@@ -5,7 +5,7 @@ use robusta_ast_macros::ast;
 use robusta_span::{ContentEq, GetSpan, Span};
 use robusta_syntax::{
     node::NodeId,
-    operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp},
+    operator::{AssignOp, BinaryOp, UnaryOp, UpdateOp},
     reference::ReferenceId,
     scope::ScopeId,
     symbol::SymbolId,

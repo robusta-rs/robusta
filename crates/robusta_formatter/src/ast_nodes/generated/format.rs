@@ -1161,16 +1161,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SwitchRuleBody<'a
                 }
                 .fmt(f);
             }
-            SwitchRuleBody::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            SwitchRuleBody::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            SwitchRuleBody::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            SwitchRuleBody::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -1769,16 +1769,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, VariableInitializ
                 }
                 .fmt(f);
             }
-            VariableInitializer::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            VariableInitializer::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            VariableInitializer::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            VariableInitializer::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -2018,16 +2018,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, Expression<'a>> {
                 }
                 .fmt(f);
             }
-            Expression::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            Expression::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            Expression::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            Expression::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -2274,7 +2274,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ArrayAccess<'a>> 
         self.format_trailing_comments(f);
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, UnaryExpression<'a>> {
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, UpdateExpression<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
             self.write(f);
@@ -2285,7 +2285,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, UnaryExpression<'
         self.format_trailing_comments(f);
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, PostfixExpression<'a>> {
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, UnaryExpression<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
             self.write(f);
@@ -2716,16 +2716,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, LambdaBody<'a>> {
                 }
                 .fmt(f);
             }
-            LambdaBody::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            LambdaBody::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            LambdaBody::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            LambdaBody::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -2965,16 +2965,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, MethodReferenceTa
                 }
                 .fmt(f);
             }
-            MethodReferenceTarget::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            MethodReferenceTarget::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            MethodReferenceTarget::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            MethodReferenceTarget::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -3809,16 +3809,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AnnotationArgumen
                 }
                 .fmt(f);
             }
-            AnnotationArgument::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            AnnotationArgument::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            AnnotationArgument::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            AnnotationArgument::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -4074,16 +4074,16 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ElementValue<'a>>
                 }
                 .fmt(f);
             }
-            ElementValue::Unary(field_0) => {
-                AstNode::<UnaryExpression<'a>> {
+            ElementValue::Update(field_0) => {
+                AstNode::<UpdateExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 }
                 .fmt(f);
             }
-            ElementValue::Postfix(field_0) => {
-                AstNode::<PostfixExpression<'a>> {
+            ElementValue::Unary(field_0) => {
+                AstNode::<UnaryExpression<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,

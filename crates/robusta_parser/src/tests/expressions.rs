@@ -1,4 +1,4 @@
-use robusta_syntax::operator::PostfixOp;
+use robusta_syntax::operator::UpdateOp;
 
 use super::*;
 
@@ -748,11 +748,12 @@ fn parses_prefix_and_postfix_increments() {
     let Statement::Expression(post_stmt) = stmt else {
         panic!("expected an expression statement");
     };
-    let Expression::Postfix(post) = &post_stmt.expression else {
-        panic!("expected a postfix expression");
+    let Expression::Update(post) = &post_stmt.expression else {
+        panic!("expected an update expression");
     };
-    assert_eq!(post.op, PostfixOp::Increment);
-    assert!(matches!(&post.operand, Expression::Identifier(_)));
+    assert_eq!(post.op, UpdateOp::Increment);
+    assert!(!post.prefix);
+    assert!(matches!(&post.target, AssignmentTarget::Identifier(_)));
 
     let TypeDeclaration::Class(class) = &unit.types()[0] else {
         panic!("expected a class");
@@ -765,25 +766,50 @@ fn parses_prefix_and_postfix_increments() {
     let Statement::Expression(pre_stmt) = &statements[1] else {
         panic!("expected an expression statement");
     };
-    let Expression::Unary(pre) = &pre_stmt.expression else {
-        panic!("expected a prefix expression");
+    let Expression::Update(pre) = &pre_stmt.expression else {
+        panic!("expected an update expression");
     };
-    assert_eq!(pre.op, UnaryOp::PreDecrement);
-    assert!(matches!(&pre.operand, Expression::FieldAccess(_)));
+    assert_eq!(pre.op, UpdateOp::Decrement);
+    assert!(pre.prefix);
+    assert!(matches!(&pre.target, AssignmentTarget::FieldAccess(_)));
 
     let Statement::Expression(element_stmt) = &statements[2] else {
         panic!("expected an expression statement");
     };
-    let Expression::Postfix(element) = &element_stmt.expression else {
-        panic!("expected a postfix expression");
+    let Expression::Update(element) = &element_stmt.expression else {
+        panic!("expected an update expression");
     };
-    assert_eq!(element.op, PostfixOp::Decrement);
-    assert!(matches!(&element.operand, Expression::ArrayAccess(_)));
+    assert_eq!(element.op, UpdateOp::Decrement);
+    assert!(!element.prefix);
+    assert!(matches!(&element.target, AssignmentTarget::ArrayAccess(_)));
 
     let Statement::For(loop_stmt) = &statements[3] else {
         panic!("expected a for");
     };
-    assert!(matches!(&loop_stmt.update.as_ref().unwrap().expressions[0], Expression::Postfix(_)));
+    assert!(matches!(&loop_stmt.update.as_ref().unwrap().expressions[0], Expression::Update(_)));
+}
+
+#[test]
+fn update_target_keeps_its_parentheses() {
+    let allocator = Allocator::new();
+    let (statements, _) = first_method_statements(
+        &allocator,
+        "class A { void f(int x, int[] a) { (x)++; ++(a[0]); } }",
+    );
+    let Expression::Update(postfix) = expression_stmt(&statements[0]) else {
+        panic!("expected an update expression");
+    };
+    let AssignmentTarget::Parenthesized(name) = &postfix.target else {
+        panic!("expected a parenthesized target");
+    };
+    assert!(matches!(&name.expression, Expression::Identifier(_)));
+    let Expression::Update(prefix) = expression_stmt(&statements[1]) else {
+        panic!("expected an update expression");
+    };
+    let AssignmentTarget::Parenthesized(element) = &prefix.target else {
+        panic!("expected a parenthesized target");
+    };
+    assert!(matches!(&element.expression, Expression::ArrayAccess(_)));
 }
 
 #[test]
@@ -802,7 +828,7 @@ fn postfix_increment_binds_tighter_than_addition() {
         panic!("expected a binary expression");
     };
     assert_eq!(add.op, BinaryOp::Add);
-    assert!(matches!(&add.lhs, Expression::Postfix(_)));
+    assert!(matches!(&add.lhs, Expression::Update(_)));
     assert!(matches!(&add.rhs, Expression::Identifier(_)));
 }
 

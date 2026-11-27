@@ -11,7 +11,7 @@ impl ContentEq for UnaryOp {
     }
 }
 
-impl ContentEq for PostfixOp {
+impl ContentEq for UpdateOp {
     fn content_eq(&self, other: &Self) -> bool {
         self == other
     }

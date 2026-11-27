@@ -3,7 +3,7 @@ use std::cell::Cell;
 use robusta_ast::{AssignmentTarget, AstKind, Expression, IdentifierReference};
 use robusta_semantic::{NodeId, Reference, Semantic, SymbolId};
 use robusta_span::{GetSpan, Span};
-use robusta_syntax::operator::{AssignOp, UnaryOp};
+use robusta_syntax::operator::AssignOp;
 
 use super::value::Value;
 
@@ -53,13 +53,7 @@ impl Local<'_, '_> {
                     }
                     return None;
                 }
-                AstKind::PostfixExpression(update) if self.is_operand(&update.operand) => {
-                    return self.is_discarded(id).then_some(id);
-                }
-                AstKind::UnaryExpression(update)
-                    if matches!(update.op, UnaryOp::PreIncrement | UnaryOp::PreDecrement)
-                        && self.is_operand(&update.operand) =>
-                {
+                AstKind::UpdateExpression(update) if self.is_target(&update.target) => {
                     return self.is_discarded(id).then_some(id);
                 }
                 AstKind::LambdaExpression(_)
@@ -73,13 +67,6 @@ impl Local<'_, '_> {
 
     pub fn is_target(&self, target: &AssignmentTarget<'_>) -> bool {
         target.get_identifier_reference().is_some_and(|name| self.is_reference(name))
-    }
-
-    fn is_operand(&self, operand: &Expression<'_>) -> bool {
-        matches!(
-            operand.without_parentheses(),
-            Expression::Identifier(name) if self.is_reference(name)
-        )
     }
 
     fn is_reference(&self, name: &IdentifierReference<'_>) -> bool {

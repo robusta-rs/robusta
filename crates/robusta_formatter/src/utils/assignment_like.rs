@@ -16,8 +16,8 @@ use crate::utils::format_node_without_trailing_comments::format_content_without_
 use crate::utils::member_chain::MemberChain;
 use crate::utils::statement_body::{format_on_wrapped_line, write_comments_before_opener};
 use robusta_ast::{
-    AnnotationInterfaceElementDeclaration, AssignmentExpression, Comment, ElementValuePair,
-    Expression, ResourceDeclaration, VariableDeclarator,
+    AnnotationInterfaceElementDeclaration, AssignmentExpression, AssignmentTarget, Comment,
+    ElementValuePair, Expression, IdentifierReference, ResourceDeclaration, VariableDeclarator,
 };
 use robusta_formatter_core::{FormatElements, format_args, text_width, write};
 use robusta_span::{GetSpan, Span};
@@ -405,7 +405,9 @@ fn should_break_after_operator<'a>(
 
 /// Traverses nested prefix operators, casts included, to find the innermost operand.
 ///
-/// Example: `!(int) value` returns `value`.
+/// Example: `!(int) value` returns `value`. A prefix `++` or `--` changes a
+/// variable rather than an expression, so [is_poorly_breakable_member_or_call_chain]
+/// walks into it instead.
 fn innermost_expression<'b, 'a>(
     mut expression: AstNode<'b, 'a, Expression<'a>>,
     f: &JavaFormatter<'_, 'a>,
@@ -449,6 +451,17 @@ fn is_poorly_breakable_member_or_call_chain<'a>(
                 let reference = expression.as_method_reference().unwrap().in_arena(allocator);
                 let Some(target) = reference.target().as_expression() else { break };
                 target
+            }
+            // `++a.b` is a prefix operator on the member access `a.b`.
+            Expression::Update(update) if update.prefix => {
+                let target = expression.as_update().unwrap().in_arena(allocator).target();
+                if let Some(access) = target.as_field_access() {
+                    access.in_arena(allocator).target()
+                } else if let Some(access) = target.as_array_access() {
+                    access.in_arena(allocator).array()
+                } else {
+                    break;
+                }
             }
             _ => break,
         };
@@ -519,11 +532,17 @@ fn is_breakable_call(call: &robusta_ast::MethodCall<'_>, f: &JavaFormatter<'_, '
 /// If the argument is short the function call isn't breakable
 /// [Prettier applies]: <https://github.com/prettier/prettier/blob/0273e33fc691e28e4ab3f3c8ee86918b65cf823d/src/language-js/utils/index.js#L433-L484>
 fn is_short_argument(argument: &Expression<'_>, threshold: u16, f: &JavaFormatter<'_, '_>) -> bool {
+    let is_short_name = |name: &IdentifierReference<'_>| {
+        text_width(name.name, f.options().indent_width) <= u32::from(threshold)
+    };
     match argument {
-        Expression::Identifier(name) => {
-            text_width(name.name, f.options().indent_width) <= u32::from(threshold)
-        }
+        Expression::Identifier(name) => is_short_name(name),
         Expression::Unary(unary) => is_short_argument(&unary.operand, threshold, f),
+        // A prefix operator's operand decides, so `++i` is as short as `-i`.
+        Expression::Update(update) => {
+            update.prefix
+                && matches!(&update.target, AssignmentTarget::Identifier(name) if is_short_name(name))
+        }
         Expression::MethodCall(call) => {
             call.member().is_none()
                 && call.args.is_empty()
