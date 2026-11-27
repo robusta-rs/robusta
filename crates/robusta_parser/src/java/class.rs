@@ -50,7 +50,7 @@ impl<'a> Parser<'a> {
     fn compact_source_member(&mut self) -> Result<ClassMember<'a>> {
         let start = self.cur().span.start;
         if let Some(semi) = self.eat(TokenKind::Semicolon) {
-            return Ok(ClassMember::new_empty_declaration(semi.span, self));
+            return Ok(ClassMember::new_empty_statement(semi.span, self));
         }
         if self.kind() == TokenKind::LBrace
             || (self.kind() == TokenKind::Static && self.nth_kind(1) == TokenKind::LBrace)
@@ -473,7 +473,7 @@ impl<'a> Parser<'a> {
         &mut self,
         open_what: &'static str,
         close_what: &'static str,
-        empty: impl Fn(Box<'a, EmptyDeclaration>) -> T,
+        empty: impl Fn(Box<'a, EmptyStatement>) -> T,
         member: impl FnMut(&mut Self) -> Result<T>,
     ) -> Result<(Span, Vec<'a, T>)> {
         let open = self.expect(TokenKind::LBrace, open_what)?.span;
@@ -485,13 +485,13 @@ impl<'a> Parser<'a> {
     /// Parse members, leaving `}` or EOF for the caller.
     fn member_list<T>(
         &mut self,
-        empty: impl Fn(Box<'a, EmptyDeclaration>) -> T,
+        empty: impl Fn(Box<'a, EmptyStatement>) -> T,
         mut member: impl FnMut(&mut Self) -> Result<T>,
     ) -> Result<Vec<'a, T>> {
         let mut members = Vec::new_in(self);
         loop {
             if let Some(semi) = self.eat(TokenKind::Semicolon) {
-                members.push(empty(EmptyDeclaration::boxed(semi.span, self)));
+                members.push(empty(EmptyStatement::boxed(semi.span, self)));
                 continue;
             }
             if matches!(self.kind(), TokenKind::RBrace | TokenKind::Eof) {

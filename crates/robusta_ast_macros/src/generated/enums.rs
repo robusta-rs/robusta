@@ -89,7 +89,7 @@ pub static INHERITED_ENUMS: [InheritedEnum; 8] = [
         variants: &[
             EnumVariant {
                 name: "Empty",
-                inner_name: "EmptyDeclaration",
+                inner_name: "EmptyStatement",
                 inner_has_lifetime: false,
                 is_boxed: true,
                 discriminant: 36,

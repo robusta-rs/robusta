@@ -130,12 +130,6 @@ const _: () = {
     assert!(align_of::<LocalClassOrInterfaceDeclaration>() == 8);
 
     // Padding: 0 bytes
-    assert!(size_of::<EmptyDeclaration>() == 12);
-    assert!(align_of::<EmptyDeclaration>() == 4);
-    assert!(offset_of!(EmptyDeclaration, span) == 0);
-    assert!(offset_of!(EmptyDeclaration, node_id) == 8);
-
-    // Padding: 0 bytes
     assert!(size_of::<ClassDeclaration>() == 184);
     assert!(align_of::<ClassDeclaration>() == 8);
     assert!(offset_of!(ClassDeclaration, span) == 0);
@@ -1304,12 +1298,6 @@ const _: () = {
 
     assert!(size_of::<LocalClassOrInterfaceDeclaration>() == 8);
     assert!(align_of::<LocalClassOrInterfaceDeclaration>() == 4);
-
-    // Padding: 0 bytes
-    assert!(size_of::<EmptyDeclaration>() == 12);
-    assert!(align_of::<EmptyDeclaration>() == 4);
-    assert!(offset_of!(EmptyDeclaration, span) == 0);
-    assert!(offset_of!(EmptyDeclaration, node_id) == 8);
 
     // Padding: 0 bytes
     assert!(size_of::<ClassDeclaration>() == 132);

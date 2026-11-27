@@ -20,7 +20,6 @@ pub enum AstNodes<'parent, 'a> {
     PackageDirective(&'parent AstNode<'parent, 'a, PackageDirective<'a>>),
     UsesDirective(&'parent AstNode<'parent, 'a, UsesDirective<'a>>),
     ProvidesDirective(&'parent AstNode<'parent, 'a, ProvidesDirective<'a>>),
-    EmptyDeclaration(&'parent AstNode<'parent, 'a, EmptyDeclaration>),
     ClassDeclaration(&'parent AstNode<'parent, 'a, ClassDeclaration<'a>>),
     ClassBody(&'parent AstNode<'parent, 'a, ClassBody<'a>>),
     InterfaceDeclaration(&'parent AstNode<'parent, 'a, InterfaceDeclaration<'a>>),
@@ -147,7 +146,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::PackageDirective(node) => node.span(),
             Self::UsesDirective(node) => node.span(),
             Self::ProvidesDirective(node) => node.span(),
-            Self::EmptyDeclaration(node) => node.span(),
             Self::ClassDeclaration(node) => node.span(),
             Self::ClassBody(node) => node.span(),
             Self::InterfaceDeclaration(node) => node.span(),
@@ -268,7 +266,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::PackageDirective(node) => node.parent(),
             Self::UsesDirective(node) => node.parent(),
             Self::ProvidesDirective(node) => node.parent(),
-            Self::EmptyDeclaration(node) => node.parent(),
             Self::ClassDeclaration(node) => node.parent(),
             Self::ClassBody(node) => node.parent(),
             Self::InterfaceDeclaration(node) => node.parent(),
@@ -389,7 +386,6 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::PackageDirective(_) => "PackageDirective",
             Self::UsesDirective(_) => "UsesDirective",
             Self::ProvidesDirective(_) => "ProvidesDirective",
-            Self::EmptyDeclaration(_) => "EmptyDeclaration",
             Self::ClassDeclaration(_) => "ClassDeclaration",
             Self::ClassBody(_) => "ClassBody",
             Self::InterfaceDeclaration(_) => "InterfaceDeclaration",
@@ -512,7 +508,6 @@ pub enum AstNodeKind<'parent, 'a> {
     PackageDirective(AstNode<'parent, 'a, PackageDirective<'a>>),
     UsesDirective(AstNode<'parent, 'a, UsesDirective<'a>>),
     ProvidesDirective(AstNode<'parent, 'a, ProvidesDirective<'a>>),
-    EmptyDeclaration(AstNode<'parent, 'a, EmptyDeclaration>),
     ClassDeclaration(AstNode<'parent, 'a, ClassDeclaration<'a>>),
     ClassBody(AstNode<'parent, 'a, ClassBody<'a>>),
     InterfaceDeclaration(AstNode<'parent, 'a, InterfaceDeclaration<'a>>),
@@ -634,7 +629,6 @@ impl<'a> AstNodeKind<'_, 'a> {
             Self::PackageDirective(node) => AstNodes::PackageDirective(node),
             Self::UsesDirective(node) => AstNodes::UsesDirective(node),
             Self::ProvidesDirective(node) => AstNodes::ProvidesDirective(node),
-            Self::EmptyDeclaration(node) => AstNodes::EmptyDeclaration(node),
             Self::ClassDeclaration(node) => AstNodes::ClassDeclaration(node),
             Self::ClassBody(node) => AstNodes::ClassBody(node),
             Self::InterfaceDeclaration(node) => AstNodes::InterfaceDeclaration(node),
@@ -766,7 +760,6 @@ impl GetSpan for AstNodeKind<'_, '_> {
             Self::PackageDirective(node) => node.span(),
             Self::UsesDirective(node) => node.span(),
             Self::ProvidesDirective(node) => node.span(),
-            Self::EmptyDeclaration(node) => node.span(),
             Self::ClassDeclaration(node) => node.span(),
             Self::ClassBody(node) => node.span(),
             Self::InterfaceDeclaration(node) => node.span(),
@@ -1239,7 +1232,7 @@ impl<'a> AstNode<'_, 'a, ProvidesDirective<'a>> {
 impl<'parent, 'a> AstNode<'parent, 'a, TypeDeclaration<'a>> {
     pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
         match self.inner {
-            TypeDeclaration::Empty(field_0) => AstNodeKind::EmptyDeclaration(AstNode {
+            TypeDeclaration::Empty(field_0) => AstNodeKind::EmptyStatement(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1273,7 +1266,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, TypeDeclaration<'a>> {
             }),
         }
     }
-    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyDeclaration>> {
+    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyStatement>> {
         match self.inner {
             TypeDeclaration::Empty(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
@@ -1417,11 +1410,6 @@ impl<'parent, 'a> AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>> {
             }),
             _ => None,
         }
-    }
-}
-impl<'a> AstNode<'_, 'a, EmptyDeclaration> {
-    pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::EmptyDeclaration(self)
     }
 }
 impl<'a> AstNode<'_, 'a, ClassDeclaration<'a>> {
@@ -1854,7 +1842,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
                 })
             }
             AnnotationInterfaceMemberDeclaration::Empty(field_0) => {
-                AstNodeKind::EmptyDeclaration(AstNode {
+                AstNodeKind::EmptyStatement(AstNode {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -1919,7 +1907,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
             _ => None,
         }
     }
-    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyDeclaration>> {
+    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyStatement>> {
         match self.inner {
             AnnotationInterfaceMemberDeclaration::Empty(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
@@ -2078,7 +2066,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, ClassMember<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            ClassMember::Empty(field_0) => AstNodeKind::EmptyDeclaration(AstNode {
+            ClassMember::Empty(field_0) => AstNodeKind::EmptyStatement(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -2164,7 +2152,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, ClassMember<'a>> {
             _ => None,
         }
     }
-    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyDeclaration>> {
+    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyStatement>> {
         match self.inner {
             ClassMember::Empty(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
@@ -2256,7 +2244,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, InterfaceMember<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            InterfaceMember::Empty(field_0) => AstNodeKind::EmptyDeclaration(AstNode {
+            InterfaceMember::Empty(field_0) => AstNodeKind::EmptyStatement(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -2310,7 +2298,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, InterfaceMember<'a>> {
             _ => None,
         }
     }
-    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyDeclaration>> {
+    pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyStatement>> {
         match self.inner {
             InterfaceMember::Empty(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),

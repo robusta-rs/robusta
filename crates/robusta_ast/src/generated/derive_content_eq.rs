@@ -152,12 +152,6 @@ impl ContentEq for LocalClassOrInterfaceDeclaration<'_> {
     }
 }
 
-impl ContentEq for EmptyDeclaration {
-    fn content_eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
 impl ContentEq for ClassDeclaration<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.modifiers, &other.modifiers)

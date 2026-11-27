@@ -20,19 +20,13 @@ use crate::utils::statement_body::{
 use robusta_allocator::Vec;
 use robusta_ast::{
     AnnotationInterfaceBody, AnnotationInterfaceDeclaration, AnnotationInterfaceMemberDeclaration,
-    BindingIdentifier, ClassBody, ClassDeclaration, ClassMember, Comment, EmptyDeclaration,
-    EnumBody, EnumConstant, EnumDeclaration, InitializerBlock, InterfaceBody, InterfaceDeclaration,
-    InterfaceMember, Modifier, RecordDeclaration, RecordHeader, Type, TypeName, TypeParameters,
+    BindingIdentifier, ClassBody, ClassDeclaration, ClassMember, Comment, EnumBody, EnumConstant,
+    EnumDeclaration, InitializerBlock, InterfaceBody, InterfaceDeclaration, InterfaceMember,
+    Modifier, RecordDeclaration, RecordHeader, Type, TypeName, TypeParameters,
 };
 use robusta_formatter_core::{GroupId, format_args, write};
 use robusta_span::{GetSpan, Span};
 use std::cell::Cell;
-
-impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EmptyDeclaration> {
-    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        ";".fmt(f);
-    }
-}
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ClassDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {

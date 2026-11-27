@@ -533,8 +533,7 @@ mod tests {
         assert!(matches!(argument.to_element_value(), ElementValue::This(_)));
         assert!(matches!(argument.to_expression(), Expression::This(_)));
 
-        let member =
-            ClassMember::new_empty_declaration(Span::new(0, 1), &AstBuilder::new(allocator));
+        let member = ClassMember::new_empty_statement(Span::new(0, 1), &AstBuilder::new(allocator));
         assert!(member.is_type_declaration());
         assert!(!member.is_local_class_or_interface_declaration());
         assert!(matches!(member.to_type_declaration(), TypeDeclaration::Empty(_)));

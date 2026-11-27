@@ -23,7 +23,6 @@ pub enum AstKind<'a> {
     PackageDirective(&'a PackageDirective<'a>),
     UsesDirective(&'a UsesDirective<'a>),
     ProvidesDirective(&'a ProvidesDirective<'a>),
-    EmptyDeclaration(&'a EmptyDeclaration),
     ClassDeclaration(&'a ClassDeclaration<'a>),
     ClassBody(&'a ClassBody<'a>),
     InterfaceDeclaration(&'a InterfaceDeclaration<'a>),
@@ -146,7 +145,6 @@ pub enum AstType {
     PackageDirective,
     UsesDirective,
     ProvidesDirective,
-    EmptyDeclaration,
     ClassDeclaration,
     ClassBody,
     InterfaceDeclaration,
@@ -255,7 +253,7 @@ pub enum AstType {
 
 impl AstType {
     /// Number of node kinds; discriminants are dense in `0..COUNT`.
-    pub const COUNT: usize = 116;
+    pub const COUNT: usize = 115;
 
     /// Every node kind, in discriminant order.
     pub const ALL: [Self; Self::COUNT] = [
@@ -270,7 +268,6 @@ impl AstType {
         Self::PackageDirective,
         Self::UsesDirective,
         Self::ProvidesDirective,
-        Self::EmptyDeclaration,
         Self::ClassDeclaration,
         Self::ClassBody,
         Self::InterfaceDeclaration,
@@ -392,7 +389,6 @@ impl GetSpan for AstKind<'_> {
             Self::PackageDirective(node) => node.span(),
             Self::UsesDirective(node) => node.span(),
             Self::ProvidesDirective(node) => node.span(),
-            Self::EmptyDeclaration(node) => node.span(),
             Self::ClassDeclaration(node) => node.span(),
             Self::ClassBody(node) => node.span(),
             Self::InterfaceDeclaration(node) => node.span(),
@@ -519,7 +515,6 @@ impl GetAddress for AstKind<'_> {
             Self::PackageDirective(it) => it.unstable_address(),
             Self::UsesDirective(it) => it.unstable_address(),
             Self::ProvidesDirective(it) => it.unstable_address(),
-            Self::EmptyDeclaration(it) => it.unstable_address(),
             Self::ClassDeclaration(it) => it.unstable_address(),
             Self::ClassBody(it) => it.unstable_address(),
             Self::InterfaceDeclaration(it) => it.unstable_address(),
@@ -644,7 +639,6 @@ impl AstKind<'_> {
             Self::PackageDirective(it) => it.node_id(),
             Self::UsesDirective(it) => it.node_id(),
             Self::ProvidesDirective(it) => it.node_id(),
-            Self::EmptyDeclaration(it) => it.node_id(),
             Self::ClassDeclaration(it) => it.node_id(),
             Self::ClassBody(it) => it.node_id(),
             Self::InterfaceDeclaration(it) => it.node_id(),
@@ -767,7 +761,6 @@ impl AstKind<'_> {
             Self::PackageDirective(it) => it.set_node_id(node_id),
             Self::UsesDirective(it) => it.set_node_id(node_id),
             Self::ProvidesDirective(it) => it.set_node_id(node_id),
-            Self::EmptyDeclaration(it) => it.set_node_id(node_id),
             Self::ClassDeclaration(it) => it.set_node_id(node_id),
             Self::ClassBody(it) => it.set_node_id(node_id),
             Self::InterfaceDeclaration(it) => it.set_node_id(node_id),
@@ -890,7 +883,6 @@ impl AstKind<'_> {
             Self::PackageDirective(_) => AstType::PackageDirective,
             Self::UsesDirective(_) => AstType::UsesDirective,
             Self::ProvidesDirective(_) => AstType::ProvidesDirective,
-            Self::EmptyDeclaration(_) => AstType::EmptyDeclaration,
             Self::ClassDeclaration(_) => AstType::ClassDeclaration,
             Self::ClassBody(_) => AstType::ClassBody,
             Self::InterfaceDeclaration(_) => AstType::InterfaceDeclaration,
@@ -1015,7 +1007,6 @@ impl AstKind<'_> {
             Self::PackageDirective(_) => "PackageDirective",
             Self::UsesDirective(_) => "UsesDirective",
             Self::ProvidesDirective(_) => "ProvidesDirective",
-            Self::EmptyDeclaration(_) => "EmptyDeclaration",
             Self::ClassDeclaration(_) => "ClassDeclaration",
             Self::ClassBody(_) => "ClassBody",
             Self::InterfaceDeclaration(_) => "InterfaceDeclaration",

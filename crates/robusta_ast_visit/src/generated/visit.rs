@@ -114,11 +114,6 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_empty_declaration(&mut self, it: &'a EmptyDeclaration) {
-        walk_empty_declaration(self, it);
-    }
-
-    #[inline]
     fn visit_class_declaration(&mut self, it: &'a ClassDeclaration<'a>) {
         walk_class_declaration(self, it);
     }
@@ -1113,7 +1108,7 @@ pub mod walk {
     #[inline]
     pub fn walk_type_declaration<'a, V: Visit<'a>>(visitor: &mut V, it: &'a TypeDeclaration<'a>) {
         match it {
-            TypeDeclaration::Empty(it) => visitor.visit_empty_declaration(it),
+            TypeDeclaration::Empty(it) => visitor.visit_empty_statement(it),
             TypeDeclaration::AnnotationInterface(it) => {
                 visitor.visit_annotation_interface_declaration(it)
             }
@@ -1137,13 +1132,6 @@ pub mod walk {
             LocalClassOrInterfaceDeclaration::Enum(it) => visitor.visit_enum_declaration(it),
             LocalClassOrInterfaceDeclaration::Record(it) => visitor.visit_record_declaration(it),
         }
-    }
-
-    #[inline]
-    pub fn walk_empty_declaration<'a, V: Visit<'a>>(visitor: &mut V, it: &'a EmptyDeclaration) {
-        let kind = AstKind::EmptyDeclaration(it);
-        visitor.enter_node(kind);
-        visitor.leave_node(kind);
     }
 
     pub fn walk_class_declaration<'a, V: Visit<'a>>(visitor: &mut V, it: &'a ClassDeclaration<'a>) {

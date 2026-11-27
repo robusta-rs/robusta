@@ -178,7 +178,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, TypeDeclaration<'
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         match self.inner {
             TypeDeclaration::Empty(field_0) => {
-                AstNode::<EmptyDeclaration> {
+                AstNode::<EmptyStatement> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -266,17 +266,6 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 .fmt(f);
             }
         }
-    }
-}
-impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, EmptyDeclaration> {
-    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
-        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
-            self.write(f);
-            return;
-        }
-        self.format_leading_comments(f);
-        self.write(f);
-        self.format_trailing_comments(f);
     }
 }
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ClassDeclaration<'a>> {
@@ -403,7 +392,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 .fmt(f);
             }
             AnnotationInterfaceMemberDeclaration::Empty(field_0) => {
-                AstNode::<EmptyDeclaration> {
+                AstNode::<EmptyStatement> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -510,7 +499,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, ClassMember<'a>> 
                 .fmt(f);
             }
             ClassMember::Empty(field_0) => {
-                AstNode::<EmptyDeclaration> {
+                AstNode::<EmptyStatement> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
@@ -580,7 +569,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, InterfaceMember<'
                 .fmt(f);
             }
             InterfaceMember::Empty(field_0) => {
-                AstNode::<EmptyDeclaration> {
+                AstNode::<EmptyStatement> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
