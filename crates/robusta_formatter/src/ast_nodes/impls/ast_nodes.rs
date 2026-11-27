@@ -75,6 +75,13 @@ impl AstNodes<'_, '_> {
             && self.parent().is_member_object_span(self.span())
     }
 
+    /// Whether this is a parenthesized expression that is a prefix operator's
+    /// operand: `!(a || b)`.
+    pub fn is_parenthesized_unary_operand(&self) -> bool {
+        matches!(self, AstNodes::ParenthesizedExpression(_))
+            && matches!(self.parent(), AstNodes::UnaryExpression(_))
+    }
+
     /// Whether this is a parenthesized expression that is a conditional's test
     /// outside a header's condition: `(a || b) ? c : d`.
     pub fn is_parenthesized_conditional_test(&self) -> bool {

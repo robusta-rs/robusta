@@ -403,7 +403,8 @@ fn write_type_name_separator(name_start: u32, f: &mut JavaFormatter<'_, '_>) {
 /// delimiter needs a line-suffix boundary so those comments stay inside it.
 ///
 /// A cast, binary, or `instanceof` expression that is a member's object
-/// breaks inside the parentheses instead, with its comments, as does a
+/// breaks inside the parentheses instead, with its comments, as does a binary
+/// or `instanceof` expression that is a prefix operator's operand, a
 /// conditional where [`should_extra_indent`] holds, and a binary,
 /// `instanceof`, or conditional expression that is a conditional's test, and
 /// any expression after a line comment on the `(`'s line. Apart from a cast,
@@ -415,7 +416,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ParenthesizedExpression<'a>> {
         let breaks_inside = match self.expression {
             Expression::Cast(_) => is_member_object,
             Expression::Binary(_) | Expression::Instanceof(_) => {
-                (is_member_object && !is_header_condition(parent, self.span))
+                ((is_member_object || self.as_ast_nodes().is_parenthesized_unary_operand())
+                    && !is_header_condition(parent, self.span))
                     || self.as_ast_nodes().is_parenthesized_conditional_test()
             }
             Expression::Conditional(_) => {

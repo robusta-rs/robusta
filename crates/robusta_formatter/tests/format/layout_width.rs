@@ -1511,6 +1511,56 @@ fn binary_and_conditional_member_objects_break_inside_their_parentheses() {
 }
 
 #[test]
+fn binary_prefix_operands_break_inside_their_parentheses() {
+    let source = "class C { boolean f() { \
+                  boolean skip = !(firstConditionOfTheCheck && secondConditionOfTheCheck.member \
+                  || thirdConditionOfTheCheckXY); \
+                  long total = -(firstValueOfTheComputation * secondValueOfTheComputation \
+                  + thirdValueOfTheComputations); \
+                  boolean other = !(someObjectWithAVeryLongName \
+                  instanceof SomeVeryLongTypeNameThatIsLongEnoughToBreak); \
+                  if (!(firstConditionOfTheCheck && secondConditionOfTheCheck.member \
+                  || thirdConditionOfTheCheckXYZW)) { run(); } \
+                  if (fromTypeArg != null && !(toTypeArg instanceof WildcardType \
+                  && isAssignable(fromTypeArg, toTypeArg, typeVarAssigns, anotherArgument))) \
+                  { run(); } \
+                  boolean both = !(first && second); \
+                  return firstConditionOfTheCheck && secondConditionOfTheCheck.member \
+                  || thirdConditionOfTheCheckXYZW; } }";
+    assert_snapshot!(format_stable(source), @"
+    class C {
+      boolean f() {
+        boolean skip = !(
+          firstConditionOfTheCheck && secondConditionOfTheCheck.member
+          || thirdConditionOfTheCheckXY
+        );
+        long total = -(
+          firstValueOfTheComputation * secondValueOfTheComputation
+          + thirdValueOfTheComputations
+        );
+        boolean other = !(
+          someObjectWithAVeryLongName instanceof SomeVeryLongTypeNameThatIsLongEnoughToBreak
+        );
+        if (!(firstConditionOfTheCheck && secondConditionOfTheCheck.member
+            || thirdConditionOfTheCheckXYZW)) {
+          run();
+        }
+        if (fromTypeArg != null
+            && !(
+              toTypeArg instanceof WildcardType
+              && isAssignable(fromTypeArg, toTypeArg, typeVarAssigns, anotherArgument)
+            )) {
+          run();
+        }
+        boolean both = !(first && second);
+        return firstConditionOfTheCheck && secondConditionOfTheCheck.member
+          || thirdConditionOfTheCheckXYZW;
+      }
+    }
+    ");
+}
+
+#[test]
 fn binary_chains_break_at_every_operator_while_one_operator_keeps_its_sides_together() {
     let source = "class C { void f() { if (x) { \
                   int chosenLength = (\"prefix-for-the-binding-name-\" \
