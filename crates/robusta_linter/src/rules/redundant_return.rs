@@ -1,4 +1,4 @@
-use robusta_ast::{AstKind, MethodResult, SwitchCase};
+use robusta_ast::{AstKind, MethodResult, SwitchItem};
 use robusta_diagnostics::RobustaDiagnostic;
 use robusta_macros::declare_robusta_lint;
 use robusta_semantic::{AstNode, AstNodes, NodeId, Unresolved, block_can_complete_normally};
@@ -51,7 +51,7 @@ impl Rule for RedundantReturn {
         // An `if` branch or a labeled statement needs a statement in its place.
         let needs_block = !matches!(
             context.nodes().parent_kind(node.id()),
-            AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)
+            AstKind::Block(_) | AstKind::SwitchCase(_)
         );
         let message = "the trailing return is redundant";
         let diagnostic = RobustaDiagnostic::warning(message, statement.span)
@@ -83,19 +83,17 @@ fn ends_body(nodes: &AstNodes<'_>, id: NodeId, span: Span) -> bool {
                     return false;
                 }
             }
-            AstKind::SwitchBlockStatementGroup(group) => {
+            AstKind::SwitchCase(case) => {
                 // A return cannot leave a switch expression (JLS §15.28.1).
                 let AstKind::SwitchStatement(switch) = nodes.parent_kind(ancestor_id) else {
                     return false;
                 };
                 // Falling through may pass only labels (JLS §14.11.3).
-                let falls_out = switch
-                    .cases
-                    .iter()
-                    .skip_while(|case| case.span() != group.span)
-                    .skip(1)
-                    .all(|case| matches!(case, SwitchCase::Group(next) if next.statements.is_empty()));
-                if !ends_with(&group.statements) || !falls_out {
+                let falls_out =
+                    switch.cases.iter().skip_while(|it| it.span() != case.span).skip(1).all(
+                        |it| matches!(it, SwitchItem::Case(next) if next.statements.is_empty()),
+                    );
+                if !ends_with(&case.statements) || !falls_out {
                     return false;
                 }
             }

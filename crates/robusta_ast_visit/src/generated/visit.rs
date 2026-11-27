@@ -278,8 +278,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_switch_case(&mut self, it: &'a SwitchCase<'a>) {
-        walk_switch_case(self, it);
+    fn visit_switch_item(&mut self, it: &'a SwitchItem<'a>) {
+        walk_switch_item(self, it);
     }
 
     #[inline]
@@ -293,8 +293,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_switch_block_statement_group(&mut self, it: &'a SwitchBlockStatementGroup<'a>) {
-        walk_switch_block_statement_group(self, it);
+    fn visit_switch_case(&mut self, it: &'a SwitchCase<'a>) {
+        walk_switch_case(self, it);
     }
 
     #[inline]
@@ -310,11 +310,6 @@ pub trait Visit<'a>: Sized {
     #[inline]
     fn visit_case_pattern_label(&mut self, it: &'a CasePatternLabel<'a>) {
         walk_case_pattern_label(self, it);
-    }
-
-    #[inline]
-    fn visit_default_label(&mut self, it: &'a DefaultLabel) {
-        walk_default_label(self, it);
     }
 
     #[inline]
@@ -909,13 +904,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_switch_cases(&mut self, it: &'a Vec<'a, SwitchCase<'a>>) {
-        walk_switch_cases(self, it);
-    }
-
-    #[inline]
-    fn visit_switch_labels(&mut self, it: &'a Vec<'a, SwitchLabel<'a>>) {
-        walk_switch_labels(self, it);
+    fn visit_switch_items(&mut self, it: &'a Vec<'a, SwitchItem<'a>>) {
+        walk_switch_items(self, it);
     }
 
     #[inline]
@@ -1563,16 +1553,16 @@ pub mod walk {
         visitor.enter_node(kind);
         visitor.visit_expression(&it.selector);
         visitor.enter_scope(&it.scope_id);
-        visitor.visit_switch_cases(&it.cases);
+        visitor.visit_switch_items(&it.cases);
         visitor.leave_scope();
         visitor.leave_node(kind);
     }
 
     #[inline]
-    pub fn walk_switch_case<'a, V: Visit<'a>>(visitor: &mut V, it: &'a SwitchCase<'a>) {
+    pub fn walk_switch_item<'a, V: Visit<'a>>(visitor: &mut V, it: &'a SwitchItem<'a>) {
         match it {
-            SwitchCase::Rule(it) => visitor.visit_switch_rule(it),
-            SwitchCase::Group(it) => visitor.visit_switch_block_statement_group(it),
+            SwitchItem::Rule(it) => visitor.visit_switch_rule(it),
+            SwitchItem::Case(it) => visitor.visit_switch_case(it),
         }
     }
 
@@ -1580,7 +1570,9 @@ pub mod walk {
     pub fn walk_switch_rule<'a, V: Visit<'a>>(visitor: &mut V, it: &'a SwitchRule<'a>) {
         let kind = AstKind::SwitchRule(it);
         visitor.enter_node(kind);
-        visitor.visit_switch_label(&it.label);
+        if let Some(label) = &it.label {
+            visitor.visit_switch_label(label);
+        }
         visitor.visit_switch_rule_body(&it.body);
         visitor.leave_node(kind);
     }
@@ -1595,13 +1587,12 @@ pub mod walk {
     }
 
     #[inline]
-    pub fn walk_switch_block_statement_group<'a, V: Visit<'a>>(
-        visitor: &mut V,
-        it: &'a SwitchBlockStatementGroup<'a>,
-    ) {
-        let kind = AstKind::SwitchBlockStatementGroup(it);
+    pub fn walk_switch_case<'a, V: Visit<'a>>(visitor: &mut V, it: &'a SwitchCase<'a>) {
+        let kind = AstKind::SwitchCase(it);
         visitor.enter_node(kind);
-        visitor.visit_switch_labels(&it.labels);
+        if let Some(label) = &it.label {
+            visitor.visit_switch_label(label);
+        }
         visitor.visit_statements(&it.statements);
         visitor.leave_node(kind);
     }
@@ -1611,7 +1602,6 @@ pub mod walk {
         match it {
             SwitchLabel::Case(it) => visitor.visit_case_label(it),
             SwitchLabel::Pattern(it) => visitor.visit_case_pattern_label(it),
-            SwitchLabel::Default(it) => visitor.visit_default_label(it),
         }
     }
 
@@ -1634,13 +1624,6 @@ pub mod walk {
         if let Some(guard) = &it.guard {
             visitor.visit_expression(guard);
         }
-        visitor.leave_node(kind);
-    }
-
-    #[inline]
-    pub fn walk_default_label<'a, V: Visit<'a>>(visitor: &mut V, it: &'a DefaultLabel) {
-        let kind = AstKind::DefaultLabel(it);
-        visitor.enter_node(kind);
         visitor.leave_node(kind);
     }
 
@@ -2221,7 +2204,7 @@ pub mod walk {
         visitor.enter_node(kind);
         visitor.visit_expression(&it.selector);
         visitor.enter_scope(&it.scope_id);
-        visitor.visit_switch_cases(&it.cases);
+        visitor.visit_switch_items(&it.cases);
         visitor.leave_scope();
         visitor.leave_node(kind);
     }
@@ -2827,16 +2810,9 @@ pub mod walk {
     }
 
     #[inline]
-    pub fn walk_switch_cases<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Vec<'a, SwitchCase<'a>>) {
+    pub fn walk_switch_items<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Vec<'a, SwitchItem<'a>>) {
         for el in it {
-            visitor.visit_switch_case(el);
-        }
-    }
-
-    #[inline]
-    pub fn walk_switch_labels<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Vec<'a, SwitchLabel<'a>>) {
-        for el in it {
-            visitor.visit_switch_label(el);
+            visitor.visit_switch_item(el);
         }
     }
 

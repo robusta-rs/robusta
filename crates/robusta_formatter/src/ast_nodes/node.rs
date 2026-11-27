@@ -186,11 +186,11 @@ mod tests {
     }
 
     #[test]
-    fn default_labels_are_nodes() {
+    fn a_label_is_followed_by_the_next_case_or_its_first_statement() {
         let allocator = Allocator::new();
         let parsed = robusta_parser::parse(
             &allocator,
-            "class A { void m() { switch (x) { default -> f(); } switch (x) { case 1: default: g(); } } }",
+            "class A { void m() { switch (x) { default -> f(); } switch (x) { case 1: case 2: g(); } } }",
         );
         let unit = AstNode::new(&parsed.unit, AstNodes::Dummy);
         let ordinary = unit.content().as_ordinary().unwrap();
@@ -206,21 +206,23 @@ mod tests {
         let case = cases.iter().next().unwrap();
         let rule = case.as_rule().unwrap();
         assert!(matches!(rule.parent(), AstNodes::SwitchStatement(_)));
-        let label = rule.label().as_default().unwrap();
-        assert!(matches!(label.parent(), AstNodes::SwitchRule(_)));
+        assert!(rule.label().is_none());
 
         let switch = statements.next().unwrap();
         let switch = switch.as_switch().unwrap();
         let cases = switch.cases();
-        let case = cases.iter().next().unwrap();
-        let group = case.as_group().unwrap();
-        assert!(matches!(group.parent(), AstNodes::SwitchStatement(_)));
-        let labels = group.labels();
-        let mut labels = labels.iter();
-        let case = labels.next().unwrap();
-        let label = labels.next().unwrap().as_default().unwrap();
-        assert!(matches!(label.parent(), AstNodes::SwitchBlockStatementGroup(_)));
-        assert_eq!(case.following_span_start(), label.span().start);
+        let mut cases = cases.iter();
+        let first = cases.next().unwrap();
+        let first = first.as_case().unwrap();
+        let second = cases.next().unwrap();
+        let second = second.as_case().unwrap();
+        assert!(matches!(first.parent(), AstNodes::SwitchStatement(_)));
+        assert_eq!(first.following_span_start(), second.span().start);
+        let label = first.label().unwrap();
+        assert!(matches!(label.parent(), AstNodes::SwitchCase(_)));
+        assert_eq!(label.following_span_start(), second.span().start);
+        let label = second.label().unwrap();
+        assert_eq!(label.following_span_start(), second.statements[0].span().start);
     }
 
     #[test]

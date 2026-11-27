@@ -404,29 +404,29 @@ const _: () = {
     assert!(offset_of!(SwitchStatement, selector) == 16);
     assert!(offset_of!(SwitchStatement, cases) == 32);
 
-    assert!(size_of::<SwitchCase>() == 16);
-    assert!(align_of::<SwitchCase>() == 8);
+    assert!(size_of::<SwitchItem>() == 16);
+    assert!(align_of::<SwitchItem>() == 8);
 
     // Padding: 4 bytes
-    assert!(size_of::<SwitchRule>() == 56);
+    assert!(size_of::<SwitchRule>() == 48);
     assert!(align_of::<SwitchRule>() == 8);
     assert!(offset_of!(SwitchRule, span) == 0);
     assert!(offset_of!(SwitchRule, node_id) == 8);
     assert!(offset_of!(SwitchRule, label) == 16);
-    assert!(offset_of!(SwitchRule, body) == 40);
+    assert!(offset_of!(SwitchRule, body) == 32);
 
     assert!(size_of::<SwitchRuleBody>() == 16);
     assert!(align_of::<SwitchRuleBody>() == 8);
 
     // Padding: 4 bytes
-    assert!(size_of::<SwitchBlockStatementGroup>() == 64);
-    assert!(align_of::<SwitchBlockStatementGroup>() == 8);
-    assert!(offset_of!(SwitchBlockStatementGroup, span) == 0);
-    assert!(offset_of!(SwitchBlockStatementGroup, node_id) == 8);
-    assert!(offset_of!(SwitchBlockStatementGroup, labels) == 16);
-    assert!(offset_of!(SwitchBlockStatementGroup, statements) == 40);
+    assert!(size_of::<SwitchCase>() == 56);
+    assert!(align_of::<SwitchCase>() == 8);
+    assert!(offset_of!(SwitchCase, span) == 0);
+    assert!(offset_of!(SwitchCase, node_id) == 8);
+    assert!(offset_of!(SwitchCase, label) == 16);
+    assert!(offset_of!(SwitchCase, statements) == 32);
 
-    assert!(size_of::<SwitchLabel>() == 24);
+    assert!(size_of::<SwitchLabel>() == 16);
     assert!(align_of::<SwitchLabel>() == 8);
 
     // Padding: 3 bytes
@@ -444,12 +444,6 @@ const _: () = {
     assert!(offset_of!(CasePatternLabel, node_id) == 8);
     assert!(offset_of!(CasePatternLabel, patterns) == 16);
     assert!(offset_of!(CasePatternLabel, guard) == 40);
-
-    // Padding: 0 bytes
-    assert!(size_of::<DefaultLabel>() == 12);
-    assert!(align_of::<DefaultLabel>() == 4);
-    assert!(offset_of!(DefaultLabel, span) == 0);
-    assert!(offset_of!(DefaultLabel, node_id) == 8);
 
     // Padding: 4 bytes
     assert!(size_of::<WhileStatement>() == 48);
@@ -1595,29 +1589,29 @@ const _: () = {
     assert!(offset_of!(SwitchStatement, selector) == 16);
     assert!(offset_of!(SwitchStatement, cases) == 24);
 
-    assert!(size_of::<SwitchCase>() == 8);
-    assert!(align_of::<SwitchCase>() == 4);
+    assert!(size_of::<SwitchItem>() == 8);
+    assert!(align_of::<SwitchItem>() == 4);
 
     // Padding: 0 bytes
-    assert!(size_of::<SwitchRule>() == 36);
+    assert!(size_of::<SwitchRule>() == 28);
     assert!(align_of::<SwitchRule>() == 4);
     assert!(offset_of!(SwitchRule, span) == 0);
     assert!(offset_of!(SwitchRule, node_id) == 8);
     assert!(offset_of!(SwitchRule, label) == 12);
-    assert!(offset_of!(SwitchRule, body) == 28);
+    assert!(offset_of!(SwitchRule, body) == 20);
 
     assert!(size_of::<SwitchRuleBody>() == 8);
     assert!(align_of::<SwitchRuleBody>() == 4);
 
     // Padding: 0 bytes
-    assert!(size_of::<SwitchBlockStatementGroup>() == 44);
-    assert!(align_of::<SwitchBlockStatementGroup>() == 4);
-    assert!(offset_of!(SwitchBlockStatementGroup, span) == 0);
-    assert!(offset_of!(SwitchBlockStatementGroup, node_id) == 8);
-    assert!(offset_of!(SwitchBlockStatementGroup, labels) == 12);
-    assert!(offset_of!(SwitchBlockStatementGroup, statements) == 28);
+    assert!(size_of::<SwitchCase>() == 36);
+    assert!(align_of::<SwitchCase>() == 4);
+    assert!(offset_of!(SwitchCase, span) == 0);
+    assert!(offset_of!(SwitchCase, node_id) == 8);
+    assert!(offset_of!(SwitchCase, label) == 12);
+    assert!(offset_of!(SwitchCase, statements) == 20);
 
-    assert!(size_of::<SwitchLabel>() == 16);
+    assert!(size_of::<SwitchLabel>() == 8);
     assert!(align_of::<SwitchLabel>() == 4);
 
     // Padding: 3 bytes
@@ -1635,12 +1629,6 @@ const _: () = {
     assert!(offset_of!(CasePatternLabel, node_id) == 8);
     assert!(offset_of!(CasePatternLabel, patterns) == 12);
     assert!(offset_of!(CasePatternLabel, guard) == 28);
-
-    // Padding: 0 bytes
-    assert!(size_of::<DefaultLabel>() == 12);
-    assert!(align_of::<DefaultLabel>() == 4);
-    assert!(offset_of!(DefaultLabel, span) == 0);
-    assert!(offset_of!(DefaultLabel, node_id) == 8);
 
     // Padding: 0 bytes
     assert!(size_of::<WhileStatement>() == 28);

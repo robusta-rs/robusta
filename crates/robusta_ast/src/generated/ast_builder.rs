@@ -2733,7 +2733,7 @@ impl<'a> Statement<'a> {
     pub fn new_switch_statement(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchStatement::boxed(span, selector, cases, builder.builder()))
@@ -3233,7 +3233,7 @@ impl<'a> SwitchStatement<'a> {
     pub fn new(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
@@ -3259,7 +3259,7 @@ impl<'a> SwitchStatement<'a> {
     pub fn boxed(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
@@ -3267,41 +3267,41 @@ impl<'a> SwitchStatement<'a> {
     }
 }
 
-impl<'a> SwitchCase<'a> {
-    /// Build a [`SwitchCase::Rule`].
+impl<'a> SwitchItem<'a> {
+    /// Build a [`SwitchItem::Rule`].
     ///
     /// This node contains a [`SwitchRule`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `label`
+    /// * `label`: `None` for `default`.
     /// * `body`
     #[inline]
     pub fn new_switch_rule(
         span: Span,
-        label: SwitchLabel<'a>,
+        label: Option<SwitchLabel<'a>>,
         body: SwitchRuleBody<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Rule(SwitchRule::boxed(span, label, body, builder.builder()))
     }
 
-    /// Build a [`SwitchCase::Group`].
+    /// Build a [`SwitchItem::Case`].
     ///
-    /// This node contains a [`SwitchBlockStatementGroup`] that will be stored in the memory arena.
+    /// This node contains a [`SwitchCase`] that will be stored in the memory arena.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `labels`
+    /// * `label`: `None` for `default`.
     /// * `statements`
     #[inline]
-    pub fn new_switch_block_statement_group(
+    pub fn new_switch_case(
         span: Span,
-        labels: impl IntoIn<'a, Vec<'a, SwitchLabel<'a>>>,
+        label: Option<SwitchLabel<'a>>,
         statements: impl IntoIn<'a, Vec<'a, Statement<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
-        Self::Group(SwitchBlockStatementGroup::boxed(span, labels, statements, builder.builder()))
+        Self::Case(SwitchCase::boxed(span, label, statements, builder.builder()))
     }
 }
 
@@ -3313,12 +3313,12 @@ impl<'a> SwitchRule<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `label`
+    /// * `label`: `None` for `default`.
     /// * `body`
     #[inline]
     pub fn new(
         span: Span,
-        label: SwitchLabel<'a>,
+        label: Option<SwitchLabel<'a>>,
         body: SwitchRuleBody<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
@@ -3333,12 +3333,12 @@ impl<'a> SwitchRule<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `label`
+    /// * `label`: `None` for `default`.
     /// * `body`
     #[inline]
     pub fn boxed(
         span: Span,
-        label: SwitchLabel<'a>,
+        label: Option<SwitchLabel<'a>>,
         body: SwitchRuleBody<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
@@ -3832,7 +3832,7 @@ impl<'a> SwitchRuleBody<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -3899,50 +3899,50 @@ impl<'a> SwitchRuleBody<'a> {
     }
 }
 
-impl<'a> SwitchBlockStatementGroup<'a> {
-    /// Build a [`SwitchBlockStatementGroup`].
+impl<'a> SwitchCase<'a> {
+    /// Build a [`SwitchCase`].
     ///
     /// If you want the built node to be allocated in the memory arena,
-    /// use [`SwitchBlockStatementGroup::boxed`] instead.
+    /// use [`SwitchCase::boxed`] instead.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `labels`
+    /// * `label`: `None` for `default`.
     /// * `statements`
     #[inline]
     pub fn new(
         span: Span,
-        labels: impl IntoIn<'a, Vec<'a, SwitchLabel<'a>>>,
+        label: Option<SwitchLabel<'a>>,
         statements: impl IntoIn<'a, Vec<'a, Statement<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
-        SwitchBlockStatementGroup {
+        SwitchCase {
             node_id: Cell::new(builder.node_id()),
             span,
-            labels: labels.into_in(builder.allocator()),
+            label,
             statements: statements.into_in(builder.allocator()),
         }
     }
 
-    /// Build a [`SwitchBlockStatementGroup`], and store it in the memory arena.
+    /// Build a [`SwitchCase`], and store it in the memory arena.
     ///
     /// Returns a [`Box`] containing the newly-allocated node.
-    /// If you want a stack-allocated node, use [`SwitchBlockStatementGroup::new`] instead.
+    /// If you want a stack-allocated node, use [`SwitchCase::new`] instead.
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `labels`
+    /// * `label`: `None` for `default`.
     /// * `statements`
     #[inline]
     pub fn boxed(
         span: Span,
-        labels: impl IntoIn<'a, Vec<'a, SwitchLabel<'a>>>,
+        label: Option<SwitchLabel<'a>>,
         statements: impl IntoIn<'a, Vec<'a, Statement<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
-        Box::new_in(Self::new(span, labels, statements, builder), &builder.allocator())
+        Box::new_in(Self::new(span, label, statements, builder), &builder.allocator())
     }
 }
 
@@ -3981,15 +3981,6 @@ impl<'a> SwitchLabel<'a> {
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Pattern(CasePatternLabel::boxed(span, patterns, guard, builder.builder()))
-    }
-
-    /// Build a [`SwitchLabel::Default`].
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    #[inline]
-    pub fn new_default_label(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        Self::Default(DefaultLabel::new(span, builder.builder()))
     }
 }
 
@@ -4084,18 +4075,6 @@ impl<'a> CasePatternLabel<'a> {
     ) -> Box<'a, Self> {
         let builder = builder.builder();
         Box::new_in(Self::new(span, patterns, guard, builder), &builder.allocator())
-    }
-}
-
-impl DefaultLabel {
-    /// Build a [`DefaultLabel`].
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    #[inline]
-    pub fn new<'a>(span: Span, builder: &impl GetAstBuilder<'a>) -> Self {
-        let builder = builder.builder();
-        DefaultLabel { node_id: Cell::new(builder.node_id()), span }
     }
 }
 
@@ -5611,7 +5590,7 @@ impl<'a> VariableInitializer<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -6173,7 +6152,7 @@ impl<'a> Expression<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -7590,7 +7569,7 @@ impl<'a> SwitchExpression<'a> {
     pub fn new(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
@@ -7616,7 +7595,7 @@ impl<'a> SwitchExpression<'a> {
     pub fn boxed(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
@@ -8175,7 +8154,7 @@ impl<'a> LambdaBody<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -8741,7 +8720,7 @@ impl<'a> MethodReferenceTarget<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -10824,7 +10803,7 @@ impl<'a> AnnotationArgument<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))
@@ -11427,7 +11406,7 @@ impl<'a> ElementValue<'a> {
     pub fn new_switch_expression(
         span: Span,
         selector: Expression<'a>,
-        cases: impl IntoIn<'a, Vec<'a, SwitchCase<'a>>>,
+        cases: impl IntoIn<'a, Vec<'a, SwitchItem<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::Switch(SwitchExpression::boxed(span, selector, cases, builder.builder()))

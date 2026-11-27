@@ -89,13 +89,11 @@ impl UnstableAddress for SwitchStatement<'_> {}
 
 impl UnstableAddress for SwitchRule<'_> {}
 
-impl UnstableAddress for SwitchBlockStatementGroup<'_> {}
+impl UnstableAddress for SwitchCase<'_> {}
 
 impl UnstableAddress for CaseLabel<'_> {}
 
 impl UnstableAddress for CasePatternLabel<'_> {}
-
-impl UnstableAddress for DefaultLabel {}
 
 impl UnstableAddress for WhileStatement<'_> {}
 

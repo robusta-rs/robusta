@@ -1,6 +1,6 @@
 use robusta_allocator::GetAddress;
 use robusta_ast::{
-    AstKind, DoStatement, Expression, IdentifierReference, LabeledStatement, Statement, SwitchCase,
+    AstKind, DoStatement, Expression, IdentifierReference, LabeledStatement, Statement, SwitchItem,
     SwitchLabel, SwitchRuleBody, SwitchStatement, match_expression,
 };
 use robusta_span::{GetSpan, Span};
@@ -81,7 +81,7 @@ pub fn pattern_scope<'a>(
             }
             AstKind::CasePatternLabel(label) => {
                 // The label's patterns, and its guard when true, reach the rest of
-                // its rule or group.
+                // its rule or case.
                 let is_guard =
                     label.guard.as_ref().is_some_and(|guard| guard.address() == child.address());
                 if !is_guard || introduced == Introduced::WhenTrue {
@@ -158,8 +158,8 @@ pub fn pattern_scope<'a>(
                 parts.push(Span::new(child.span().end, block.span.end));
                 break;
             }
-            AstKind::SwitchBlockStatementGroup(group) if introduced == Introduced::ByStatement => {
-                parts.push(Span::new(child.span().end, group.span.end));
+            AstKind::SwitchCase(case) if introduced == Introduced::ByStatement => {
+                parts.push(Span::new(child.span().end, case.span.end));
                 break;
             }
             _ => break,
@@ -299,10 +299,10 @@ fn switch_can_complete_normally<'a>(
     let breaks = |statement: &Statement<'a>| has_jump(statement, JumpTarget::EXITING_BREAK, names);
     let cases = &statement.cases;
     cases.last().is_none_or(|case| match case {
-        SwitchCase::Rule(_) => false,
-        SwitchCase::Group(group) => block_can_complete_normally(&group.statements, names),
+        SwitchItem::Rule(_) => false,
+        SwitchItem::Case(case) => block_can_complete_normally(&case.statements, names),
     }) || cases.iter().any(|case| match case {
-        SwitchCase::Rule(rule) => match &rule.body {
+        SwitchItem::Rule(rule) => match &rule.body {
             match_expression!(SwitchRuleBody) => true,
             SwitchRuleBody::Block(block) => {
                 block_can_complete_normally(&block.statements, names)
@@ -310,11 +310,11 @@ fn switch_can_complete_normally<'a>(
             }
             SwitchRuleBody::Throw(_) => false,
         },
-        SwitchCase::Group(group) => group.statements.iter().any(breaks),
+        SwitchItem::Case(case) => case.statements.iter().any(breaks),
     }) || may_match_no_label(
-        cases.iter().flat_map(|case| match case {
-            SwitchCase::Rule(rule) => std::slice::from_ref(&rule.label),
-            SwitchCase::Group(group) => &group.labels[..],
+        cases.iter().map(|case| match case {
+            SwitchItem::Rule(rule) => rule.label.as_ref(),
+            SwitchItem::Case(case) => case.label.as_ref(),
         }),
         names,
     )
@@ -325,12 +325,12 @@ fn switch_can_complete_normally<'a>(
 /// expression among the case constants shows it is not enhanced. A name may be
 /// an enum constant unless it refers to a constant variable.
 fn may_match_no_label<'s, 'a: 's>(
-    labels: impl Iterator<Item = &'s SwitchLabel<'a>>,
+    labels: impl Iterator<Item = Option<&'s SwitchLabel<'a>>>,
     names: &impl NameContext<'a>,
 ) -> bool {
     let mut not_enhanced = false;
     for label in labels {
-        let SwitchLabel::Case(case) = label else {
+        let Some(SwitchLabel::Case(case)) = label else {
             return false;
         };
         if case.has_default {
@@ -504,11 +504,11 @@ fn has_jump<'a>(
         Statement::Switch(statement) => {
             let target = target.nested(false);
             statement.cases.iter().any(|case| match case {
-                SwitchCase::Rule(rule) => match &rule.body {
+                SwitchItem::Rule(rule) => match &rule.body {
                     SwitchRuleBody::Block(block) => in_block(&block.statements, target),
                     _ => false,
                 },
-                SwitchCase::Group(group) => in_block(&group.statements, target),
+                SwitchItem::Case(case) => in_block(&case.statements, target),
             })
         }
         Statement::While(statement) => has_jump(&statement.body, target.nested(true), names),

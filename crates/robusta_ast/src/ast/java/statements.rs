@@ -72,17 +72,17 @@ pub struct SwitchStatement<'a> {
     pub span: Span,
     pub selector: Expression<'a>,
     #[scope(enter_before)]
-    pub cases: Vec<'a, SwitchCase<'a>>,
+    pub cases: Vec<'a, SwitchItem<'a>>,
     pub scope_id: Cell<Option<ScopeId>>,
 }
 
-/// An arrow rule or a colon-label group, never mixed in one switch.
+/// An arrow rule or a colon case, never mixed in one switch.
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetAddress, GetSpan)]
-pub enum SwitchCase<'a> {
+pub enum SwitchItem<'a> {
     Rule(Box<'a, SwitchRule<'a>>) = 0,
-    Group(Box<'a, SwitchBlockStatementGroup<'a>>) = 1,
+    Case(Box<'a, SwitchCase<'a>>) = 1,
 }
 
 /// One `case … ->` or `default ->` rule.
@@ -93,7 +93,8 @@ pub enum SwitchCase<'a> {
 pub struct SwitchRule<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub label: SwitchLabel<'a>,
+    /// `None` for `default`.
+    pub label: Option<SwitchLabel<'a>>,
     pub body: SwitchRuleBody<'a>,
 }
 
@@ -106,26 +107,26 @@ pub enum SwitchRuleBody<'a> {
     INHERIT(Expression<'a>),
 }
 
-/// Colon labels and their statements (JLS §14.11.1).
-/// Trailing labels before `}` have no statements.
+/// One `case …:` or `default:` and the statements up to the next one.
+/// `case 1: case 2: f();` is two cases, the first without statements.
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct SwitchBlockStatementGroup<'a> {
+pub struct SwitchCase<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub labels: Vec<'a, SwitchLabel<'a>>,
+    /// `None` for `default`.
+    pub label: Option<SwitchLabel<'a>>,
     pub statements: Vec<'a, Statement<'a>>,
 }
 
-/// A label excluding the enclosing group's `:` or rule's `->`.
+/// A label excluding the enclosing case's `:` or rule's `->`.
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetSpan)]
 pub enum SwitchLabel<'a> {
     Case(Box<'a, CaseLabel<'a>>) = 0,
     Pattern(Box<'a, CasePatternLabel<'a>>) = 1,
-    Default(DefaultLabel) = 2,
 }
 
 /// `case c1, c2` with conditional-expression constants.
@@ -149,15 +150,6 @@ pub struct CasePatternLabel<'a> {
     pub span: Span,
     pub patterns: Vec<'a, Pattern<'a>>,
     pub guard: Option<Expression<'a>>,
-}
-
-/// `default` without `case` (JLS §14.11.1).
-#[ast(visit)]
-#[derive(Debug)]
-#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
-pub struct DefaultLabel {
-    pub node_id: Cell<NodeId>,
-    pub span: Span,
 }
 
 #[ast(visit)]

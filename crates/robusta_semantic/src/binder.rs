@@ -27,11 +27,9 @@ impl<'a> Binder<'a> for ImportDeclaration<'a> {
 
 impl<'a> Binder<'a> for TypeDeclarationKind<'a> {
     fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        if let parent @ (AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)) =
-            builder.parent_kind()
-        {
+        if let parent @ (AstKind::Block(_) | AstKind::SwitchCase(_)) = builder.parent_kind() {
             // A local type is in scope from its own declaration to the end
-            // of its block or group (JLS 6.3).
+            // of its block or case (JLS 6.3).
             let start = builder.nodes.kind(builder.current_node_id).span().start;
             let window = Span::new(start, parent.span().end);
             builder.declare_symbol_within(self.name(), SymbolKind::Type, window);

@@ -1,4 +1,4 @@
-use robusta_ast::{KeywordModifier, MethodReference, SwitchBlockStatementGroup, SwitchRule};
+use robusta_ast::{KeywordModifier, MethodReference, SwitchCase, SwitchRule};
 
 use super::*;
 
@@ -46,23 +46,21 @@ fn first_method_statements<'a>(
 }
 
 /// The arrow rules of a switch whose cases are all rules.
-fn switch_rules<'s, 'a>(cases: &'s [SwitchCase<'a>]) -> std::vec::Vec<&'s SwitchRule<'a>> {
-    let rule = |case: &'s SwitchCase<'a>| match case {
-        SwitchCase::Rule(rule) => rule.as_ref(),
-        SwitchCase::Group(_) => panic!("expected an arrow rule"),
+fn switch_rules<'s, 'a>(cases: &'s [SwitchItem<'a>]) -> std::vec::Vec<&'s SwitchRule<'a>> {
+    let rule = |case: &'s SwitchItem<'a>| match case {
+        SwitchItem::Rule(rule) => rule.as_ref(),
+        SwitchItem::Case(_) => panic!("expected an arrow rule"),
     };
     cases.iter().map(rule).collect()
 }
 
-/// The colon groups of a switch whose cases are all groups.
-fn switch_groups<'s, 'a>(
-    cases: &'s [SwitchCase<'a>],
-) -> std::vec::Vec<&'s SwitchBlockStatementGroup<'a>> {
-    let group = |case: &'s SwitchCase<'a>| match case {
-        SwitchCase::Group(group) => group.as_ref(),
-        SwitchCase::Rule(_) => panic!("expected a colon group"),
+/// The colon cases of a switch whose cases are all colon cases.
+fn switch_colon_cases<'s, 'a>(cases: &'s [SwitchItem<'a>]) -> std::vec::Vec<&'s SwitchCase<'a>> {
+    let case = |case: &'s SwitchItem<'a>| match case {
+        SwitchItem::Case(case) => case.as_ref(),
+        SwitchItem::Rule(_) => panic!("expected a colon case"),
     };
-    cases.iter().map(group).collect()
+    cases.iter().map(case).collect()
 }
 
 /// The names of a package, import, or module name in source order.

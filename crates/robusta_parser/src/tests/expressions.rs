@@ -1904,7 +1904,7 @@ fn parses_switch_expressions_with_arrow_rules() {
     assert_eq!(block.statements.len(), 1);
     assert!(matches!(&block.statements[0], Statement::Yield(_)));
 
-    assert!(matches!(rules[2].label, SwitchLabel::Default(_)));
+    assert!(rules[2].label.is_none());
     assert!(matches!(&rules[2].body, SwitchRuleBody::Throw(_)));
 }
 
@@ -1926,9 +1926,9 @@ fn parses_colon_form_switch_expressions_with_yield() {
     let Some(Expression::Switch(switch_expr)) = &ret.value else {
         panic!("expected a switch expression");
     };
-    let groups = switch_groups(&switch_expr.cases);
-    assert_eq!(groups.len(), 2);
-    assert!(matches!(&groups[0].statements[0], Statement::Yield(_)));
-    assert!(matches!(groups[1].labels[0], SwitchLabel::Default(_)));
-    assert!(matches!(&groups[1].statements[0], Statement::Yield(_)));
+    let cases = switch_colon_cases(&switch_expr.cases);
+    assert_eq!(cases.len(), 2);
+    assert!(matches!(&cases[0].statements[0], Statement::Yield(_)));
+    assert!(cases[1].label.is_none());
+    assert!(matches!(&cases[1].statements[0], Statement::Yield(_)));
 }

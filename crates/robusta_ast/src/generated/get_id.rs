@@ -777,14 +777,14 @@ impl SwitchRule<'_> {
     }
 }
 
-impl SwitchBlockStatementGroup<'_> {
-    /// Get [`NodeId`] of [`SwitchBlockStatementGroup`].
+impl SwitchCase<'_> {
+    /// Get [`NodeId`] of [`SwitchCase`].
     #[inline]
     pub fn node_id(&self) -> NodeId {
         self.node_id.get()
     }
 
-    /// Set [`NodeId`] of [`SwitchBlockStatementGroup`].
+    /// Set [`NodeId`] of [`SwitchCase`].
     #[inline]
     pub fn set_node_id(&self, node_id: NodeId) {
         self.node_id.set(node_id);
@@ -813,20 +813,6 @@ impl CasePatternLabel<'_> {
     }
 
     /// Set [`NodeId`] of [`CasePatternLabel`].
-    #[inline]
-    pub fn set_node_id(&self, node_id: NodeId) {
-        self.node_id.set(node_id);
-    }
-}
-
-impl DefaultLabel {
-    /// Get [`NodeId`] of [`DefaultLabel`].
-    #[inline]
-    pub fn node_id(&self) -> NodeId {
-        self.node_id.get()
-    }
-
-    /// Set [`NodeId`] of [`DefaultLabel`].
     #[inline]
     pub fn set_node_id(&self, node_id: NodeId) {
         self.node_id.set(node_id);
@@ -2299,24 +2285,24 @@ impl Statement<'_> {
     }
 }
 
-impl SwitchCase<'_> {
-    /// Get [`NodeId`] of [`SwitchCase`].
+impl SwitchItem<'_> {
+    /// Get [`NodeId`] of [`SwitchItem`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::Rule(it) => it.node_id(),
-            Self::Group(it) => it.node_id(),
+            Self::Case(it) => it.node_id(),
         }
     }
 
-    /// Set [`NodeId`] of [`SwitchCase`].
+    /// Set [`NodeId`] of [`SwitchItem`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn set_node_id(&self, node_id: NodeId) {
         match self {
             Self::Rule(it) => it.set_node_id(node_id),
-            Self::Group(it) => it.set_node_id(node_id),
+            Self::Case(it) => it.set_node_id(node_id),
         }
     }
 }
@@ -2403,20 +2389,22 @@ impl SwitchRuleBody<'_> {
 
 impl SwitchLabel<'_> {
     /// Get [`NodeId`] of [`SwitchLabel`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::Case(it) => it.node_id(),
             Self::Pattern(it) => it.node_id(),
-            Self::Default(it) => it.node_id(),
         }
     }
 
     /// Set [`NodeId`] of [`SwitchLabel`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn set_node_id(&self, node_id: NodeId) {
         match self {
             Self::Case(it) => it.set_node_id(node_id),
             Self::Pattern(it) => it.set_node_id(node_id),
-            Self::Default(it) => it.set_node_id(node_id),
         }
     }
 }

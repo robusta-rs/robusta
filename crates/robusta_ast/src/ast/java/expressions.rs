@@ -357,7 +357,7 @@ pub struct ConditionalExpression<'a> {
 }
 
 /// `switch (selector) { … }` as an expression (JLS §15.28).
-/// Colon groups yield values through [`YieldStatement`].
+/// Colon cases yield values through [`YieldStatement`].
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
@@ -367,7 +367,7 @@ pub struct SwitchExpression<'a> {
     pub span: Span,
     pub selector: Expression<'a>,
     #[scope(enter_before)]
-    pub cases: Vec<'a, SwitchCase<'a>>,
+    pub cases: Vec<'a, SwitchItem<'a>>,
     pub scope_id: Cell<Option<ScopeId>>,
 }
 

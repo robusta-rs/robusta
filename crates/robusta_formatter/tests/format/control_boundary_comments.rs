@@ -852,7 +852,7 @@ fn switch_rule_line_comment_before_a_block_follows_the_brace() {
 }
 
 #[test]
-fn switch_group_line_comment_before_a_lone_block_follows_the_brace() {
+fn switch_case_line_comment_before_a_lone_block_follows_the_brace() {
     let source = "class A { void f() { switch (x) { case 1 // c\n: { f(); } \
                   case 2 /* d */\n// e\n: { g(); } } } }";
     assert_snapshot!(fmt(source), @"

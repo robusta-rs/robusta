@@ -35,7 +35,7 @@ use robusta_ast::{
     ModuleDeclaration, ModuleDirective, Name, PackageDeclaration, PackageDirectiveKind, Pattern,
     PrimitiveTypeKind, ReceiverParameter, RecordComponent, RecordDeclaration, RecordHeader,
     RecordPattern, RequiresModifier, RequiresModifierKind, Resource, Statement,
-    StatementExpressionList, SwitchCase, SwitchLabel, SwitchRuleBody, Type, TypeArgument,
+    StatementExpressionList, SwitchItem, SwitchLabel, SwitchRuleBody, Type, TypeArgument,
     TypeArguments, TypeDeclaration, TypeName, TypeParameter, TypeParameters, TypePattern,
     VariableDeclarator, VariableInitializer, VariableType, WildcardBound, WildcardBoundKind,
     builder::{AstBuild, AstBuilder, GetAstBuilder},

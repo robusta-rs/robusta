@@ -92,7 +92,52 @@ fn empty_switch_block_collapses() {
 }
 
 #[test]
-fn switch_group_terminator_comments_use_the_label_indent() {
+fn a_blank_line_between_stacked_switch_labels_stays() {
+    let source = "class A { void f(int x) { switch (x) { case 1:\n\ncase 2:\nf();\nbreak;\n\n\
+                  case 3:\n\n\ndefault:\ng(); } } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f(int x) {
+        switch (x) {
+          case 1:
+
+          case 2:
+            f();
+            break;
+
+          case 3:
+
+          default:
+            g();
+        }
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn comments_between_stacked_switch_labels_keep_their_lines() {
+    let source = "class A { void f(int x) { switch (x) { case 1: // one\ncase 2: /* two */\n\
+                  /* three */\ndefault: /* four */\ng(); } } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      void f(int x) {
+        switch (x) {
+          case 1: // one
+          case 2: /* two */
+          /* three */
+          default /* four */:
+            g();
+        }
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
+fn switch_case_terminator_comments_use_the_label_indent() {
     let source = "class A { void f() { switch (x) { case 1: y(); break\n/* c */\n; \
                   default: handle()\n// last\n; } } }";
     assert_snapshot!(fmt(source), @"
@@ -113,7 +158,7 @@ fn switch_group_terminator_comments_use_the_label_indent() {
 }
 
 #[test]
-fn comments_after_the_last_switch_group_stay_in_the_switch() {
+fn comments_after_the_last_switch_case_stay_in_the_switch() {
     let source = "class A { void f() { switch (x) { case 1: y(); // a\n// b\n} z(); } }";
     assert_snapshot!(fmt(source), @"
     class A {

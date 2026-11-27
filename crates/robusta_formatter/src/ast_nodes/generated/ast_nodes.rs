@@ -51,10 +51,9 @@ pub enum AstNodes<'parent, 'a> {
     IfStatement(&'parent AstNode<'parent, 'a, IfStatement<'a>>),
     SwitchStatement(&'parent AstNode<'parent, 'a, SwitchStatement<'a>>),
     SwitchRule(&'parent AstNode<'parent, 'a, SwitchRule<'a>>),
-    SwitchBlockStatementGroup(&'parent AstNode<'parent, 'a, SwitchBlockStatementGroup<'a>>),
+    SwitchCase(&'parent AstNode<'parent, 'a, SwitchCase<'a>>),
     CaseLabel(&'parent AstNode<'parent, 'a, CaseLabel<'a>>),
     CasePatternLabel(&'parent AstNode<'parent, 'a, CasePatternLabel<'a>>),
-    DefaultLabel(&'parent AstNode<'parent, 'a, DefaultLabel>),
     WhileStatement(&'parent AstNode<'parent, 'a, WhileStatement<'a>>),
     DoStatement(&'parent AstNode<'parent, 'a, DoStatement<'a>>),
     ForStatement(&'parent AstNode<'parent, 'a, ForStatement<'a>>),
@@ -175,10 +174,9 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::IfStatement(node) => node.span(),
             Self::SwitchStatement(node) => node.span(),
             Self::SwitchRule(node) => node.span(),
-            Self::SwitchBlockStatementGroup(node) => node.span(),
+            Self::SwitchCase(node) => node.span(),
             Self::CaseLabel(node) => node.span(),
             Self::CasePatternLabel(node) => node.span(),
-            Self::DefaultLabel(node) => node.span(),
             Self::WhileStatement(node) => node.span(),
             Self::DoStatement(node) => node.span(),
             Self::ForStatement(node) => node.span(),
@@ -297,10 +295,9 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::IfStatement(node) => node.parent(),
             Self::SwitchStatement(node) => node.parent(),
             Self::SwitchRule(node) => node.parent(),
-            Self::SwitchBlockStatementGroup(node) => node.parent(),
+            Self::SwitchCase(node) => node.parent(),
             Self::CaseLabel(node) => node.parent(),
             Self::CasePatternLabel(node) => node.parent(),
-            Self::DefaultLabel(node) => node.parent(),
             Self::WhileStatement(node) => node.parent(),
             Self::DoStatement(node) => node.parent(),
             Self::ForStatement(node) => node.parent(),
@@ -421,10 +418,9 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::IfStatement(_) => "IfStatement",
             Self::SwitchStatement(_) => "SwitchStatement",
             Self::SwitchRule(_) => "SwitchRule",
-            Self::SwitchBlockStatementGroup(_) => "SwitchBlockStatementGroup",
+            Self::SwitchCase(_) => "SwitchCase",
             Self::CaseLabel(_) => "CaseLabel",
             Self::CasePatternLabel(_) => "CasePatternLabel",
-            Self::DefaultLabel(_) => "DefaultLabel",
             Self::WhileStatement(_) => "WhileStatement",
             Self::DoStatement(_) => "DoStatement",
             Self::ForStatement(_) => "ForStatement",
@@ -545,10 +541,9 @@ pub enum AstNodeKind<'parent, 'a> {
     IfStatement(AstNode<'parent, 'a, IfStatement<'a>>),
     SwitchStatement(AstNode<'parent, 'a, SwitchStatement<'a>>),
     SwitchRule(AstNode<'parent, 'a, SwitchRule<'a>>),
-    SwitchBlockStatementGroup(AstNode<'parent, 'a, SwitchBlockStatementGroup<'a>>),
+    SwitchCase(AstNode<'parent, 'a, SwitchCase<'a>>),
     CaseLabel(AstNode<'parent, 'a, CaseLabel<'a>>),
     CasePatternLabel(AstNode<'parent, 'a, CasePatternLabel<'a>>),
-    DefaultLabel(AstNode<'parent, 'a, DefaultLabel>),
     WhileStatement(AstNode<'parent, 'a, WhileStatement<'a>>),
     DoStatement(AstNode<'parent, 'a, DoStatement<'a>>),
     ForStatement(AstNode<'parent, 'a, ForStatement<'a>>),
@@ -672,10 +667,9 @@ impl<'a> AstNodeKind<'_, 'a> {
             Self::IfStatement(node) => AstNodes::IfStatement(node),
             Self::SwitchStatement(node) => AstNodes::SwitchStatement(node),
             Self::SwitchRule(node) => AstNodes::SwitchRule(node),
-            Self::SwitchBlockStatementGroup(node) => AstNodes::SwitchBlockStatementGroup(node),
+            Self::SwitchCase(node) => AstNodes::SwitchCase(node),
             Self::CaseLabel(node) => AstNodes::CaseLabel(node),
             Self::CasePatternLabel(node) => AstNodes::CasePatternLabel(node),
-            Self::DefaultLabel(node) => AstNodes::DefaultLabel(node),
             Self::WhileStatement(node) => AstNodes::WhileStatement(node),
             Self::DoStatement(node) => AstNodes::DoStatement(node),
             Self::ForStatement(node) => AstNodes::ForStatement(node),
@@ -799,10 +793,9 @@ impl GetSpan for AstNodeKind<'_, '_> {
             Self::IfStatement(node) => node.span(),
             Self::SwitchStatement(node) => node.span(),
             Self::SwitchRule(node) => node.span(),
-            Self::SwitchBlockStatementGroup(node) => node.span(),
+            Self::SwitchCase(node) => node.span(),
             Self::CaseLabel(node) => node.span(),
             Self::CasePatternLabel(node) => node.span(),
-            Self::DefaultLabel(node) => node.span(),
             Self::WhileStatement(node) => node.span(),
             Self::DoStatement(node) => node.span(),
             Self::ForStatement(node) => node.span(),
@@ -3134,19 +3127,19 @@ impl<'a> AstNode<'_, 'a, SwitchStatement<'a>> {
             following_span_start: self.inner.cases.first().map_or(0, |it| it.span().start),
         }
     }
-    pub fn cases(&self) -> AstNode<'_, 'a, Vec<'a, SwitchCase<'a>>> {
+    pub fn cases(&self) -> AstNode<'_, 'a, Vec<'a, SwitchItem<'a>>> {
         AstNode { inner: &self.inner.cases, parent: self.as_ast_nodes(), following_span_start: 0 }
     }
 }
-impl<'parent, 'a> AstNode<'parent, 'a, SwitchCase<'a>> {
+impl<'parent, 'a> AstNode<'parent, 'a, SwitchItem<'a>> {
     pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
         match self.inner {
-            SwitchCase::Rule(field_0) => AstNodeKind::SwitchRule(AstNode {
+            SwitchItem::Rule(field_0) => AstNodeKind::SwitchRule(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchCase::Group(field_0) => AstNodeKind::SwitchBlockStatementGroup(AstNode {
+            SwitchItem::Case(field_0) => AstNodeKind::SwitchCase(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -3155,22 +3148,22 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchCase<'a>> {
     }
     pub fn as_rule(&self) -> Option<AstNode<'parent, 'a, SwitchRule<'a>>> {
         match self.inner {
-            SwitchCase::Rule(field_0) => Some(AstNode {
+            SwitchItem::Rule(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchCase::Group(..) => None,
+            SwitchItem::Case(..) => None,
         }
     }
-    pub fn as_group(&self) -> Option<AstNode<'parent, 'a, SwitchBlockStatementGroup<'a>>> {
+    pub fn as_case(&self) -> Option<AstNode<'parent, 'a, SwitchCase<'a>>> {
         match self.inner {
-            SwitchCase::Group(field_0) => Some(AstNode {
+            SwitchItem::Case(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchCase::Rule(..) => None,
+            SwitchItem::Rule(..) => None,
         }
     }
 }
@@ -3178,12 +3171,12 @@ impl<'a> AstNode<'_, 'a, SwitchRule<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::SwitchRule(self)
     }
-    pub fn label(&self) -> AstNode<'_, 'a, SwitchLabel<'a>> {
-        AstNode {
-            inner: &self.inner.label,
+    pub fn label(&self) -> Option<AstNode<'_, 'a, SwitchLabel<'a>>> {
+        self.inner.label.as_ref().map(|inner| AstNode {
+            inner,
             parent: self.as_ast_nodes(),
             following_span_start: self.inner.body.span().start,
-        }
+        })
     }
     pub fn body(&self) -> AstNode<'_, 'a, SwitchRuleBody<'a>> {
         AstNode { inner: &self.inner.body, parent: self.as_ast_nodes(), following_span_start: 0 }
@@ -3677,20 +3670,20 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchRuleBody<'a>> {
         })
     }
 }
-impl<'a> AstNode<'_, 'a, SwitchBlockStatementGroup<'a>> {
+impl<'a> AstNode<'_, 'a, SwitchCase<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::SwitchBlockStatementGroup(self)
+        AstNodes::SwitchCase(self)
     }
-    pub fn labels(&self) -> AstNode<'_, 'a, Vec<'a, SwitchLabel<'a>>> {
-        AstNode {
-            inner: &self.inner.labels,
+    pub fn label(&self) -> Option<AstNode<'_, 'a, SwitchLabel<'a>>> {
+        self.inner.label.as_ref().map(|inner| AstNode {
+            inner,
             parent: self.as_ast_nodes(),
             following_span_start: self
                 .inner
                 .statements
                 .first()
                 .map_or(self.following_span_start, |it| it.span().start),
-        }
+        })
     }
     pub fn statements(&self) -> AstNode<'_, 'a, Vec<'a, Statement<'a>>> {
         AstNode {
@@ -3713,11 +3706,6 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchLabel<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            SwitchLabel::Default(field_0) => AstNodeKind::DefaultLabel(AstNode {
-                inner: field_0,
-                parent: self.parent,
-                following_span_start: self.following_span_start,
-            }),
         }
     }
     pub fn as_case(&self) -> Option<AstNode<'parent, 'a, CaseLabel<'a>>> {
@@ -3727,7 +3715,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchLabel<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            _ => None,
+            SwitchLabel::Pattern(..) => None,
         }
     }
     pub fn as_pattern(&self) -> Option<AstNode<'parent, 'a, CasePatternLabel<'a>>> {
@@ -3737,17 +3725,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, SwitchLabel<'a>> {
                 parent: self.parent,
                 following_span_start: self.following_span_start,
             }),
-            _ => None,
-        }
-    }
-    pub fn as_default(&self) -> Option<AstNode<'parent, 'a, DefaultLabel>> {
-        match self.inner {
-            SwitchLabel::Default(field_0) => Some(AstNode {
-                inner: field_0,
-                parent: self.parent,
-                following_span_start: self.following_span_start,
-            }),
-            _ => None,
+            SwitchLabel::Case(..) => None,
         }
     }
 }
@@ -3784,11 +3762,6 @@ impl<'a> AstNode<'_, 'a, CasePatternLabel<'a>> {
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
         })
-    }
-}
-impl<'a> AstNode<'_, 'a, DefaultLabel> {
-    pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
-        AstNodes::DefaultLabel(self)
     }
 }
 impl<'a> AstNode<'_, 'a, WhileStatement<'a>> {
@@ -6152,7 +6125,7 @@ impl<'a> AstNode<'_, 'a, SwitchExpression<'a>> {
                 .map_or(self.following_span_start, |it| it.span().start),
         }
     }
-    pub fn cases(&self) -> AstNode<'_, 'a, Vec<'a, SwitchCase<'a>>> {
+    pub fn cases(&self) -> AstNode<'_, 'a, Vec<'a, SwitchItem<'a>>> {
         AstNode {
             inner: &self.inner.cases,
             parent: self.as_ast_nodes(),

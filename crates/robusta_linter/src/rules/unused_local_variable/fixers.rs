@@ -207,7 +207,7 @@ impl Local<'_, '_> {
             AstKind::ExpressionStatement(statement) => {
                 if matches!(
                     nodes.parent_kind(parent_id),
-                    AstKind::Block(_) | AstKind::SwitchBlockStatementGroup(_)
+                    AstKind::Block(_) | AstKind::SwitchCase(_)
                 ) {
                     self.delete_statement(statement.span)
                 } else {

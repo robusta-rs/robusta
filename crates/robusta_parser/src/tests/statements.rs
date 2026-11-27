@@ -545,31 +545,43 @@ fn parses_switch_statements() {
         panic!("expected a switch statement");
     };
     assert!(matches!(&switch_stmt.selector, Expression::Identifier(_)));
-    let groups = switch_groups(&switch_stmt.cases);
-    assert_eq!(groups.len(), 3);
+    let cases = switch_colon_cases(&switch_stmt.cases);
+    assert_eq!(cases.len(), 4);
 
-    let fall_through = &groups[0];
-    assert_eq!(fall_through.labels.len(), 2);
-    assert!(
-        fall_through
-            .labels
-            .iter()
-            .all(|label| matches!(label, SwitchLabel::Case(case) if case.constants.len() == 1))
-    );
-    assert_eq!(fall_through.statements.len(), 2);
+    assert!(cases[..2].iter().all(
+        |case| matches!(&case.label, Some(SwitchLabel::Case(case)) if case.constants.len() == 1)
+    ));
+    assert!(cases[0].statements.is_empty());
+    assert_eq!(cases[1].statements.len(), 2);
 
-    let multi_constant = &groups[1];
-    assert_eq!(multi_constant.labels.len(), 1);
-    let SwitchLabel::Case(case) = &multi_constant.labels[0] else {
+    let Some(SwitchLabel::Case(case)) = &cases[2].label else {
         panic!("expected a case label");
     };
     assert_eq!(case.constants.len(), 2);
     assert!(matches!(&case.constants[1], Expression::Binary(_)));
-    assert_eq!(multi_constant.statements.len(), 1);
+    assert_eq!(cases[2].statements.len(), 1);
 
-    let default_group = &groups[2];
-    assert!(matches!(default_group.labels[0], SwitchLabel::Default(_)));
-    assert_eq!(default_group.statements.len(), 1);
+    assert!(cases[3].label.is_none());
+    assert_eq!(cases[3].statements.len(), 1);
+}
+
+#[test]
+fn stacked_switch_labels_are_cases_without_statements() {
+    let allocator = Allocator::new();
+    let source = "class A { void f() { switch (x) { case 1: case 2: default: f(); } \
+                  switch (x) { case 1: f(); case 2: default: } } }";
+    let (statements, _) = first_method_statements(&allocator, source);
+    let spans = |statement: &Statement<'_>| {
+        let Statement::Switch(switch_stmt) = statement else {
+            panic!("expected a switch statement");
+        };
+        switch_colon_cases(&switch_stmt.cases)
+            .iter()
+            .map(|case| (case.span.source_text(source), case.statements.len()))
+            .collect::<std::vec::Vec<_>>()
+    };
+    assert_eq!(spans(&statements[0]), [("case 1:", 0), ("case 2:", 0), ("default: f();", 1)]);
+    assert_eq!(spans(&statements[1]), [("case 1: f();", 1), ("case 2:", 0), ("default:", 0)]);
 }
 
 #[test]
@@ -591,7 +603,7 @@ fn parses_switch_arrow_rules() {
     let rules = switch_rules(&switch_stmt.cases);
     assert_eq!(rules.len(), 3);
 
-    let SwitchLabel::Case(first_case) = &rules[0].label else {
+    let Some(SwitchLabel::Case(first_case)) = &rules[0].label else {
         panic!("expected a case label");
     };
     assert_eq!(first_case.constants.len(), 2);
@@ -602,7 +614,7 @@ fn parses_switch_arrow_rules() {
     };
     assert_eq!(block.statements.len(), 2);
 
-    assert!(matches!(rules[2].label, SwitchLabel::Default(_)));
+    assert!(rules[2].label.is_none());
     assert!(matches!(&rules[2].body, SwitchRuleBody::Throw(_)));
 }
 
@@ -625,7 +637,7 @@ fn parses_switch_type_pattern_labels() {
     let rules = switch_rules(&switch_stmt.cases);
     assert_eq!(rules.len(), 3);
 
-    let SwitchLabel::Pattern(first_case) = &rules[0].label else {
+    let Some(SwitchLabel::Pattern(first_case)) = &rules[0].label else {
         panic!("expected a pattern switch label");
     };
     assert_eq!(first_case.patterns.len(), 1);
@@ -636,7 +648,7 @@ fn parses_switch_type_pattern_labels() {
     assert_eq!(first_pattern.modifiers.len(), 1);
     assert_eq!(first_pattern.name.name, "name");
 
-    let SwitchLabel::Pattern(second_case) = &rules[1].label else {
+    let Some(SwitchLabel::Pattern(second_case)) = &rules[1].label else {
         panic!("expected a pattern switch label");
     };
     let Pattern::TypePattern(second_pattern) = &second_case.patterns[0] else {
@@ -665,14 +677,14 @@ fn parses_colon_switch_pattern_label_lists() {
     let Statement::Switch(switch_stmt) = stmt else {
         panic!("expected a switch statement");
     };
-    let groups = switch_groups(&switch_stmt.cases);
-    assert_eq!(groups.len(), 2);
-    let SwitchLabel::Pattern(pattern_case) = &groups[0].labels[0] else {
+    let cases = switch_colon_cases(&switch_stmt.cases);
+    assert_eq!(cases.len(), 2);
+    let Some(SwitchLabel::Pattern(pattern_case)) = &cases[0].label else {
         panic!("expected a pattern switch label");
     };
     assert_eq!(pattern_case.patterns.len(), 2);
     assert!(pattern_case.guard.is_none());
-    assert_eq!(groups[0].statements.len(), 1);
+    assert_eq!(cases[0].statements.len(), 1);
 }
 
 #[test]
@@ -699,7 +711,7 @@ fn parses_switch_record_pattern_labels() {
         panic!("expected a switch statement");
     };
     let rules = switch_rules(&rule_switch.cases);
-    let SwitchLabel::Pattern(first_case) = &rules[0].label else {
+    let Some(SwitchLabel::Pattern(first_case)) = &rules[0].label else {
         panic!("expected a pattern switch label");
     };
     assert!(first_case.guard.is_some());
@@ -715,7 +727,7 @@ fn parses_switch_record_pattern_labels() {
     };
     assert!(matches!(&point.components[1], ComponentPattern::MatchAll(_)));
 
-    let SwitchLabel::Pattern(empty_case) = &rules[1].label else {
+    let Some(SwitchLabel::Pattern(empty_case)) = &rules[1].label else {
         panic!("expected a pattern switch label");
     };
     let Pattern::RecordPattern(empty_pattern) = &empty_case.patterns[0] else {
@@ -726,8 +738,8 @@ fn parses_switch_record_pattern_labels() {
     let Statement::Switch(group_switch) = &statements[1] else {
         panic!("expected a switch statement");
     };
-    let groups = switch_groups(&group_switch.cases);
-    let SwitchLabel::Pattern(pattern_case) = &groups[0].labels[0] else {
+    let cases = switch_colon_cases(&group_switch.cases);
+    let Some(SwitchLabel::Pattern(pattern_case)) = &cases[0].label else {
         panic!("expected a pattern switch label");
     };
     assert_eq!(pattern_case.patterns.len(), 2);
@@ -755,7 +767,7 @@ fn parses_switch_null_default_labels() {
         panic!("expected a switch statement");
     };
     let rules = switch_rules(&rule_switch.cases);
-    let SwitchLabel::Case(null_default) = &rules[0].label else {
+    let Some(SwitchLabel::Case(null_default)) = &rules[0].label else {
         panic!("expected a case label");
     };
     assert_eq!(null_default.constants.len(), 1);
@@ -765,8 +777,8 @@ fn parses_switch_null_default_labels() {
     let Statement::Switch(group_switch) = &statements[1] else {
         panic!("expected a switch statement");
     };
-    let groups = switch_groups(&group_switch.cases);
-    let SwitchLabel::Case(null_default) = &groups[0].labels[0] else {
+    let cases = switch_colon_cases(&group_switch.cases);
+    let Some(SwitchLabel::Case(null_default)) = &cases[0].label else {
         panic!("expected a case label");
     };
     assert_eq!(null_default.constants.len(), 1);
@@ -797,10 +809,10 @@ fn arrow_after_a_case_constant_or_guard_ends_the_label() {
         panic!("expected a switch statement");
     };
     let rules = switch_rules(&constant_switch.cases);
-    let SwitchLabel::Case(one) = &rules[0].label else {
+    let Some(SwitchLabel::Case(one)) = &rules[0].label else {
         panic!("expected a case label");
     };
-    let SwitchLabel::Case(two) = &rules[1].label else {
+    let Some(SwitchLabel::Case(two)) = &rules[1].label else {
         panic!("expected a case label");
     };
     assert_eq!(two.constants.len(), 2);
@@ -824,7 +836,7 @@ fn arrow_after_a_case_constant_or_guard_ends_the_label() {
     let guards: std::vec::Vec<_> = rules[..3]
         .iter()
         .map(|rule| {
-            let SwitchLabel::Pattern(label) = &rule.label else {
+            let Some(SwitchLabel::Pattern(label)) = &rule.label else {
                 panic!("expected a pattern switch label");
             };
             label.guard.as_ref().expect("expected a guard")
@@ -937,22 +949,7 @@ fn yield_identifier_can_start_statement_expressions() {
 }
 
 #[test]
-fn trailing_label_only_switch_group_is_kept() {
-    let allocator = Allocator::new();
-    let (stmt, _) = first_statement(
-        &allocator,
-        "class A { void f() { switch (x) { case 1: f(); default: } } }",
-    );
-    let Statement::Switch(switch_stmt) = stmt else {
-        panic!("expected a switch statement");
-    };
-    let groups = switch_groups(&switch_stmt.cases);
-    assert_eq!(groups.len(), 2);
-    assert!(groups[1].statements.is_empty());
-}
-
-#[test]
-fn switch_rules_and_groups_do_not_mix() {
+fn switch_rules_and_colon_cases_do_not_mix() {
     for (source, expected) in [
         ("class A { void f() { switch (x) { case 1 -> g(); case 2: h(); } } }", "`->`"),
         ("class A { void f() { switch (x) { case 1: g(); case 2 -> h(); } } }", "`:`"),
@@ -1055,7 +1052,7 @@ fn empty_constructor_body_statements_are_preserved() {
 }
 
 #[test]
-fn empty_switch_group_statements_are_preserved() {
+fn empty_statements_in_a_switch_case_are_preserved() {
     let allocator = Allocator::new();
     let (stmt, _) = first_statement(
         &allocator,
@@ -1064,12 +1061,12 @@ fn empty_switch_group_statements_are_preserved() {
     let Statement::Switch(switch_stmt) = stmt else {
         panic!("expected a switch statement");
     };
-    let groups = switch_groups(&switch_stmt.cases);
-    assert_eq!(groups.len(), 2);
-    assert_eq!(groups[0].statements.len(), 3);
-    assert!(matches!(&groups[0].statements[0], Statement::Empty(_)));
-    assert!(matches!(&groups[0].statements[1], Statement::Expression(_)));
-    assert!(matches!(&groups[0].statements[2], Statement::Empty(_)));
-    assert_eq!(groups[1].statements.len(), 1);
-    assert!(matches!(&groups[1].statements[0], Statement::Empty(_)));
+    let cases = switch_colon_cases(&switch_stmt.cases);
+    assert_eq!(cases.len(), 2);
+    assert_eq!(cases[0].statements.len(), 3);
+    assert!(matches!(&cases[0].statements[0], Statement::Empty(_)));
+    assert!(matches!(&cases[0].statements[1], Statement::Expression(_)));
+    assert!(matches!(&cases[0].statements[2], Statement::Empty(_)));
+    assert_eq!(cases[1].statements.len(), 1);
+    assert!(matches!(&cases[1].statements[0], Statement::Empty(_)));
 }

@@ -65,7 +65,7 @@ fn accepts_reads_and_unnamed_variables() {
 }
 
 #[test]
-fn a_local_in_a_switch_group_is_read_in_later_groups() {
+fn a_local_in_a_switch_case_is_read_in_later_cases() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).passes(
         "class A { void f(int n) { switch (n) { case 1: int y; break; case 2: y = 2; use(y); } } \
              int g(int n) { return switch (n) { case 1: int y; yield 0; default: y = 2; yield y; }; } }",
