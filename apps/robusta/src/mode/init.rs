@@ -29,6 +29,8 @@ format:
       - "*"
   # Traditional (/** ... */) and Markdown (///) Javadoc: false, true, or a mapping of settings.
   javadoc: false
+  # Place the opening and closing """ of text blocks as Google Java Style does.
+  text-blocks: false
   # Output line endings: lf, crlf, or cr.
   line-ending: lf
   # End non-empty formatted files with one line terminator.

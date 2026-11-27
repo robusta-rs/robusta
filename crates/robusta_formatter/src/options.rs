@@ -18,6 +18,10 @@ pub struct Options {
     pub import_order: ImportOrder,
     /// Javadoc formatting settings. `None` keeps Javadoc comments as written.
     pub javadoc: Option<JavadocOptions>,
+    /// Whether each text block's opening `"""` starts a wrapped line or follows
+    /// an operator that starts one, except after `return`, `yield`, or `case`, and
+    /// a closing `"""` after text moves to the next line after a `\`.
+    pub text_blocks: bool,
     /// The line terminator emitted at every output line break.
     pub line_ending: LineEnding,
     /// Whether non-empty output ends with one line terminator.
@@ -97,6 +101,7 @@ impl Default for Options {
             after_closing_brace: AfterClosingBrace::SameLine,
             import_order: ImportOrder::default(),
             javadoc: None,
+            text_blocks: false,
             line_ending: LineEnding::Lf,
             insert_final_newline: true,
         }

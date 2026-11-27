@@ -224,6 +224,7 @@ format:
     sections: [static, type, module]
     groups:
       - ["org", "com"]
+  text-blocks: true
   insert-final-newline: false
 ignore-patterns: ["generated/", "!generated/Keep.java"]
 lint:
@@ -243,6 +244,7 @@ lint:
         assert!(yaml.contains("after-closing-brace: new-line"));
         assert!(!yaml.contains("wrapping"));
         assert!(yaml.contains("javadoc: false"));
+        assert!(yaml.contains("text-blocks: true"));
         assert!(yaml.contains("line-ending: lf"));
         assert!(yaml.contains("insert-final-newline: false"));
         assert!(yaml.contains("redundant-return: allow"));
@@ -374,6 +376,24 @@ format:
         assert_eq!(null.after_closing_brace, AfterClosingBrace::SameLine);
         assert_eq!(same_line.after_closing_brace, AfterClosingBrace::SameLine);
         assert_eq!(new_line.after_closing_brace, AfterClosingBrace::NewLine);
+    }
+
+    #[test]
+    fn parse_options_applies_text_blocks_and_defaults_to_false() {
+        for (source, expected) in [
+            ("", false),
+            ("format:\n  text-blocks: null\n", false),
+            ("format:\n  text-blocks:\n", false),
+            ("format:\n  text-blocks: false\n", false),
+            ("format:\n  text-blocks: true\n", true),
+        ] {
+            let options = parse_options(source).expect("config should parse");
+            assert_eq!(options.text_blocks, expected, "{source:?}");
+        }
+
+        let error =
+            parse_options("format:\n  text-blocks: google\n").expect_err("a string should fail");
+        assert!(error.to_string().contains("invalid type"), "{error}");
     }
 
     #[test]

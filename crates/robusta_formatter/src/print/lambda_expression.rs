@@ -6,6 +6,7 @@ use crate::formatter::comments::stays_on_operator_line;
 use crate::formatter::prelude::*;
 use crate::formatter::trivia::FormatTrailingComments;
 use crate::print::FormatWrite;
+use crate::print::text_block::is_array_like_text_block;
 use crate::utils::assignment_like::AssignmentLikeLayout;
 use crate::utils::statement_body::format_head_body;
 use robusta_ast::{Comment, Expression, LambdaBody, LambdaExpression, match_expression};
@@ -111,7 +112,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for FormatLambdaExpression<'a, '_> {
         //     name.last(),
         //   });
         let body_has_soft_line_break = lambda.get_expression().is_none_or(|expression| {
-            is_hugging_body(expression) && !has_own_line_comment_before_body(lambda, f)
+            is_hugging_body(expression, f) && !has_own_line_comment_before_body(lambda, f)
         });
 
         if body_has_soft_line_break {
@@ -245,7 +246,8 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
         //   }
         //
         // Any other body takes a line of its own when it breaks.
-        let body_on_separate_line = !tail.get_expression().is_none_or(is_hugging_body);
+        let body_on_separate_line =
+            !tail.get_expression().is_none_or(|expression| is_hugging_body(expression, f));
 
         // An own-line comment before an expression tail body forces the body
         // onto its own line. Before a block, it moves after the `{`.
@@ -448,14 +450,13 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for LambdaChain<'a, '_> {
 }
 
 /// Whether the body breaks inside itself and can start after the `->`: a
-/// lambda, an array creation with an initializer, or a text block, which
-/// reads as an array literal.
-fn is_hugging_body(expression: &Expression<'_>) -> bool {
+/// lambda, an array creation with an initializer, or a text block that reads
+/// as an array literal.
+fn is_hugging_body(expression: &Expression<'_>, f: &JavaFormatter<'_, '_>) -> bool {
     match expression {
         Expression::Lambda(_) => true,
         Expression::ArrayCreation(creation) => creation.init.is_some(),
-        Expression::StringLiteral(literal) => literal.is_text_block(),
-        _ => false,
+        expression => is_array_like_text_block(expression, f),
     }
 }
 

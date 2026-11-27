@@ -168,6 +168,7 @@ fn yaml_null_values_follow_each_fields_omission_policy() {
             "after-closing-brace",
             "import-order",
             "javadoc",
+            "text-blocks",
             "line-ending",
             "insert-final-newline",
         ] {
@@ -329,6 +330,7 @@ fn init_writes_a_parseable_default_config_without_overwriting() {
     assert!(scaffold.contains("after-closing-brace: same-line"));
     assert!(!scaffold.contains("wrapping"));
     assert!(scaffold.contains("javadoc: false"));
+    assert!(scaffold.contains("text-blocks: false"));
     assert!(scaffold.contains("line-ending: lf"));
     assert!(scaffold.contains("insert-final-newline: true"));
     assert!(scaffold.contains("rules: {}"));
@@ -448,6 +450,7 @@ lint:
         line-wrapping-style: greedy
         separate-tag-groups: before-return
         paragraph-html-tags: false
+      text-blocks: false
       line-ending: lf
       insert-final-newline: true
       overrides: []

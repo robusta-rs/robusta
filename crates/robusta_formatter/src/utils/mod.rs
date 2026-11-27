@@ -1,5 +1,6 @@
 pub mod assignment_like;
 pub mod conditional;
+pub mod expression;
 pub mod format_node_without_trailing_comments;
 pub mod member_chain;
 pub mod statement_body;

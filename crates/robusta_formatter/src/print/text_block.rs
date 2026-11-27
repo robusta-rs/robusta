@@ -1,15 +1,18 @@
 use std::borrow::Cow;
 
-use robusta_formatter_core::{LINE_TERMINATORS, arena_cow_str, normalize_newlines};
+use robusta_ast::Expression;
+use robusta_formatter_core::{LINE_TERMINATORS, arena_cow_str, normalize_newlines, write};
 use robusta_syntax::line_terminator::split_lines;
 
 use crate::formatter::prelude::*;
+use crate::utils::expression::leftmost;
 
 const DELIMITER: &str = r#"""""#;
 
 /// Writes the text block `raw` (JLS §3.10.6). Its lines take the indentation
 /// of the line the opening `"""` is on, one level deeper unless the opening
-/// starts that line, plus the indentation the compiler leaves them.
+/// starts that line, plus the indentation the compiler leaves them. With
+/// `text_blocks`, a closing `"""` after text moves to the next line.
 pub fn format_text_block<'a>(raw: &'a str, f: &mut JavaFormatter<'_, 'a>) {
     let Some(mut lines) = text_block_lines(raw) else {
         // The IR carries LF as its only break, so CR and CRLF fold to LF here
@@ -33,9 +36,39 @@ pub fn format_text_block<'a>(raw: &'a str, f: &mut JavaFormatter<'_, 'a>) {
             line = next;
             blank_lines = 0;
         }
-        write_line(line, blank_lines, f);
+        match text_before_closing(line).filter(|_| f.options().text_blocks) {
+            // A `\` keeps the line break out of the string (JLS §3.10.7). The
+            // compiler keeps white space before it, but drops it before `"""`.
+            Some(text_line) => {
+                write!(f, [text(text_line), token("\\"), hard_line_break(), token(DELIMITER)]);
+            }
+            None => write_line(line, blank_lines, f),
+        }
     });
     indent_from_line(&content).fmt(f);
+}
+
+/// Whether `expression` is a text block placed as an array literal, as one is
+/// by default. With `text_blocks`, its lines break every group around it
+/// instead, so its opening `"""` starts a wrapped line.
+pub fn is_array_like_text_block(expression: &Expression<'_>, f: &JavaFormatter<'_, '_>) -> bool {
+    matches!(expression, Expression::StringLiteral(literal) if literal.is_text_block())
+        && !f.options().text_blocks
+}
+
+/// Whether the line breaks before `expression` because, with `text_blocks`, it
+/// starts with a text block, whose opening `"""` starts a wrapped line.
+pub fn breaks_before_text_block(expression: &Expression<'_>, f: &JavaFormatter<'_, '_>) -> bool {
+    f.options().text_blocks
+        && matches!(leftmost(expression), Expression::StringLiteral(literal) if literal.is_text_block())
+}
+
+/// The text before the closing `"""` on the last of [`text_block_lines`],
+/// without the white space after it, or `None` when the closing `"""` starts
+/// its line.
+pub fn text_before_closing(line: &str) -> Option<&str> {
+    let text = line.strip_suffix(DELIMITER)?.trim_end_matches(is_java_white_space);
+    (!text.is_empty()).then_some(text)
 }
 
 /// The lines of the text block `raw` without the indentation the compiler

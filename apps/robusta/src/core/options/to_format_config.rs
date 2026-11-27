@@ -19,6 +19,7 @@ pub fn to_format_config(options: &Options) -> FormatConfig {
         after_closing_brace,
         import_order,
         javadoc,
+        text_blocks,
         line_ending,
         insert_final_newline,
     } = options;
@@ -61,6 +62,7 @@ pub fn to_format_config(options: &Options) -> FormatConfig {
         }),
         import_order: Some(ImportOrderConfig { sections: Some(sections), groups: Some(groups) }),
         javadoc: Some(javadoc.map_or(JavadocConfig::Enabled(false), to_javadoc_config)),
+        text_blocks: Some(*text_blocks),
         line_ending: Some(match line_ending {
             LineEnding::Lf => LineEndingConfig::Lf,
             LineEnding::Crlf => LineEndingConfig::Crlf,
