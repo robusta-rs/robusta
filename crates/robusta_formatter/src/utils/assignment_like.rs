@@ -11,6 +11,7 @@ use crate::formatter::trivia::{
 use crate::print::array_dimension::{
     array_type_dimensions_wrap_line, format_array_type_dimensions,
 };
+use crate::print::text_block::breaks_before_text_block;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::member_chain::MemberChain;
 use crate::utils::statement_body::{format_on_wrapped_line, write_comments_before_opener};
@@ -380,6 +381,9 @@ fn should_break_after_operator<'a>(
     is_left_short: bool,
     f: &JavaFormatter<'_, 'a>,
 ) -> bool {
+    if breaks_before_text_block(right.inner(), f) {
+        return true;
+    }
     match right.inner() {
         // head is a long chain, meaning that right -> right are both assignment expressions
         Expression::Assignment(assignment) => {

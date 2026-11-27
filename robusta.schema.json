@@ -132,6 +132,11 @@
           "maximum": 320.0,
           "minimum": 1.0,
           "markdownDescription": "Target maximum line width in Unicode display columns."
+        },
+        "text-blocks": {
+          "description": "Whether to place the opening and closing `\"\"\"` of a text block as Google Java Style\ndoes. Default: `false`.",
+          "type": "boolean",
+          "markdownDescription": "Whether to place the opening and closing `\"\"\"` of a text block as Google Java Style\ndoes. Default: `false`."
         }
       },
       "additionalProperties": false,
@@ -262,6 +267,11 @@
             "$ref": "#/definitions/FormatOverrideConfig"
           },
           "markdownDescription": "Format settings for the Java files that match globs. When a file\nmatches several overrides, the later one wins."
+        },
+        "text-blocks": {
+          "description": "Whether to place the opening and closing `\"\"\"` of a text block as Google Java Style\ndoes. Default: `false`.",
+          "type": "boolean",
+          "markdownDescription": "Whether to place the opening and closing `\"\"\"` of a text block as Google Java Style\ndoes. Default: `false`."
         }
       },
       "additionalProperties": false,

@@ -685,6 +685,37 @@ fn format_uses_configured_after_closing_brace() {
 }
 
 #[test]
+fn format_uses_configured_text_blocks_and_their_overrides() {
+    let source = "class Example {\n  String footer = \"\"\"\n      Thanks\"\"\";\n}\n";
+    let temp = TempProject::new();
+    temp.write(
+        "robusta.yaml",
+        "format:\n  text-blocks: true\n  overrides:\n    - files: [\"legacy/**\"]\n      options:\n        text-blocks: false\n",
+    );
+    temp.write("src/Example.java", source);
+    temp.write("legacy/Example.java", source);
+
+    let output = robusta_in_dir(&["format", "--fix"], &temp.dir);
+
+    assert_eq!(output.status.code(), Some(0), "{}", stdout(&output));
+    assert!(output.stderr.is_empty(), "{}", stderr(&output));
+    insta::assert_snapshot!(std::fs::read_to_string(temp.dir.join("src/Example.java")).unwrap(), @r#"
+    class Example {
+      String footer =
+        """
+        Thanks\
+        """;
+    }
+    "#);
+    insta::assert_snapshot!(std::fs::read_to_string(temp.dir.join("legacy/Example.java")).unwrap(), @r#"
+    class Example {
+      String footer = """
+        Thanks""";
+    }
+    "#);
+}
+
+#[test]
 fn format_uses_configured_import_order_groups() {
     let temp = TempJava::new(
         r"import static z.Tools.z;

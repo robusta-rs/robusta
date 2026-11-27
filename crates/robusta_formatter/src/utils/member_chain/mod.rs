@@ -134,13 +134,18 @@ impl<'p, 'a> MemberChain<'p, 'a> {
     /// than two calls have one with a complex argument, the head breaks, the
     /// last call breaks after a call with a lambda, or a group but the last
     /// breaks.
-    fn groups_should_break(&self, head: &Group<'a>, tail: &[Group<'a>]) -> bool {
+    fn groups_should_break(
+        &self,
+        head: &Group<'a>,
+        tail: &[Group<'a>],
+        f: &JavaFormatter<'_, 'a>,
+    ) -> bool {
         let mut calls = 0;
         let mut has_complex_args = false;
         for call in self.calls() {
             calls += 1;
             has_complex_args = has_complex_args
-                || !call.args.iter().all(|argument| SimpleArgument::from(argument).is_simple());
+                || !call.args.iter().all(|argument| SimpleArgument::new(argument, f).is_simple());
             if calls > 2 && has_complex_args {
                 return true;
             }
@@ -390,7 +395,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for MemberChain<'_, 'a> {
         });
 
         let format_content = format_with(|f| {
-            if separated || self.groups_should_break(&head, &tail) {
+            if separated || self.groups_should_break(&head, &tail, f) {
                 write!(f, [group(&format_expanded)]);
             } else {
                 if will_break(tail.last().unwrap_or(&head)) {

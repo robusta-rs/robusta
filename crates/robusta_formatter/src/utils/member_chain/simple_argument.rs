@@ -5,6 +5,8 @@ use robusta_ast::{
 };
 use robusta_syntax::operator::UnaryOp;
 
+use crate::formatter::JavaFormatter;
+
 /// Tracks whether a call argument is simple, so that a short argument keeps
 /// its call's layout.
 ///
@@ -13,10 +15,22 @@ use robusta_syntax::operator::UnaryOp;
 /// instance creation is simple while its arguments are simple and few. Each
 /// nested call or array counts towards a depth of two, past which nothing is
 /// simple.
-#[derive(Debug)]
-pub struct SimpleArgument<'a, 'b>(&'b Expression<'a>);
+#[derive(Debug, Clone, Copy)]
+pub struct SimpleArgument<'a, 'b> {
+    expression: &'b Expression<'a>,
+    /// Whether text blocks break every group around them, so that none is simple.
+    text_blocks: bool,
+}
 
 impl<'a, 'b> SimpleArgument<'a, 'b> {
+    pub fn new(expression: &'b Expression<'a>, f: &JavaFormatter<'_, '_>) -> Self {
+        Self { expression, text_blocks: f.options().text_blocks }
+    }
+
+    fn with(self, expression: &'b Expression<'a>) -> Self {
+        Self { expression, ..self }
+    }
+
     pub fn is_simple(&self) -> bool {
         self.is_simple_impl(0)
     }
@@ -30,10 +44,13 @@ impl<'a, 'b> SimpleArgument<'a, 'b> {
             return false;
         }
 
-        match self.0 {
+        match self.expression {
             // A text block reads as an array initializer of string literals,
-            // whose elements are one level deeper.
-            Expression::StringLiteral(literal) => !literal.is_text_block() || depth == 0,
+            // whose elements are one level deeper, unless `text_blocks` breaks
+            // every group around it.
+            Expression::StringLiteral(literal) => {
+                !literal.is_text_block() || (depth == 0 && !self.text_blocks)
+            }
             Expression::IntLiteral(_)
             | Expression::FloatLiteral(_)
             | Expression::CharLiteral(_)
@@ -47,74 +64,68 @@ impl<'a, 'b> SimpleArgument<'a, 'b> {
             | Expression::ClassLiteral(_) => true,
             Expression::Unary(unary) => match unary.op {
                 UnaryOp::Not | UnaryOp::Minus | UnaryOp::Plus | UnaryOp::BitNot => {
-                    Self(&unary.operand).is_simple_impl(depth)
+                    self.with(&unary.operand).is_simple_impl(depth)
                 }
                 UnaryOp::PreIncrement | UnaryOp::PreDecrement => is_simple_name(&unary.operand),
             },
             Expression::Postfix(postfix) => is_simple_name(&postfix.operand),
-            Expression::FieldAccess(access) => Self(&access.target).is_simple_impl(depth),
+            Expression::FieldAccess(access) => self.with(&access.target).is_simple_impl(depth),
             Expression::ArrayAccess(access) => {
-                Self(&access.index).is_simple_impl(depth)
-                    && Self(&access.array).is_simple_impl(depth)
+                self.with(&access.index).is_simple_impl(depth)
+                    && self.with(&access.array).is_simple_impl(depth)
             }
             // A method reference reads as an access to the method.
             Expression::MethodReference(reference) => reference
                 .target
                 .as_expression()
-                .is_none_or(|target| Self(target).is_simple_impl(depth)),
+                .is_none_or(|target| self.with(target).is_simple_impl(depth)),
             Expression::Parenthesized(parenthesized) => {
-                Self(&parenthesized.expression).is_simple_impl(depth)
+                self.with(&parenthesized.expression).is_simple_impl(depth)
             }
             Expression::MethodCall(call) => {
-                call.target().is_none_or(|target| Self(target).is_simple_impl(depth))
-                    && Self::is_simple_arguments(&call.args, depth)
+                call.target().is_none_or(|target| self.with(target).is_simple_impl(depth))
+                    && self.is_simple_arguments(&call.args, depth)
             }
             // An anonymous class is a body, not a simple value.
             Expression::ClassInstanceCreation(creation) => {
-                creation.body.is_none() && Self::is_simple_arguments(&creation.args, depth)
+                creation.body.is_none() && self.is_simple_arguments(&creation.args, depth)
             }
             Expression::QualifiedClassInstanceCreation(creation) => {
                 creation.body.is_none()
-                    && Self(&creation.qualifier).is_simple_impl(depth)
-                    && Self::is_simple_arguments(&creation.args, depth)
+                    && self.with(&creation.qualifier).is_simple_impl(depth)
+                    && self.is_simple_arguments(&creation.args, depth)
             }
-            Expression::ArrayCreation(creation) => Self::is_simple_array(creation, depth),
+            Expression::ArrayCreation(creation) => self.is_simple_array(creation, depth),
             _ => false,
         }
     }
 
     /// Whether a call's arguments are simple and few: two at the top level,
     /// one inside another call.
-    fn is_simple_arguments(arguments: &'b [Expression<'a>], depth: u8) -> bool {
+    fn is_simple_arguments(&self, arguments: &'b [Expression<'a>], depth: u8) -> bool {
         arguments.len() + usize::from(depth) <= 2
-            && arguments.iter().all(|argument| Self(argument).is_simple_impl(depth + 1))
+            && arguments.iter().all(|argument| self.with(argument).is_simple_impl(depth + 1))
     }
 
     /// An array initializer reads as an array literal. Without one, the
     /// dimension lengths read as a call's arguments.
-    fn is_simple_array(creation: &'b ArrayCreation<'a>, depth: u8) -> bool {
+    fn is_simple_array(&self, creation: &'b ArrayCreation<'a>, depth: u8) -> bool {
         if let Some(init) = &creation.init {
-            return Self::is_simple_initializer(init, depth);
+            return self.is_simple_initializer(init, depth);
         }
         let lengths = creation.dims.iter().filter_map(|dim| dim.length.as_ref());
         lengths.clone().count() + usize::from(depth) <= 2
-            && lengths.into_iter().all(|length| Self(length).is_simple_impl(depth + 1))
+            && lengths.into_iter().all(|length| self.with(length).is_simple_impl(depth + 1))
     }
 
-    fn is_simple_initializer(init: &'b ArrayInitializer<'a>, depth: u8) -> bool {
+    fn is_simple_initializer(&self, init: &'b ArrayInitializer<'a>, depth: u8) -> bool {
         depth < 2
             && init.elements.iter().all(|element| match element {
-                VariableInitializer::Array(inner) => Self::is_simple_initializer(inner, depth + 1),
+                VariableInitializer::Array(inner) => self.is_simple_initializer(inner, depth + 1),
                 it @ match_expression!(VariableInitializer) => {
-                    Self(it.to_expression()).is_simple_impl(depth + 1)
+                    self.with(it.to_expression()).is_simple_impl(depth + 1)
                 }
             })
-    }
-}
-
-impl<'a, 'b> From<&'b Expression<'a>> for SimpleArgument<'a, 'b> {
-    fn from(expression: &'b Expression<'a>) -> Self {
-        Self(expression)
     }
 }
 

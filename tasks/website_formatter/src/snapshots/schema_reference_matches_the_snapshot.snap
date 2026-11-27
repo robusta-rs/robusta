@@ -297,6 +297,15 @@ Java formatter settings. Omitted values use `.editorconfig` fallbacks and
 then Robusta's built-in defaults.
 
 
+### format.text-blocks
+
+type: `boolean`
+
+
+Whether to place the opening and closing `"""` of a text block as Google Java Style
+does. Default: `false`.
+
+
 ## ignore-patterns
 
 type: `string[]`

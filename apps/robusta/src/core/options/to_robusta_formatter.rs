@@ -45,6 +45,9 @@ pub fn to_robusta_formatter(config: &FormatConfig, validated: ValidatedOptions) 
     if let Some(javadoc) = &config.javadoc {
         options.javadoc = to_javadoc(javadoc);
     }
+    if let Some(text_blocks) = config.text_blocks {
+        options.text_blocks = text_blocks;
+    }
     if let Some(ending) = config.line_ending {
         options.line_ending = match ending {
             LineEndingConfig::Lf => LineEnding::Lf,

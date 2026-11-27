@@ -202,6 +202,319 @@ fn new_line_after_closing_brace_moves_else_catch_and_finally() {
 }
 
 #[test]
+fn text_blocks_setting_places_the_delimiters_on_lines_of_their_own() {
+    let source = r#"class Shop {
+  String footer = """
+Thanks""";
+  String padded = """
+      Regards\s """;
+
+  void send(Order order) {
+    log(order, """
+        Paid
+        """);
+  }
+}"#;
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class Shop {
+      String footer =
+        """
+        Thanks\
+        """;
+      String padded =
+        """
+        Regards\s\
+        """;
+
+      void send(Order order) {
+        log(
+          order,
+          """
+          Paid
+          """
+        );
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_blocks_setting_keeps_an_opening_after_return_yield_and_case() {
+    let source = r#"class A {
+  String m(String key, int kind) {
+    switch (key) {
+      case """
+          a""" -> run();
+    }
+    String label = switch (kind) {
+      case 1 -> """
+          one""";
+      default -> {
+        yield """
+            other""";
+      }
+    };
+    return """
+        done""";
+  }
+}"#;
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class A {
+      String m(String key, int kind) {
+        switch (key) {
+          case """
+            a\
+            """ -> run();
+        }
+        String label = switch (kind) {
+          case 1 ->
+            """
+            one\
+            """;
+          default -> {
+            yield """
+              other\
+              """;
+          }
+        };
+        return """
+          done\
+          """;
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_blocks_setting_breaks_the_groups_around_a_text_block() {
+    let source = r#"class A {
+  @Query("""
+      select 1
+      """)
+  void q() {}
+
+  @Query(value = """
+      select 1
+      """)
+  void r() {}
+
+  void m() {
+    log("""
+        Paid
+        """);
+    String formatted = """
+        %s
+        """.formatted(name);
+    String prefixed = prefix + """
+        a
+        """;
+    message += """
+        more
+        """;
+    Supplier<String> supplier = () -> """
+        lambda
+        """;
+    names.forEach(name -> """
+        %s
+        """.formatted(name));
+    String chosen = ready ? """
+        yes
+        """ : no;
+    String[] lines = {"""
+        one
+        """, """
+        two
+        """};
+    assertThat(error).hasMessageThat().contains("""
+        Paid
+        """);
+  }
+}"#;
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class A {
+      @Query(
+        """
+        select 1
+        """
+      )
+      void q() {}
+
+      @Query(
+        value =
+          """
+          select 1
+          """
+      )
+      void r() {}
+
+      void m() {
+        log(
+          """
+          Paid
+          """
+        );
+        String formatted =
+          """
+          %s
+          """
+            .formatted(name);
+        String prefixed =
+          prefix
+          + """
+            a
+            """;
+        message +=
+          """
+          more
+          """;
+        Supplier<String> supplier = () ->
+          """
+          lambda
+          """;
+        names.forEach(name ->
+          """
+          %s
+          """
+            .formatted(name)
+        );
+        String chosen = ready
+          ? """
+            yes
+            """
+          : no;
+        String[] lines = {
+          """
+          one
+          """,
+          """
+          two
+          """,
+        };
+        assertThat(error)
+          .hasMessageThat()
+          .contains(
+            """
+            Paid
+            """
+          );
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_blocks_setting_breaks_before_a_cast_parenthesized_or_assert_message_text_block() {
+    let source = r#"class A {
+  Object cast = (Object) """
+      a
+      """;
+  String parenthesized = ("""
+      a
+      """);
+
+  String m() {
+    assert ready : """
+        not ready
+        """;
+    return (String) """
+        done
+        """;
+  }
+}"#;
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class A {
+      Object cast = (Object)
+        """
+        a
+        """;
+      String parenthesized =
+        ("""
+          a
+          """);
+
+      String m() {
+        assert ready
+          : """
+            not ready
+            """;
+        return (String)
+          """
+          done
+          """;
+      }
+    }
+    "#);
+}
+
+#[test]
+fn text_blocks_setting_ends_text_before_a_moved_closing_delimiter_with_a_backslash() {
+    let source = "class A {\n\
+        String tab = \"\"\"\n    a\t\"\"\";\n\
+        String backslash = \"\"\"\n    a\\\\\"\"\";\n\
+        String quote = \"\"\"\n    a\\\"\"\"\";\n\
+        String octal = \"\"\"\n    a\\040 \"\"\";\n\
+        String quotes = \"\"\"\n    say \"\"hi\"\" \"\"\";\n\
+        String outdented = \"\"\"\n      a\n    b\"\"\";\n\
+        String indented = \"\"\"\n    a\n        b  \"\"\";\n\
+        String blank = \"\"\"\n    a\n\n    b\"\"\";\n\
+        String escaped = \"\"\"\n  a\\u0020\"\"\";\n\
+        }";
+    let options = Options { text_blocks: true, ..Options::default() };
+
+    assert_snapshot!(fmt_with_options(source, &options), @r#"
+    class A {
+      String tab =
+        """
+        a\
+        """;
+      String backslash =
+        """
+        a\\\
+        """;
+      String quote =
+        """
+        a\"\
+        """;
+      String octal =
+        """
+        a\040\
+        """;
+      String quotes =
+        """
+        say ""hi""\
+        """;
+      String outdented =
+        """
+          a
+        b\
+        """;
+      String indented =
+        """
+        a
+            b\
+        """;
+      String blank =
+        """
+        a
+
+        b\
+        """;
+      String escaped =
+        """
+      a\u0020""";
+    }
+    "#);
+}
+
+#[test]
 fn default_options_snapshot_pins_every_formatter_policy() {
     assert_eq!(
         Options::default(),
@@ -212,6 +525,7 @@ fn default_options_snapshot_pins_every_formatter_policy() {
             after_closing_brace: AfterClosingBrace::SameLine,
             import_order: ImportOrder::default(),
             javadoc: None,
+            text_blocks: false,
             line_ending: LineEnding::Lf,
             insert_final_newline: true,
         }

@@ -46,6 +46,20 @@ fn a_text_block_may_move_its_lines_but_not_change_them() {
 }
 
 #[test]
+fn a_closing_text_block_delimiter_may_move_after_a_backslash() {
+    let input = "class A { String s = \"\"\"\n    a  \"\"\"; String t = \"\"\"\n    b\\\\\"\"\"; }";
+    let moved = "class A { String s =\n  \"\"\"\n  a\\\n  \"\"\"; String t =\n  \"\"\"\n  b\\\\\\\n  \"\"\"; }";
+    let kept_space =
+        "class A { String s =\n  \"\"\"\n  a  \\\n  \"\"\"; String t = \"\"\"\n  b\\\\\"\"\"; }";
+    let added_line =
+        "class A { String s = \"\"\"\n  a\"\"\"; String t =\n  \"\"\"\n  b\\\\\n  \"\"\"; }";
+
+    assert!(detect_code_removal(input, moved).is_ok());
+    assert!(detect_code_removal(input, kept_space).is_err());
+    assert!(detect_code_removal(input, added_line).is_err());
+}
+
+#[test]
 fn a_dropped_token_is_caught() {
     assert_eq!(
         detect_code_removal("class A { int x; int y; }", "class A { int x; }").unwrap_err(),

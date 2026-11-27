@@ -4,6 +4,7 @@ use robusta_span::GetSpan;
 use crate::ast_nodes::AstNode;
 use crate::formatter::prelude::*;
 use crate::print::semicolon::FormatContentWithSemicolon;
+use crate::print::text_block::breaks_before_text_block;
 use crate::print::{FormatWrite, format_indented_continuation};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::write_trailing_comments_before;
@@ -52,6 +53,8 @@ fn format_message<'a>(
     if needs_flush || colon_has_line_comment {
         space().fmt(f);
         detail.fmt(f);
+    } else if breaks_before_text_block(message.inner(), f) {
+        group(&soft_line_indent_or_space(&detail)).fmt(f);
     } else {
         format_indented_continuation(soft_line_break_or_space(), &detail, f);
     }

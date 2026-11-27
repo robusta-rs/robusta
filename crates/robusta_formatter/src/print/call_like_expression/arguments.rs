@@ -19,6 +19,7 @@ use crate::print::lambda_expression::{
     FormatLambdaExpression, FormatLambdaExpressionOptions, FunctionCacheMode,
     GroupedCallArgumentLayout,
 };
+use crate::print::text_block::is_array_like_text_block;
 use crate::source_text::line_breaks;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::member_chain::simple_argument::SimpleArgument;
@@ -274,7 +275,7 @@ fn should_group_first_argument(
         return false;
     }
 
-    is_relatively_short_argument(second)
+    is_relatively_short_argument(second, f)
 }
 
 /// Core logic for checking if the last argument should be grouped.
@@ -288,8 +289,8 @@ fn should_group_last_argument_impl<'a>(
 ) -> bool {
     // Check if penultimate and last are the same kind
     if let Some(penultimate) = penultimate
-        && grouped_kind(penultimate).is_some()
-        && grouped_kind(penultimate) == grouped_kind(last)
+        && grouped_kind(penultimate, f).is_some()
+        && grouped_kind(penultimate, f) == grouped_kind(last, f)
     {
         return false;
     }
@@ -298,7 +299,7 @@ fn should_group_last_argument_impl<'a>(
         return false;
     }
 
-    match grouped_kind(last) {
+    match grouped_kind(last, f) {
         Some(GroupedKind::Array) if penultimate.is_some() => {
             // Not after a lambda in a two-argument call
             if args_len == 2 && matches!(penultimate, Some(Expression::Lambda(_))) {
@@ -359,10 +360,10 @@ enum GroupedKind {
 
 /// The kind of a groupable argument, for comparing the last two arguments.
 /// A cast reads as an `as` expression, and a text block as an array literal.
-fn grouped_kind(expression: &Expression<'_>) -> Option<GroupedKind> {
+fn grouped_kind(expression: &Expression<'_>, f: &JavaFormatter<'_, '_>) -> Option<GroupedKind> {
     match expression {
         Expression::ArrayCreation(creation) if creation.init.is_some() => Some(GroupedKind::Array),
-        Expression::StringLiteral(literal) if literal.is_text_block() => Some(GroupedKind::Array),
+        expression if is_array_like_text_block(expression, f) => Some(GroupedKind::Array),
         Expression::Cast(_) => Some(GroupedKind::Cast),
         Expression::Lambda(_) => Some(GroupedKind::Lambda),
         expression if expression.anonymous_class_body().is_some() => {
@@ -436,27 +437,27 @@ fn is_simple_type(ty: &Type<'_>) -> bool {
 }
 
 /// Checks if `argument` is "short" enough to be groupable.
-fn is_relatively_short_argument(argument: &Expression<'_>) -> bool {
+fn is_relatively_short_argument(argument: &Expression<'_>, f: &JavaFormatter<'_, '_>) -> bool {
     match argument {
         Expression::Binary(binary) => {
-            SimpleArgument::from(&binary.lhs).is_simple_with_depth(1)
-                && SimpleArgument::from(&binary.rhs).is_simple_with_depth(1)
+            SimpleArgument::new(&binary.lhs, f).is_simple_with_depth(1)
+                && SimpleArgument::new(&binary.rhs, f).is_simple_with_depth(1)
         }
         Expression::Cast(cast) => {
             cast.additional_bounds.is_empty()
                 && is_simple_type(&cast.ty)
-                && SimpleArgument::from(&cast.operand).is_simple_with_depth(1)
+                && SimpleArgument::new(&cast.operand, f).is_simple_with_depth(1)
         }
         Expression::MethodCall(call) => {
-            call.args.len() <= 1 && SimpleArgument::from(argument).is_simple()
+            call.args.len() <= 1 && SimpleArgument::new(argument, f).is_simple()
         }
         Expression::ClassInstanceCreation(creation) => {
-            creation.args.len() <= 1 && SimpleArgument::from(argument).is_simple()
+            creation.args.len() <= 1 && SimpleArgument::new(argument, f).is_simple()
         }
         Expression::QualifiedClassInstanceCreation(creation) => {
-            creation.args.len() <= 1 && SimpleArgument::from(argument).is_simple()
+            creation.args.len() <= 1 && SimpleArgument::new(argument, f).is_simple()
         }
-        _ => SimpleArgument::from(argument).is_simple(),
+        _ => SimpleArgument::new(argument, f).is_simple(),
     }
 }
 
@@ -467,10 +468,11 @@ pub fn can_group_expression_argument(argument: &Expression<'_>, f: &JavaFormatte
             .init
             .as_ref()
             .is_some_and(|init| can_group_array_argument(init.span, init.elements.is_empty(), f)),
-        Expression::StringLiteral(literal) => literal.is_text_block(),
         Expression::Cast(cast) => can_group_expression_argument(&cast.operand, f),
-        Expression::Lambda(lambda) => can_group_lambda_argument(lambda, false),
-        expression => expression.anonymous_class_body().is_some(),
+        Expression::Lambda(lambda) => can_group_lambda_argument(lambda, false, f),
+        expression => {
+            is_array_like_text_block(expression, f) || expression.anonymous_class_body().is_some()
+        }
     }
 }
 
@@ -480,13 +482,16 @@ pub fn can_group_array_argument(span: Span, is_empty: bool, f: &JavaFormatter<'_
     !is_empty || f.comments().has_comment_in_span(span)
 }
 
-fn can_group_lambda_argument(lambda: &LambdaExpression, is_lambda_recursion: bool) -> bool {
+fn can_group_lambda_argument(
+    lambda: &LambdaExpression,
+    is_lambda_recursion: bool,
+    f: &JavaFormatter<'_, '_>,
+) -> bool {
     lambda.get_expression().is_none_or(|expression| match expression {
         Expression::ArrayCreation(creation) => creation.init.is_some(),
-        Expression::StringLiteral(literal) => literal.is_text_block(),
-        Expression::Lambda(inner_lambda) => can_group_lambda_argument(inner_lambda, true),
+        Expression::Lambda(inner_lambda) => can_group_lambda_argument(inner_lambda, true, f),
         Expression::Conditional(_) | Expression::MethodCall(_) => !is_lambda_recursion,
-        _ => false,
+        expression => is_array_like_text_block(expression, f),
     })
 }
 

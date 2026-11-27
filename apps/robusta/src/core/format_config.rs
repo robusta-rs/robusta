@@ -40,6 +40,14 @@ pub struct FormatConfig {
     /// Javadoc comment formatting.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub javadoc: Option<JavadocConfig>,
+    /// Whether to place the opening and closing `"""` of a text block as Google Java Style
+    /// does. Default: `false`.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_scalar"
+    )]
+    pub text_blocks: Option<bool>,
     /// Line terminator emitted by the formatter. Default: `lf`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line_ending: Option<LineEndingConfig>,

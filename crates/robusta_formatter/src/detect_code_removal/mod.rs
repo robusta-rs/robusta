@@ -8,7 +8,7 @@ use documentation::{
 };
 use normalize::normalize_tokens;
 
-use crate::print::text_block::text_block_lines;
+use crate::print::text_block::{text_before_closing, text_block_lines};
 
 /// One lexed revision, with imports sorted and trailing commas dropped.
 #[derive(Debug)]
@@ -153,12 +153,34 @@ fn preserves_source_spelling(kind: TokenKind) -> bool {
 }
 
 /// The spelling formatting must keep: a text block's without the indentation
-/// the compiler removes, which moves with the text block.
+/// the compiler removes, which moves with the text block, and with a closing
+/// `"""` after text on that text's line, from which it may move to the next
+/// line after a `\`.
 fn spelling(kind: TokenKind, source: &str) -> String {
-    match text_block_lines(source).filter(|_| kind == TokenKind::StringLiteral) {
-        Some(lines) => lines.collect::<Vec<_>>().join("\n"),
-        None => source.to_string(),
+    let is_text_block = kind == TokenKind::StringLiteral && source.starts_with(r#"""""#);
+    let Some(lines) = text_block_lines(source).filter(|_| is_text_block) else {
+        return source.to_string();
+    };
+    let mut lines = lines.collect::<Vec<_>>();
+    let closing = lines.pop().expect("a text block has a closing line");
+    if let Some(text) = text_before_closing(closing) {
+        lines.push(text);
+    } else {
+        let last = lines.pop().expect("a text block has an opening line");
+        match strip_line_continuation(last) {
+            Some(text) => lines.push(text),
+            None => lines.extend([last, ""]),
+        }
     }
+    lines.join("\n") + r#"""""#
+}
+
+/// `line` without the `\` that ends it and the line break after it (JLS
+/// §3.10.7), or `None` when it does not end with one.
+fn strip_line_continuation(line: &str) -> Option<&str> {
+    let text = line.strip_suffix('\\')?;
+    let escaped_backslashes = text.len() - text.trim_end_matches('\\').len();
+    (escaped_backslashes % 2 == 0).then_some(text)
 }
 
 #[cfg(test)]
