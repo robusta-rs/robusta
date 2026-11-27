@@ -806,8 +806,7 @@ format:
             BetaContract,
             GammaContract {
       void run()
-          throws
-              AlphaFailureException,
+          throws AlphaFailureException,
               BetaFailureException {}
     }
     ");

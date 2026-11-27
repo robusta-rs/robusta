@@ -4,7 +4,7 @@ use insta::assert_snapshot;
 use robusta_formatter::Options;
 
 use crate::fixtures::{
-    check_contract_at_widths_and_modes, format_source as fmt,
+    assert_examples_print_as_shown, check_contract_at_widths_and_modes, format_source as fmt,
     format_source_with_options as fmt_with_options, indent_width, line_width,
 };
 
@@ -47,12 +47,7 @@ fn type_declaration_headers_wrap_their_lists_and_clauses() {
         CloneableOrderEntry {}
 ",
     ];
-    for example in examples {
-        assert_eq!(fmt_with_options(example, &options), example);
-        let one_line = example.split_whitespace().collect::<Vec<_>>().join(" ");
-        assert_eq!(fmt_with_options(&one_line, &options), example);
-        check_contract_at_widths_and_modes(example);
-    }
+    assert_examples_print_as_shown(&examples, &options);
 }
 
 #[test]
@@ -207,18 +202,16 @@ fn record_clauses_wrap_by_whether_the_components_split() {
     record SplitLongList(
       VeryLongComponentTypeNameForTheRecordProbe first,
       AnotherVeryLongComponentTypeNameForTheRecord second
-    ) implements
-        VeryLongInterfaceNameForTheRecordProbeNumberOne,
+    ) implements VeryLongInterfaceNameForTheRecordProbeNumberOne,
         VeryLongInterfaceNameForTheRecordProbeNumberTwo {}
 
     record SplitLongArguments(
       VeryLongComponentTypeNameForTheRecordProbe first,
       AnotherVeryLongComponentTypeNameForTheRecord second
-    ) implements
-        VeryLongBoundNameForTheProbeWithArguments<
-          FirstArgumentTypeNameWithAVeryLongName,
-          SecondArgumentType
-        > {}
+    ) implements VeryLongBoundNameForTheProbeWithArguments<
+      FirstArgumentTypeNameWithAVeryLongName,
+      SecondArgumentType
+    > {}
     ");
     check_contract_at_widths_and_modes(source);
 }
@@ -378,7 +371,7 @@ fn a_comment_before_a_type_declaration_lists_close_keeps_its_line() {
         ),
         (
             "record R(int a, // x\nint b) implements B<C, D // c\n> {}",
-            "record R(\n  int a, // x\n  int b\n) implements\n    B<\n      C,\n      D // c\n    > {}\n",
+            "record R(\n  int a, // x\n  int b\n) implements B<\n  C,\n  D // c\n> {}\n",
         ),
     ] {
         assert_eq!(fmt(source), expected);

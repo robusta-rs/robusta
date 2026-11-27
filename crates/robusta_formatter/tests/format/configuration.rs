@@ -1527,7 +1527,7 @@ fn compact_members_keep_comments_and_final_newline_policy() {
 }
 
 #[test]
-fn multi_entry_clauses_keep_the_first_entry_on_the_keyword_line_in_type_declarations() {
+fn multi_entry_clauses_keep_the_first_entry_on_the_keyword_line() {
     let options = Options { line_width: line_width(56), ..Options::default() };
     for (head, keyword) in [
         ("final class IncomingRequestHandler", "implements"),
@@ -1555,7 +1555,7 @@ fn multi_entry_clauses_keep_the_first_entry_on_the_keyword_line_in_type_declarat
     let source = "class A { void incomingRequestHandler() throws AlphaContract, BetaContract, GammaContract {} }";
     assert_eq!(
         fmt_with_options(source, &options),
-        "class A {\n  void incomingRequestHandler()\n      throws\n          AlphaContract,\n          BetaContract,\n          GammaContract {}\n}\n"
+        "class A {\n  void incomingRequestHandler()\n      throws AlphaContract,\n          BetaContract,\n          GammaContract {}\n}\n"
     );
 }
 

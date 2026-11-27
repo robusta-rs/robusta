@@ -212,6 +212,18 @@ pub fn check_formatter_contract_with_options(
     stable_output::<JavaHarness>(source, options).map(drop)
 }
 
+/// Asserts that each of `examples` prints as itself under `options`, also from
+/// its tokens joined onto one line, and checks the contract on it as
+/// [`check_contract_at_widths_and_modes`] does.
+pub fn assert_examples_print_as_shown(examples: &[&str], options: &Options) {
+    for example in examples {
+        assert_eq!(format_source_with_options(example, options), *example);
+        let one_line = example.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(format_source_with_options(&one_line, options), *example);
+        check_contract_at_widths_and_modes(example);
+    }
+}
+
 /// Checks the formatter contract at a narrow and a wide line, with and without
 /// Javadoc formatting.
 pub fn check_contract_at_widths_and_modes(source: &str) {

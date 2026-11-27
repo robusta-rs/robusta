@@ -4,9 +4,9 @@ use insta::assert_snapshot;
 use robusta_formatter::{JavadocOptions, LineEnding, Options};
 
 use crate::fixtures::{
-    check_contract_at_widths_and_modes, check_formatter_contract, format_source as fmt,
-    format_source_with_options as fmt_with_options, format_stable_with_options, indent_width,
-    line_width,
+    assert_examples_print_as_shown, check_contract_at_widths_and_modes, check_formatter_contract,
+    format_source as fmt, format_source_with_options as fmt_with_options,
+    format_stable_with_options, indent_width, line_width,
 };
 
 fixture_tests! {
@@ -339,6 +339,36 @@ fn a_single_clause_entry_can_wrap_after_the_keyword() {
 }
 
 #[test]
+fn declaration_clauses_keep_the_keyword_with_the_first_entry() {
+    let options =
+        Options { line_width: line_width(50), indent_width: indent_width(2), ..Options::default() };
+    let examples = [
+        "Invoice readInvoice(Path path, Charset charset)
+    throws IOException {
+  return parse(path, charset);
+}
+",
+        "void transfer(
+  Account source,
+  Account target,
+  Money amount
+) throws InsufficientFundsException,
+    AccountLockedException {
+  ledger.move(source, target, amount);
+}
+",
+        "record OrderLine(
+  Item item,
+  int quantity,
+  Region region
+) implements Comparable<OrderLine>,
+    Serializable {}
+",
+    ];
+    assert_examples_print_as_shown(&examples, &options);
+}
+
+#[test]
 fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
     let source = "class C { Invoice createInvoice(Customer customer, List<Item> items, \
                   Discount discount) throws IOException {} \
@@ -374,8 +404,7 @@ fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
         Customer customer,
         List<Item> items,
         Discount discount
-      ) throws
-          IOException,
+      ) throws IOException,
           TimeoutException,
           InterruptedException {}
     }
@@ -399,8 +428,7 @@ fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
         Customer customer,
         List<Item> items,
         Discount discount
-    ) implements
-            Document,
+    ) implements Document,
             Serializable,
             Comparable<R> {}
     ");
