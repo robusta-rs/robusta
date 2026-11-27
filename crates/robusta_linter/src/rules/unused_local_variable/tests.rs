@@ -258,6 +258,27 @@ fn fixes_write_only_local_and_its_assignments_together() {
 }
 
 #[test]
+fn fixes_writes_through_parentheses_as_plain_writes() {
+    Tester::new(&UNUSED_LOCAL_VARIABLE).fixes(
+        "class A { void f() { int assigned; (assigned) = 2; ((assigned)) = 3; } }",
+        "class A { void f() { } }",
+    );
+    for (source, expected) in [
+        ("int x = 0; (x) += 2;", ""),
+        ("int x; consume((x) = 1);", " consume(1);"),
+        ("int x; ((x)) = next();", " next();"),
+    ] {
+        Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
+            &format!("class A {{ void f() {{ {source} }} }}"),
+            &format!("class A {{ void f() {{{expected} }} }}"),
+        );
+    }
+    Tester::new(&UNUSED_LOCAL_VARIABLE).passes(
+        "class A { int f; void f() { int[] a = new int[1]; (a[0]) = 1; A b = this; (b.f) = 1; } }",
+    );
+}
+
+#[test]
 fn unsafe_fix_unwraps_a_method_call_initializer() {
     Tester::new(&UNUSED_LOCAL_VARIABLE).fixes_unsafe(
         "class A { void f() { int ignored = sendEmail(); } }",

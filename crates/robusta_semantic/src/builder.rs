@@ -218,9 +218,9 @@ impl<'a> SemanticBuilder<'a> {
     }
 
     /// Whether the name at `address` is read, written, or both: only the
-    /// target of an assignment or the operand of an update writes it. An
-    /// update's operand may be a parenthesized variable (JLS 15.8.5), so
-    /// parentheses are looked through.
+    /// target of an assignment or the operand of an update writes it. Either
+    /// may be a parenthesized variable (JLS 15.8.5), so parentheses are looked
+    /// through.
     fn expression_reference_kind(&self, address: Address) -> ReferenceKind {
         let mut operand = address;
         for ancestor in self.nodes.ancestor_kinds(self.current_node_id) {

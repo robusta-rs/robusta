@@ -72,11 +72,7 @@ impl Local<'_, '_> {
     }
 
     pub fn is_target(&self, expression: &Expression<'_>) -> bool {
-        let mut expression = expression;
-        while let Expression::Parenthesized(parenthesized) = expression {
-            expression = &parenthesized.expression;
-        }
-        matches!(expression, Expression::Identifier(name)
+        matches!(expression.without_parentheses(), Expression::Identifier(name)
             if self.semantic.scoping().resolved_reference_ids(self.symbol_id)
                 .binary_search_by_key(&name.span.start, |id| self.semantic.scoping().reference(*id).span().start).is_ok())
     }

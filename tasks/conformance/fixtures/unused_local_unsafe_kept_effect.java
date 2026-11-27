@@ -9,6 +9,8 @@ class UnusedLocalUnsafeKeptEffect {
         int ignored = compute();
         ignored++;
         ignored = ignored + 1;
+        int parenthesized = compute();
+        ((parenthesized)) += compute();
         int a = compute(), unused = compute(), b = compute();
         System.out.println(a + b);
         for (int extra = compute(); System.nanoTime() < 0; ) {}

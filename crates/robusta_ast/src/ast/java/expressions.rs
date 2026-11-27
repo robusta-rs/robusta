@@ -326,7 +326,7 @@ pub struct BinaryExpression<'a> {
 pub struct AssignmentExpression<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    /// A name, field access, or array access (JLS §15.26).
+    /// A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     pub target: Expression<'a>,
     pub op: AssignOp,
     pub value: Expression<'a>,

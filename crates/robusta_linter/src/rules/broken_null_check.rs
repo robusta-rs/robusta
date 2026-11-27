@@ -160,7 +160,7 @@ fn broken_guard<'a>(
     operand: &Expression<'a>,
     context: &LintContext<'_, '_, '_>,
 ) -> Option<BrokenGuard<'a>> {
-    let Expression::Binary(binary) = without_parentheses(guard) else { return None };
+    let Expression::Binary(binary) = guard.without_parentheses() else { return None };
 
     if binary.op == chain.op {
         return broken_guard(&binary.lhs, chain, operand, context)
@@ -190,7 +190,7 @@ fn broken_guard<'a>(
 fn null_compared_name<'a>(
     comparison: &'a BinaryExpression<'a>,
 ) -> Option<&'a IdentifierReference<'a>> {
-    let (lhs, rhs) = (without_parentheses(&comparison.lhs), without_parentheses(&comparison.rhs));
+    let (lhs, rhs) = (comparison.lhs.without_parentheses(), comparison.rhs.without_parentheses());
     let ((Expression::Identifier(name), Expression::NullLiteral(_))
     | (Expression::NullLiteral(_), Expression::Identifier(name))) = (lhs, rhs)
     else {
@@ -350,7 +350,7 @@ enum OperandType {
 }
 
 fn operand_type(expression: &Expression<'_>, context: &LintContext<'_, '_, '_>) -> OperandType {
-    match without_parentheses(expression) {
+    match expression.without_parentheses() {
         Expression::IntLiteral(_)
         | Expression::FloatLiteral(_)
         | Expression::CharLiteral(_)
@@ -420,13 +420,6 @@ fn is_wrapper(ty: &ClassType<'_>, context: &LintContext<'_, '_, '_>) -> bool {
             ty.self_and_qualifiers().skip(1).map(ClassType::name).eq(["lang", "java"])
         }
     }
-}
-
-fn without_parentheses<'a>(mut expression: &'a Expression<'a>) -> &'a Expression<'a> {
-    while let Expression::Parenthesized(parenthesized) = expression {
-        expression = &parenthesized.expression;
-    }
-    expression
 }
 
 #[cfg(test)]

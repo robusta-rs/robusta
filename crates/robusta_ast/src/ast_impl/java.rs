@@ -104,6 +104,15 @@ impl<'a> Expression<'a> {
     pub fn is_dotted_name(&self) -> bool {
         matches!(self, Self::FieldAccess(access) if access.is_dotted_name())
     }
+
+    /// This expression without the parentheses around it, if any.
+    pub fn without_parentheses(&self) -> &Self {
+        let mut expression = self;
+        while let Self::Parenthesized(parenthesized) = expression {
+            expression = &parenthesized.expression;
+        }
+        expression
+    }
 }
 
 impl FieldAccess<'_> {
