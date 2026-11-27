@@ -400,6 +400,39 @@ fn editorconfig_sections_resolve_per_java_file() {
 }
 
 #[test]
+fn editorconfig_section_globs_match_as_the_specification_says() {
+    let temp = TempProject::new();
+    temp.write(
+        ".editorconfig",
+        "[Main.java]\nindent_size = 4\n\n[src/**/*.java]\ninsert_final_newline = false\n\n[src/*.java]\nindent_size = 6\n\n[*.{java}]\nindent_size = 8\n",
+    );
+    let files = [
+        // A glob without `/` matches at any level.
+        ("app/Main.java", "Main", "    ", "\n"),
+        // `**` crosses `/`, but `*` does not.
+        ("src/A.java", "A", "      ", ""),
+        ("src/a/B.java", "B", "  ", ""),
+        // Braces with a single item match literally.
+        ("C.java", "C", "  ", "\n"),
+    ];
+    for (path, name, _, _) in files {
+        temp.write(path, &format!("class {name} {{ int value; }}\n"));
+    }
+
+    let output = robusta_in_dir(&["format", "--fix", "."], &temp.dir);
+
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    assert!(output.stderr.is_empty(), "{}", stderr(&output));
+    for (path, name, indent, newline) in files {
+        assert_eq!(
+            std::fs::read_to_string(temp.dir.join(path)).unwrap(),
+            format!("class {name} {{\n{indent}int value;\n}}{newline}"),
+            "{path}"
+        );
+    }
+}
+
+#[test]
 fn editorconfig_discovery_is_independent_of_input_order_and_yaml_scope() {
     for yaml in [false, true] {
         let temp = TempProject::new();
