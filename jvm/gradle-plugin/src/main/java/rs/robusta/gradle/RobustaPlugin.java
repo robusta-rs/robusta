@@ -1,7 +1,9 @@
 package rs.robusta.gradle;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -129,20 +131,36 @@ public final class RobustaPlugin implements Plugin<Object> {
 
     /**
      * The script whose plugin repositories served the plugin: the settings script that applied
-     * it, or else the nearest build script, from the project's up to the root's, that declares a
-     * repository. A project that applies a plugin its parent loaded declares none of its own.
+     * it, or else the outermost build script, from the root's down, that declares a repository
+     * and whose class loader sees the plugin. A subproject sees a plugin its parent loaded but
+     * may list other repositories.
      */
     private static ScriptHandler pluginScript(Project project) {
         ExtraPropertiesExtension extra = project.getExtensions().getExtraProperties();
         if (extra.has(SETTINGS_SCRIPT)) {
             return (ScriptHandler) extra.get(SETTINGS_SCRIPT);
         }
+        Deque<ScriptHandler> scripts = new ArrayDeque<>();
         for (Project scope = project; scope != null; scope = scope.getParent()) {
-            if (!scope.getBuildscript().getRepositories().isEmpty()) {
-                return scope.getBuildscript();
+            scripts.push(scope.getBuildscript());
+        }
+        for (ScriptHandler script : scripts) {
+            // A script that has not run yet has no repositories, and must not create its class
+            // loader early.
+            if (!script.getRepositories().isEmpty() && seesPlugin(script)) {
+                return script;
             }
         }
         return project.getBuildscript();
+    }
+
+    private static boolean seesPlugin(ScriptHandler script) {
+        try {
+            return Class.forName(RobustaPlugin.class.getName(), false, script.getClassLoader())
+                == RobustaPlugin.class;
+        } catch (ClassNotFoundException notOnClasspath) {
+            return false;
+        }
     }
 
     private static String pluginVersion() {
