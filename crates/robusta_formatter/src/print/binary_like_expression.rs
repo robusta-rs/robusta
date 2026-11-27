@@ -47,11 +47,8 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
     }
 
     /// Whether `expression`, inside any parentheses, is a binary expression of this kind.
-    fn is_same_kind(self, mut expression: &Expression<'_>) -> bool {
-        while let Expression::Parenthesized(parenthesized) = expression {
-            expression = &parenthesized.expression;
-        }
-        match expression {
+    fn is_same_kind(self, expression: &Expression<'_>) -> bool {
+        match expression.without_parentheses() {
             Expression::Binary(binary) => is_logical(binary.op) == self.is_logical(),
             Expression::Instanceof(_) => !self.is_logical(),
             _ => false,

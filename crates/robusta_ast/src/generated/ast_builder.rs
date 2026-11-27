@@ -3778,7 +3778,7 @@ impl<'a> SwitchRuleBody<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -5555,7 +5555,7 @@ impl<'a> VariableInitializer<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -6115,7 +6115,7 @@ impl<'a> Expression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -7403,7 +7403,7 @@ impl<'a> AssignmentExpression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -7425,7 +7425,7 @@ impl<'a> AssignmentExpression<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -8041,7 +8041,7 @@ impl<'a> LambdaBody<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -8605,7 +8605,7 @@ impl<'a> MethodReferenceTarget<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -10686,7 +10686,7 @@ impl<'a> AnnotationArgument<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]
@@ -11287,7 +11287,7 @@ impl<'a> ElementValue<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `target`: A name, field access, or array access (JLS §15.26).
+    /// * `target`: A name, field access, or array access, possibly parenthesized (JLS §15.26.1).
     /// * `op`
     /// * `value`
     #[inline]

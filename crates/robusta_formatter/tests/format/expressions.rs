@@ -1832,6 +1832,27 @@ fn parentheses_are_preserved_verbatim() {
 }
 
 #[test]
+fn assignment_targets_keep_their_parentheses_and_the_comments_inside() {
+    let source = "class A { int f; void f(int x, int[] a) { (x) = 1; ((x)) += 2; (a[0]) = 3; \
+                  (this.f) = 4; (/* a */ x /* b */) = 5; (x // c\n) = 6; } }";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      int f;
+
+      void f(int x, int[] a) {
+        (x) = 1;
+        ((x)) += 2;
+        (a[0]) = 3;
+        (this.f) = 4;
+        (/* a */ x /* b */) = 5;
+        (x // c
+        ) = 6;
+      }
+    }
+    ");
+}
+
+#[test]
 fn expression_boundaries_keep_comments_local() {
     let source = r"class A {
         int[] empty = { /* empty initializer */ };

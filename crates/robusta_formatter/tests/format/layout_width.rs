@@ -2270,6 +2270,35 @@ fn members_after_their_object_break_as_their_context_allows() {
 }
 
 #[test]
+fn a_member_value_breaks_after_its_object_for_a_parenthesized_name_target() {
+    let source = "class C {
+        void f() {
+            x = values[index].field;
+            (x) = values[index].field;
+            this.x = values[index].field;
+        }
+    }";
+    let options =
+        Options { line_width: line_width(24), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class C {
+      void f() {
+        x =
+          values[index]
+            .field;
+        (x) =
+          values[index]
+            .field;
+        this.x =
+          values[
+            index
+          ].field;
+      }
+    }
+    ");
+}
+
+#[test]
 fn members_after_a_chains_last_call_follow_the_chain() {
     let source = "class C {
         void f() {

@@ -331,6 +331,11 @@ fn a_variable_is_written_only_as_the_operand_of_an_assignment_or_update() {
         ("++a; --b;", &[("a", ReadWrite), ("b", ReadWrite)]),
         ("a = -b + ~c;", &[("a", Write), ("b", Read), ("c", Read)]),
         ("(a)++; --((b));", &[("a", ReadWrite), ("b", ReadWrite)]),
+        ("(a) = b; ((a)) += c;", &[("a", Write), ("b", Read), ("a", ReadWrite), ("c", Read)]),
+        (
+            "(x.f) = a; (y[b]) += c;",
+            &[("x", Read), ("a", Read), ("y", Read), ("b", Read), ("c", Read)],
+        ),
         ("(a = b).hashCode();", &[("a", Write), ("b", Read)]),
         ("x.f = a; x.f++;", &[("x", Read), ("a", Read), ("x", Read)]),
         ("y[a] = b; y[c]++;", &[("y", Read), ("a", Read), ("b", Read), ("y", Read), ("c", Read)]),

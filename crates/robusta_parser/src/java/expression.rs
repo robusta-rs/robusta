@@ -71,11 +71,7 @@ impl<'a> Parser<'a> {
         let Some((op, width)) = self.peek_assign_op() else {
             return Ok(lhs);
         };
-        // Assignments require names, fields, or array elements (JLS §15.26).
-        if !matches!(
-            lhs,
-            Expression::Identifier(_) | Expression::FieldAccess(_) | Expression::ArrayAccess(_)
-        ) {
+        if !is_variable(&lhs) {
             return Err(diagnostics::message("this expression cannot be assigned to", lhs.span()));
         }
         for _ in 0..width {
@@ -354,16 +350,9 @@ impl<'a> Parser<'a> {
         Ok(Expression::new_switch_expression(start.cover(end), selector, cases, self))
     }
 
-    /// Require a variable for `++`/`--`, allowing parentheses (JLS §15.14.2, §15.15.1, §15.8.5).
+    /// Require a variable for `++`/`--` (JLS §15.14.2, §15.15.1).
     fn require_variable(expression: &Expression<'a>, op: &'static str) -> Result<()> {
-        let mut inner = expression;
-        while let Expression::Parenthesized(paren) = inner {
-            inner = &paren.expression;
-        }
-        if matches!(
-            inner,
-            Expression::Identifier(_) | Expression::FieldAccess(_) | Expression::ArrayAccess(_)
-        ) {
+        if is_variable(expression) {
             Ok(())
         } else {
             Err(diagnostics::variable_operand(op, expression.span()))
@@ -787,4 +776,13 @@ impl<'a> Parser<'a> {
         let span = self.bump().span;
         (span, span.source_text(self.source))
     }
+}
+
+/// Whether an assignment or `++`/`--` can change `expression`: a name, a field, or an array
+/// element, which parentheses may enclose (JLS §15.26.1, §15.8.5).
+fn is_variable(expression: &Expression<'_>) -> bool {
+    matches!(
+        expression.without_parentheses(),
+        Expression::Identifier(_) | Expression::FieldAccess(_) | Expression::ArrayAccess(_)
+    )
 }

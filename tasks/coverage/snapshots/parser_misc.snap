@@ -1,7 +1,7 @@
 parser_misc Summary:
-AST Parsed     : 24/24 (100.00%)
-Positive Passed: 24/24 (100.00%)
-Negative Passed: 173/173 (100.00%)
+AST Parsed     : 25/25 (100.00%)
+Positive Passed: 25/25 (100.00%)
+Negative Passed: 175/175 (100.00%)
 
   x an array creation cannot use explicit constructor type arguments
    ,-[misc/fail/annotated-array-creation-constructor-type-arguments.java:1:38]
@@ -234,6 +234,18 @@ Negative Passed: 173/173 (100.00%)
    ,-[misc/fail/assign-to-increment.java:1:22]
  1 | class A { void f() { x++ = 1; } }
    :                      ^^^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/assign-to-parenthesized-binary-expression.java:1:22]
+ 1 | class A { void f() { (x + 1) = 2; } }
+   :                      ^^^^^^^
+   `----
+
+  x this expression cannot be assigned to
+   ,-[misc/fail/assign-to-parenthesized-call.java:1:22]
+ 1 | class A { void f() { (g()) = 1; } }
+   :                      ^^^^^
    `----
 
   x this expression cannot be used as a statement
