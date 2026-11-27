@@ -47,7 +47,7 @@ Avoid editing `generated` subdirectories.
 
 ## Development Commands
 
-Prerequisites: Rust (MSRV: 1.97), JDK 17, CMake and a C/C++ toolchain, just, cargo-binstall
+Prerequisites: Rust (MSRV: 1.98), JDK 17, CMake and a C/C++ toolchain, just, cargo-binstall
 
 **Setup Notes:**
 

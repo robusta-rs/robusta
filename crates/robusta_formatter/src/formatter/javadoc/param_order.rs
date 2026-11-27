@@ -10,7 +10,7 @@ pub struct DeclaredParameters<'a> {
 impl DeclaredParameters<'_> {
     /// Position of `<T>` among the type parameters, or of `name` after them.
     fn position(self, subject: &str) -> Option<usize> {
-        match subject.strip_prefix('<').and_then(|rest| rest.strip_suffix('>')) {
+        match subject.strip_circumfix('<', '>') {
             Some(name) => self.type_parameters.iter().position(|declared| *declared == name),
             None => self
                 .parameters

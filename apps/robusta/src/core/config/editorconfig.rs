@@ -100,12 +100,11 @@ impl Resolver {
 
     /// `file` with the resolver for the files above it, if its search continues.
     pub fn new(file: ConfigFile, parent: Option<&Self>) -> Self {
-        let mut root_properties =
-            parent.map(|parent| parent.root_properties.clone()).unwrap_or_default();
+        let mut root_properties = parent.map_or_default(|parent| parent.root_properties.clone());
         for section in file.config.sections().iter().filter(|section| section.name == "*") {
             override_supported_properties(&mut root_properties, &section.properties);
         }
-        let mut files = parent.map(|parent| parent.files.clone()).unwrap_or_default();
+        let mut files = parent.map_or_default(|parent| parent.files.clone());
         files.push(Rc::new(file));
         Self { files, root_properties }
     }
