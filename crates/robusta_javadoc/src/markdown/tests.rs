@@ -151,6 +151,36 @@ fn a_lazy_line_continues_the_paragraph_its_containers_hold() {
 }
 
 #[test]
+fn a_line_after_a_setext_heading_leaves_the_containers_it_lacks() {
+    let read = |content: &str| {
+        let root = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
+        assert!(!format!("{root:?}").contains("***"), "{content:?} keeps a repair: {root:?}");
+        shape(&root)
+    };
+
+    assert_eq!(read("- a\n  ==\nb"), "root[list[item[other]], paragraph]");
+    assert_eq!(read("- a\n  ---\nb"), "root[list[item[other]], paragraph]");
+    assert_eq!(read("> a\n> ==\nb"), "root[quote[other], paragraph]");
+    assert_eq!(read("> > a\n> > ==\n> b"), "root[quote[quote[other], paragraph]]");
+    assert_eq!(read("- > a\n  > ==\n  b"), "root[list[item[quote[other], paragraph]]]");
+    assert_eq!(read("- > a\n  > ==\n b"), "root[list[item[quote[other]]], paragraph]");
+    assert_eq!(read("> a\n> ---\n[c]: d"), "root[quote[other], other]");
+    // The list stays tight, and the next item starts a list of its own.
+    assert_eq!(
+        read("- a\n  ==\nb\n- c"),
+        "root[list[item[other]], paragraph, list[item[paragraph]]]"
+    );
+    // A line that keeps its containers stays in them.
+    assert_eq!(read("- a\n  ==\n  b"), "root[list[item[other, paragraph]]]");
+    assert_eq!(read("> a\n> ==\n> b\nc"), "root[quote[other, paragraph]]");
+
+    let content = "> a\n> ==\nb";
+    let Some(Node::Root(root)) = parse(content) else { panic!("{content:?} parses") };
+    let position = root.children[1].position().unwrap();
+    assert_eq!((position.start.offset, position.start.line, position.start.column), (9, 3, 1));
+}
+
+#[test]
 fn tabs_in_list_and_fence_indentation_take_their_columns() {
     fn code(content: &str) -> (String, usize) {
         let mut node = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
