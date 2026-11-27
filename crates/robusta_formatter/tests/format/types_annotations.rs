@@ -592,7 +592,7 @@ fn annotated_field_spacing_covers_every_field_member_container() {
     }
 
     enum E {
-      VALUE,;
+      VALUE;
 
       int first;
       @A(1) int second;

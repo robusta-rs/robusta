@@ -122,7 +122,7 @@ fn line_comments_merge_after_their_terminating_semicolon() {
         ),
         ("import a.A // c\n; // keep\nclass B {}", "import a.A; // c // keep\n\nclass B {}\n"),
         ("package p // c\n; // keep\nclass A {}", "package p; // c // keep\n\nclass A {}\n"),
-        ("enum E { A // c\n; // keep\n}", "enum E {\n  A,; // c // keep\n}\n"),
+        ("enum E { A // c\n; // keep\n}", "enum E {\n  A; // c // keep\n}\n"),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
             let options = Options { javadoc, ..Options::default() };
@@ -139,16 +139,16 @@ fn enum_semicolon_comments_keep_their_order_behind_a_moved_line_comment() {
     for (input, expected) in [
         (
             "enum E { ONLY, // x\n; /* after */ /* more */ }",
-            "enum E {\n  ONLY,; // x\n  /* after */ /* more */\n}\n",
+            "enum E {\n  ONLY; // x\n  /* after */ /* more */\n}\n",
         ),
         (
             "enum E { ONLY // x\n; /* after */ /* more */ }",
-            "enum E {\n  ONLY,; // x\n  /* after */ /* more */\n}\n",
+            "enum E {\n  ONLY; // x\n  /* after */ /* more */\n}\n",
         ),
-        ("enum E { ONLY, // x\n; /// d\n}", "enum E {\n  ONLY,; // x\n  /// d\n}\n"),
+        ("enum E { ONLY, // x\n; /// d\n}", "enum E {\n  ONLY; // x\n  /// d\n}\n"),
         (
             "enum E { ONLY, // x\n; /// d\nvoid f() {} }",
-            "enum E {\n  ONLY,; // x\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  ONLY; // x\n\n  /// d\n  void f() {}\n}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
@@ -166,7 +166,7 @@ fn enum_semicolon_comments_before_a_member_trail_it_as_a_field_terminator_keeps_
     for (input, expected) in [
         (
             "enum E { A // c\n; // keep\nvoid f() {} }",
-            "enum E {\n  A,; // c // keep\n\n  void f() {}\n}\n",
+            "enum E {\n  A; // c // keep\n\n  void f() {}\n}\n",
         ),
         (
             "class C { int x = 1 // c\n; // keep\nvoid f() {} }",
@@ -174,37 +174,37 @@ fn enum_semicolon_comments_before_a_member_trail_it_as_a_field_terminator_keeps_
         ),
         (
             "enum E { A, /* c */\n; /* after */\nvoid f() {} }",
-            "enum E {\n  A,; /* c */ /* after */\n\n  void f() {}\n}\n",
+            "enum E {\n  A; /* c */ /* after */\n\n  void f() {}\n}\n",
         ),
         (
             "class C { int x = 1 /* c */\n; /* after */\nvoid f() {} }",
             "class C {\n  int x = 1; /* c */ /* after */\n\n  void f() {}\n}\n",
         ),
-        ("enum E { A,\n; // keep\nvoid f() {} }", "enum E {\n  A,; // keep\n\n  void f() {}\n}\n"),
+        ("enum E { A,\n; // keep\nvoid f() {} }", "enum E {\n  A; // keep\n\n  void f() {}\n}\n"),
         (
             "enum E { A // c\n, ; // keep\nvoid f() {} }",
-            "enum E {\n  A,; // c // keep\n\n  void f() {}\n}\n",
+            "enum E {\n  A; // c // keep\n\n  void f() {}\n}\n",
         ),
         // A `///` on the line would become part of the moved comment.
         (
             "enum E { A // c\n, ; /// d\nvoid f() {} }",
-            "enum E {\n  A,; // c\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  A; // c\n\n  /// d\n  void f() {}\n}\n",
         ),
         // A comment on its own line before the `;` leads the member, with what follows it.
         (
             "enum E { A\n// own\n; // keep\nvoid f() {} }",
-            "enum E {\n  A,;\n\n  // own\n  // keep\n  void f() {}\n}\n",
+            "enum E {\n  A;\n\n  // own\n  // keep\n  void f() {}\n}\n",
         ),
         // An escaped `;` ends the constant's claim like any other.
-        ("enum E { A\\u003b // y\n}", "enum E {\n  A,; // y\n}\n"),
+        ("enum E { A\\u003b // y\n}", "enum E {\n  A; // y\n}\n"),
         (
             "enum E { A // c\n\\u002c \\u003b /// d\nvoid f() {} }",
-            "enum E {\n  A,; // c\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  A; // c\n\n  /// d\n  void f() {}\n}\n",
         ),
         // With no member, it stays in the body, whatever follows the enum.
         (
             "class C { enum E { A\n// own\n; /* t */ } void h() {} }",
-            "class C {\n  enum E {\n    A,;\n    // own\n    /* t */\n  }\n\n  void h() {}\n}\n",
+            "class C {\n  enum E {\n    A;\n    // own\n    /* t */\n  }\n\n  void h() {}\n}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
@@ -284,9 +284,9 @@ fn documentation_comments_stay_before_a_terminator_a_declaration_could_follow() 
         ),
         (
             "enum E { A, /** Stray. */\n; void m() {} }",
-            "enum E {\n  A, /** Stray. */;\n\n  void m() {}\n}\n",
+            "enum E {\n  A /** Stray. */;\n\n  void m() {}\n}\n",
         ),
-        ("enum E { A,\n/**/;\nE() {} }", "enum E {\n  A,\n  /**/;\n\n  E() {}\n}\n"),
+        ("enum E { A,\n/**/;\nE() {} }", "enum E {\n  A\n  /**/;\n\n  E() {}\n}\n"),
         ("enum E { A /// e\n, B }", "enum E {\n  A /// e\n  ,\n  B,\n}\n"),
         // After the `,`, it documents the next constant, so the `,` stays first.
         ("enum E { A(1), /// b\nB }", "enum E {\n  A(1), /// b\n  B,\n}\n"),
@@ -858,6 +858,13 @@ fn trailing_comments_before_a_semicolon_follow_it_unless_they_document() {
 
   int x /* d */;
   int id /** e */;
+}
+
+enum Status {
+  PAID,
+  DUE /* g */;
+
+  Status() {}
 }";
     assert_snapshot!(fmt(source), @"
     class Order {
@@ -872,6 +879,13 @@ fn trailing_comments_before_a_semicolon_follow_it_unless_they_document() {
 
       int x; /* d */
       int id /** e */;
+    }
+
+    enum Status {
+      PAID,
+      DUE; /* g */
+
+      Status() {}
     }
     ");
 }

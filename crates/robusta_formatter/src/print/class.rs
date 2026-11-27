@@ -127,11 +127,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, EnumBody<'a>> {
                 let entry = format_with(|f| match body_semicolon {
                     // The constant's trailing comments follow the body's `;`.
                     Some(semicolon) if is_last => {
-                        // Enum bodies always break, so the trailing comma prints.
-                        let content =
-                            format_with(|f| write!(f, [constant, if_group_breaks(&token(","))]));
                         FormatContentWithSemicolon::new(
-                            &content,
+                            &constant,
                             constant.span().end,
                             semicolon.end,
                         )

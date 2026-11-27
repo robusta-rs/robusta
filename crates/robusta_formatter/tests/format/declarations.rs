@@ -733,7 +733,7 @@ fn comments_before_enum_constant_arguments_stay_before_the_paren() {
       A /* a */(1),
       B /* b */(),
       C // c
-      (3) {},;
+      (3) {};
 
       E() {}
 
@@ -779,6 +779,33 @@ fn empty_enum_arguments_keep_comments_before_a_body_inside() {
         }
         "); }
     }
+}
+
+#[test]
+fn enum_constants_take_a_trailing_comma_only_before_the_closing_brace() {
+    let source = "enum Region { NORTH, SOUTH }
+enum Status { PAID, DUE; Status() {} }
+enum Mode { ON, OFF,; Mode() {} }";
+    assert_snapshot!(fmt(source), @"
+    enum Region {
+      NORTH,
+      SOUTH,
+    }
+
+    enum Status {
+      PAID,
+      DUE;
+
+      Status() {}
+    }
+
+    enum Mode {
+      ON,
+      OFF;
+
+      Mode() {}
+    }
+    ");
 }
 
 #[test]

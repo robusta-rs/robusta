@@ -3,7 +3,7 @@ package com.example;
 public enum Color implements Code, Named {
   @Deprecated RED(1),
   GREEN(),
-  BLUE,;
+  BLUE;
 
   private final int code;
 
