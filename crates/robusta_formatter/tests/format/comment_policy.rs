@@ -342,6 +342,10 @@ fn a_documentation_comment_after_a_moved_line_comment_leads_the_next_member() {
             "abstract class A {\n  abstract void g(); // x\n\n  /// d\n  class B {}\n}\n",
         ),
         (
+            "class A { void g // x\n() {} /// d\nvoid f() {} }",
+            "class A {\n  void g() {} // x\n\n  /// d\n  void f() {}\n}\n",
+        ),
+        (
             "@interface A { int a() // x\n; /// d\nint b(); }",
             "@interface A {\n  int a(); // x\n\n  /// d\n  int b();\n}\n",
         ),
@@ -926,6 +930,9 @@ count /* kept */
     ");
 }
 
+/// After a package's line comment they lead what follows. An import keeps
+/// them, as sorting moves them with it, so after the last import the second
+/// pass reads them as leading the declaration.
 #[test]
 fn multiline_block_comments_after_a_moved_package_or_import_line_comment_start_the_next_line() {
     use crate::fixtures::format_source_with_options;
@@ -940,9 +947,7 @@ fn multiline_block_comments_after_a_moved_package_or_import_line_comment_start_t
         ),
         (
             "package p // c\n; /* t\n * u */\nclass A {}",
-            "package p; // c\n/* t\n * u */\n\nclass A {}\n\
-             ---------- Not idempotent (second pass) ----------\n\
-             package p; // c\n\n/* t\n * u */\n\nclass A {}\n",
+            "package p; // c\n\n/* t\n * u */\nclass A {}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {

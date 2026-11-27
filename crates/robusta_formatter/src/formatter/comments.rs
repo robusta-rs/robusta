@@ -18,7 +18,8 @@ use crate::source_text::{self, SourceTextExt as _};
 
 #[derive(Clone, Copy)]
 struct MovedLineComment {
-    terminator_end: u32,
+    /// Where the code the comment moved behind ends.
+    end: u32,
     comment: Comment,
 }
 
@@ -534,36 +535,38 @@ impl<'a, 'c> Comments<'a, 'c> {
             .count()
     }
 
-    /// How many pending comments follow `end`, the end of a `;`, on its line,
-    /// when one of them is a documentation comment; otherwise `0`.
-    pub(crate) fn documentation_line_after(&self, end: u32) -> usize {
+    /// How many pending comments follow `end` on its line when a line comment
+    /// moved behind `end` cannot take them: one of them is a documentation
+    /// comment, which would become part of it, or the first is a block comment,
+    /// which starts the next line instead. Otherwise `0`.
+    fn separated_line_after(&self, end: u32) -> usize {
         let comments = self.source.comments_on_line_after(self.unprinted_comments(), end);
-        if comments.iter().any(Comment::is_documentation) { comments.len() } else { 0 }
+        let separated = comments.first().is_some_and(Comment::is_block)
+            || comments.iter().any(Comment::is_documentation);
+        if separated { comments.len() } else { 0 }
     }
 
-    /// Record that a line comment moved behind the `;` ending at `end`.
+    /// Record that a line comment moved behind the code ending at `end`: the
+    /// `;` that ends a statement or declaration, or what follows a method or
+    /// constructor's name on its line.
     pub(crate) fn mark_line_comment_moved_behind(&self, end: u32, comment: &Comment) {
-        self.moved_line_comment
-            .set(Some(MovedLineComment { terminator_end: end, comment: *comment }));
+        self.moved_line_comment.set(Some(MovedLineComment { end, comment: *comment }));
     }
 
     pub(crate) fn moved_line_comment_at(&self, end: u32) -> Option<Comment> {
-        self.moved_line_comment.get().filter(|it| it.terminator_end == end).map(|it| it.comment)
+        self.moved_line_comment.get().filter(|it| it.end == end).map(|it| it.comment)
     }
 
-    /// How many pending comments on the line of the `;` ending at `end` start
-    /// a line of their own, as the line comment moved behind it would make a
-    /// documentation comment among them part of it. Where no declaration can
-    /// follow, a lone `///` line may join it.
-    pub(crate) fn documentation_line_after_moved_comment(
-        &self,
-        end: u32,
-        declaration_may_follow: bool,
-    ) -> usize {
+    /// How many pending comments on the line of the code ending at `end` start
+    /// a line of their own, as the line comment moved behind that code would
+    /// make a documentation comment among them part of it, and a block comment
+    /// after it starts the next line. Where no declaration can follow, a lone
+    /// `///` line may join it.
+    pub(crate) fn line_after_moved_comment(&self, end: u32, declaration_may_follow: bool) -> usize {
         let Some(moved) = self.moved_line_comment_at(end) else {
             return 0;
         };
-        let count = self.documentation_line_after(end);
+        let count = self.separated_line_after(end);
         if count != 1 || declaration_may_follow {
             return count;
         }

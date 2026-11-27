@@ -2517,7 +2517,8 @@ fn name_comments_keep_their_tokens() {
         "import#static#a#.#B#.#c#; import#a#.#*#; class D {}",
         "module#a#.#b {#exports#c#to#d#,#e#; provides#f#.#G#with#h#.#I#,#J#; }",
         "sealed class C#permits#a#.#B#,#D {}",
-        "class C {#<#T#>#C#() {}#<#T#>#void#m#() {} void n(C#C#.#this) {} }",
+        "class C {#<#T#>#C#() {} }",
+        "class C {#C#() {}#<#T#>#void#m#() {} void n(C#C#.#this) {} }",
         "class C { void m(Object o) { if (o instanceof String#s) {} l#:#for (;;) { break#l#; } } }",
         "class C { Object f = a#.#b#.#c#(); Object g = a#::#b; Object h = A#.#B#.#this; }",
         "class C { void m() { try (R#r = x) {} catch (E#e) {} for (String#x : xs) {} int#y; } }",
@@ -2531,10 +2532,9 @@ fn name_comments_keep_their_tokens() {
     ];
     for template in templates {
         for gap in [" /* a */ // b\n", "\n/* a */\n// b\n", " /* a */ /* b */ "] {
-            // The block comment after a member's line comment starts the next line, and the
-            // second pass puts a blank line before it, which
-            // `block_comment_after_a_member_line_comment_moves_on_a_second_pass` pins.
-            if gap == " /* a */ // b\n" && template.contains("#() {}#") {
+            // `block_comment_after_a_constructor_type_parameter_line_comment_spaces_on_a_second_pass`
+            // pins the constructor's second pass.
+            if gap == " /* a */ // b\n" && template.starts_with("class C {#<#T#>#C#") {
                 continue;
             }
             crate::fixtures::check_contract_at_widths_and_modes(&template.cow_replace('#', gap));
@@ -2542,25 +2542,80 @@ fn name_comments_keep_their_tokens() {
     }
 }
 
-/// The name's line comment rides behind the body, so the block comment after
-/// the body starts the next line, and the second pass reads it as leading the
-/// next member.
+/// A line comment that moves behind a member's `;`, or behind the empty `()`
+/// and body after a name, ends the member's line, so the block comment after
+/// it starts the next line and leads the next member, below the blank line
+/// between them.
 #[test]
-fn block_comment_after_a_member_line_comment_moves_on_a_second_pass() {
-    assert_snapshot!(fmt("class C { void m // b\n() {} /* a */\nvoid n() {} }"), @"
+fn block_comment_after_a_member_line_comment_leads_the_next_member() {
+    let source = "class C { int x = 1 // c\n; /* field */\nint y = 2 // d\n; /* next field */\n\
+                  int z;\nvoid m // e\n() {} /* method */\nabstract void a // f\n(); /* bodyless */\n\
+                  <T> // g\nC() {} /* constructor */\nvoid n() {} }\n\
+                  enum E { A // h\n; /* constant */\nE() {} }";
+    assert_snapshot!(fmt(source), @"
     class C {
-      void m() {} // b
-      /* a */
+      int x = 1; // c
+      /* field */
+      int y = 2; // d
+      /* next field */
+      int z;
 
+      void m() {} // e
+
+      /* method */
+      abstract void a(); // f
+
+      /* bodyless */
+      <T> C() {} // g
+
+      /* constructor */
       void n() {}
+    }
+
+    enum E {
+      A; // h
+
+      /* constant */
+      E() {}
+    }
+    ");
+}
+
+/// The type parameters' line comment rides past the constructor's name, so
+/// the block comment after the name starts the next line. The second pass
+/// reads it on a line of its own and puts a space before the `(`.
+#[test]
+fn block_comment_after_a_constructor_type_parameter_line_comment_spaces_on_a_second_pass() {
+    assert_snapshot!(fmt("class C { <T> // b\nC /* a */ () {} }"), @"
+    class C {
+      <T> C // b
+      /* a */() {}
     }
     ---------- Not idempotent (second pass) ----------
     class C {
-      void m() {} // b
-
-      /* a */
-
-      void n() {}
+      <T> C // b
+      /* a */ () {}
     }
     ");
+}
+
+/// A name's line comment that moved after the `(` of a parameter list has
+/// ended its line there, so the block comment after the body stays on the
+/// body's line.
+#[test]
+fn block_comment_after_a_parameter_list_holding_the_name_comment_stays_on_its_line() {
+    let source = "class C { void methodName // riding\n\
+                  (String loooooooooonng, String loooooooooonng) {} /* x */\nvoid n() {} }";
+    let expected = "class C {\n  void methodName( // riding\n    String loooooooooonng,\n    \
+                    String loooooooooonng\n  ) {} /* x */\n\n  void n() {}\n}\n";
+    for width in [30, 100] {
+        let options =
+            Options { line_width: crate::fixtures::line_width(width), ..Options::default() };
+        assert_eq!(format_stable_with_options(source, &options), expected);
+    }
+    let source = "class C { void m // riding\n(int a) {} /* x */\nvoid n() {} }";
+    assert_eq!(
+        format_stable(source),
+        "class C {\n  void m( // riding\n    int a\n  ) {} /* x */\n\n  void n() {}\n}\n"
+    );
 }

@@ -25,42 +25,46 @@ use robusta_span::GetSpan;
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
         let method = self.inner();
-        let header_end = format_signature(
-            f,
-            &Signature {
-                modifiers: self.modifiers(),
-                type_params: self.type_params(),
-                return_type: Some(self.return_type()),
-                name: self.name(),
-                parameters: self.params(),
-                dimensions: Some(self.post_paren_dimensions()),
-                throws: self.throws(),
-            },
-        );
+        let signature = Signature {
+            modifiers: self.modifiers(),
+            type_params: self.type_params(),
+            return_type: Some(self.return_type()),
+            name: self.name(),
+            parameters: self.params(),
+            dimensions: Some(self.post_paren_dimensions()),
+            throws: self.throws(),
+        };
+        let header_end = format_signature(f, &signature);
         if let Some(body) = self.body() {
             format_head_body(&body, f);
+            if body.statements.is_empty() {
+                signature.mark_name_comment_moved_behind(method.span.end, f);
+            }
         } else {
             // The header, already printed, is the content before the `;`.
             FormatContentWithSemicolon::new(&(), header_end, method.span.end).fmt(f);
+            signature.mark_name_comment_moved_behind(method.span.end, f);
         }
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ConstructorDeclaration<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        format_signature(
-            f,
-            &Signature {
-                modifiers: self.modifiers(),
-                type_params: self.type_params(),
-                return_type: None,
-                name: self.name(),
-                parameters: self.params(),
-                dimensions: None,
-                throws: self.throws(),
-            },
-        );
-        format_head_body(&self.body(), f);
+        let signature = Signature {
+            modifiers: self.modifiers(),
+            type_params: self.type_params(),
+            return_type: None,
+            name: self.name(),
+            parameters: self.params(),
+            dimensions: None,
+            throws: self.throws(),
+        };
+        format_signature(f, &signature);
+        let body = self.body();
+        format_head_body(&body, f);
+        if body.statements.is_empty() {
+            signature.mark_name_comment_moved_behind(self.span.end, f);
+        }
     }
 }
 
@@ -84,6 +88,31 @@ struct Signature<'parent, 'a, Name> {
     /// A method's obsolete dimensions after the parameter list (`int f()[]`).
     dimensions: Option<AstNode<'parent, 'a, Vec<'a, ArrayTypeDimension<'a>>>>,
     throws: AstNode<'parent, 'a, Vec<'a, Type<'a>>>,
+}
+
+impl<Name: GetSpan> Signature<'_, '_, Name> {
+    /// Record the line comment that ends the line of the name, or of a
+    /// constructor's type parameters, as moved behind the declaration ending
+    /// at `end`. Called after an empty body or a `;`: with an empty `()` and no
+    /// `throws` clause, no line breaks between them.
+    fn mark_name_comment_moved_behind(&self, end: u32, f: &JavaFormatter<'_, '_>) {
+        let parameters = &self.parameters;
+        if parameters.receiver.is_some() || !parameters.items.is_empty() || !self.throws.is_empty()
+        {
+            return;
+        }
+        let start = match (&self.return_type, &self.type_params) {
+            (None, Some(type_params)) => type_params.span.end,
+            _ => self.name.span().start,
+        };
+        if let Some(comment) = f.comments().printed_line_comment_after(start)
+            && comment.span.end <= parameters.span.start
+            && !comment.preceded_by_newline()
+            && !comment.is_documentation()
+        {
+            f.comments().mark_line_comment_moved_behind(end, &comment);
+        }
+    }
 }
 
 /// Returns the end of the header, where the body or `;` follows.

@@ -392,17 +392,13 @@ pub fn format_opening_paren_comment(pos: u32, f: &mut JavaFormatter<'_, '_>) -> 
     !comments.is_empty()
 }
 
-/// After a line comment moved behind the semicolon ending at `node_end`, a
-/// documentation comment on the semicolon's line would become part of it, so
-/// the run starts on a new line. Returns where the printed comments end.
-pub fn format_documentation_line_after_terminator(
-    node_end: u32,
-    f: &mut JavaFormatter<'_, '_>,
-) -> u32 {
-    let count = f.comments().documentation_line_after(node_end);
+/// Print the first `count` pending comments, the line that a line comment
+/// moved behind the code before them cannot take, starting a new line.
+/// Returns where they end.
+pub fn format_line_after_moved_comment(count: usize, f: &mut JavaFormatter<'_, '_>) -> u32 {
     let comments = &f.comments().unprinted_comments()[..count];
     format_trailing_comments_impl(comments, TrailingRun::AfterLineComment, f);
-    comments.last().map_or(node_end, |comment| comment.span.end)
+    comments[count - 1].span.end
 }
 
 /// The line breaks between `from` and the output that follows it: the
