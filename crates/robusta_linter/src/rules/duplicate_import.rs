@@ -3,6 +3,7 @@ use robusta_diagnostics::{RobustaDiagnostic, primary_labeled_span, unlabeled_spa
 use robusta_macros::declare_robusta_lint;
 use robusta_semantic::AstNode;
 use robusta_span::ContentEq;
+use rustc_hash::FxHashMap;
 
 use crate::utils::{delete_import, normalize_deletions};
 use crate::{FixKind, LintContext, Rule, RuleFixMeta};
@@ -29,8 +30,11 @@ impl Rule for DuplicateImport {
         let AstKind::CompilationUnit(unit) = node.kind() else {
             return;
         };
-        let mut firsts = Vec::<(&ImportDeclaration<'_>, Vec<&ImportDeclaration<'_>>)>::new();
+        // Equal imports end in the same simple name, so only imports that share
+        // one are compared.
+        let mut by_last_name = FxHashMap::<&str, Vec<(&ImportDeclaration<'_>, Vec<_>)>>::default();
         for import in unit.imports() {
+            let firsts = by_last_name.entry(import.name.last().name).or_default();
             if let Some((_, repeats)) =
                 firsts.iter_mut().find(|(first, _)| first.content_eq(import))
             {
@@ -39,10 +43,13 @@ impl Rule for DuplicateImport {
                 firsts.push((import, Vec::new()));
             }
         }
-        for (first, repeats) in firsts {
-            if repeats.is_empty() {
-                continue;
-            }
+        let mut repeated = by_last_name
+            .into_values()
+            .flatten()
+            .filter(|(_, repeats)| !repeats.is_empty())
+            .collect::<Vec<_>>();
+        repeated.sort_unstable_by_key(|(first, _)| first.span.start);
+        for (first, repeats) in repeated {
             let diagnostic = RobustaDiagnostic::warning(
                 format!("`{}` is imported more than once", display_name(first)),
                 first.span,
@@ -128,6 +135,20 @@ mod tests {
             "import java.util.List;\nimport java.util.Map;\nimport java.util.*;\n\
              import static java.util.List.of;\nimport module java.base;\nclass A {}\n",
         );
+    }
+
+    #[test]
+    fn reports_one_simple_name_from_each_package_apart() {
+        let report = Tester::new(&DUPLICATE_IMPORT).fixes(
+            "import b.Map;\nimport a.List;\nimport b.List;\nimport b.Map;\n\
+             import b.List;\nimport a.List;\nclass A {}\n",
+            "import b.Map;\nimport a.List;\nimport b.List;\nclass A {}\n",
+        );
+        insta::assert_snapshot!(report, @r#"
+        1:1: warning[duplicate-import]: `b.Map` is imported more than once ("import b.Map;")
+        2:1: warning[duplicate-import]: `a.List` is imported more than once ("import a.List;")
+        3:1: warning[duplicate-import]: `b.List` is imported more than once ("import b.List;")
+        "#);
     }
 
     #[test]
