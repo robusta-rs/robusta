@@ -328,8 +328,9 @@ fn format_trailing_comments_impl(
     }
 }
 
-/// Format comments before a token, preserving their source gaps.
-fn format_comment_slice_before_token(comments: &[Comment], f: &mut JavaFormatter<'_, '_>) {
+/// Format comments before a token, preserving their source gaps. After a
+/// line comment, the token starts the next line.
+pub fn format_comment_slice_before_token(comments: &[Comment], f: &mut JavaFormatter<'_, '_>) {
     let mut line_already_written = false;
     for (index, &comment) in comments.iter().enumerate() {
         f.comments().increment_printed_count(&comment);

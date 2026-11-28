@@ -1174,8 +1174,8 @@ fn annotation_children_and_varargs_comments_keep_their_tokens() {
 fn block_comment_after_an_annotation_pair_operator_starts_the_next_line() {
     assert_snapshot!(fmt("@A(name // b\n= /* a */ // b\n1) class D {}"), @"
     @A(
-      name = // b
-        /* a */ // b
+      name // b
+        = /* a */ // b
         1
     )
     class D {}

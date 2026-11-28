@@ -102,6 +102,7 @@ impl<Name: GetSpan> Signature<'_, '_, Name> {
             return None;
         }
         let start = match (&self.return_type, &self.type_params) {
+            (None, Some(_)) if self.name_keeps_line(f) => return None,
             (None, Some(type_params)) => type_params.span.end,
             _ => self.name.span().start,
         };
@@ -110,6 +111,27 @@ impl<Name: GetSpan> Signature<'_, '_, Name> {
                 && !comment.preceded_by_newline()
                 && !comment.is_documentation()
         })
+    }
+
+    /// Whether a constructor's name moves to the line after its type
+    /// parameters, as after a return type: in front of a line comment ending
+    /// their line, the name would bring the block comment after it, which stays
+    /// before the `(`, onto that line.
+    fn name_keeps_line(&self, f: &JavaFormatter<'_, '_>) -> bool {
+        let Some(type_params) = &self.type_params else {
+            return false;
+        };
+        let comments = f.comments();
+        let name = self.name.span();
+        comments
+            .all_comments_in_range(type_params.span.end, name.start)
+            .take_while(|comment| !comment.preceded_by_newline())
+            .last()
+            .is_some_and(Comment::is_line)
+            && comments
+                .all_comments_in_range(name.end, self.parameters.span.start)
+                .next()
+                .is_some_and(|comment| comment.is_block() && !comment.preceded_by_newline())
     }
 
     /// Record [`Self::name_comment_past_parameters`] as moved behind the
@@ -139,7 +161,7 @@ where
         };
         let name_start = signature.name.span().start;
         let after_params = f.comments().comments_in_range(type_params.span.end, name_start);
-        if !documentation_comment_ends_line(after_params) {
+        if !documentation_comment_ends_line(after_params) && !signature.name_keeps_line(f) {
             type_params.fmt(f);
             space().fmt(f);
             return format_name_through_throws(f, signature);

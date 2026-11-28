@@ -546,6 +546,32 @@ impl<'a, 'c> Comments<'a, 'c> {
         if separated { comments.len() } else { 0 }
     }
 
+    /// The comments right after the code ending at `end` on its line that trail
+    /// it: none when code other than a closing `}` follows them there, which
+    /// they lead instead. Moved in front of a line comment, that code would
+    /// bring them onto the line comment's line, so it keeps its own line
+    /// instead. It reads every comment, past a view limit too, so each layout
+    /// that asks gets the same answer.
+    pub(crate) fn comments_trailing_on_line_after(&self, end: u32) -> &'c [Comment] {
+        let run = self.source.comments_on_line_after(self.all_comments_from(end), end);
+        let Some(last) = run.last() else {
+            return run;
+        };
+        if last.is_line() || last.followed_by_newline() {
+            return run;
+        }
+        let bytes = self.source.as_str().as_bytes();
+        let next = self.token_start_after(last.span.end) as usize;
+        let closes = bytes.get(next) == Some(&b'}')
+            || unicode_escape::unicode_escape(bytes, next).is_some_and(|(value, _)| value == 0x7D);
+        if closes { run } else { &[] }
+    }
+
+    /// Every comment that starts at or after `pos`.
+    fn all_comments_from(&self, pos: u32) -> &'c [Comment] {
+        &self.inner[self.inner.partition_point(|comment| comment.span.start < pos)..]
+    }
+
     /// Record that a line comment moved behind the code ending at `end`: the
     /// `;` that ends a statement or declaration, or what follows a method or
     /// constructor's name on its line.

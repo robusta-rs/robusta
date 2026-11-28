@@ -239,6 +239,9 @@ fn comments_before_an_assignment_operator_trail_the_left_side_or_lead_the_right(
         a // c
         = /* d */ // e
         b;
+        a // c
+        = /* d */
+        b;
         a// c
         = /* d */ 1;
         a
@@ -270,12 +273,16 @@ fn comments_before_an_assignment_operator_trail_the_left_side_or_lead_the_right(
           b;
         a /* c */ = // d
           b;
-        a = // c // d
+        a // c
+          = // d
           b;
         a = // c
           /* d */ b;
+        a // c
+          = /* d */ // e
+          b;
         a = // c
-          /* d */ // e
+          /* d */
           b;
         a = // c
           /* d */ 1;
@@ -346,7 +353,8 @@ fn documentation_comments_before_an_assignment_operator_lay_out_as_line_comments
     let formatted = fmt(source);
     assert_snapshot!(formatted, @"
     class A {
-      int a = /// B /// C
+      int a /// B
+        = /// C
         1;
       int b /** B */ = 1;
       int c /// B
@@ -2133,7 +2141,8 @@ fn line_comments_around_operator_tokens_end_their_lines() {
       }
 
       void assignment(int a, int b) {
-        a = // L= // R=
+        a // L=
+          = // R=
           b;
       }
 

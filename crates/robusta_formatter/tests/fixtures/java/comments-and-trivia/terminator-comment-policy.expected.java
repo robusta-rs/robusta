@@ -9,8 +9,8 @@ import java.util.List; /* import */
 abstract class TerminatorCommentPolicy {
   int field; /* field */
 
-  int moved; // line comment
-  /* block comment */
+  int moved // line comment
+  ; /* block comment */
 
   int deferred;
 
@@ -27,8 +27,8 @@ abstract class TerminatorCommentPolicy {
   int statements() {
     int local = 1; /* local declaration */
     use(local); /* expression statement */
-    use(local); // line comment
-    /* block comment */
+    use(local) // line comment
+    ; /* block comment */
     for (int index = 0 /* for initializer */; index < 2; index++) {
       use(index);
     }

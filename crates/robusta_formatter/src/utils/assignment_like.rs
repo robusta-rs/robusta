@@ -134,6 +134,31 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
         }
     }
 
+    /// Whether the operator keeps its line after the comments that end the left
+    /// side's line: in front of a line comment among them, it would bring the
+    /// comments after it onto that line when a line comment ends the operator's
+    /// line. Block comments that end it lead the right side instead, as after
+    /// any line comment the left side's line ends with.
+    fn keeps_operator_line(&self, operator_end: u32, f: &JavaFormatter<'_, 'a>) -> bool {
+        let left_end = self.left_end(f);
+        // `default` starts with the first `d` after the left side, and every
+        // assignment operator ends with its only `=`.
+        let operator =
+            if let Self::AnnotationInterfaceElementDeclaration(_) = self { b'd' } else { b'=' };
+        let last_before_operator = left_trailing_comments(left_end, operator, f)
+            .iter()
+            .rfind(|comment| comment.span.end < operator_end);
+        // The line comment must be the last before the operator: one on a line
+        // of its own after it would stay between them.
+        last_before_operator.is_some_and(Comment::is_line)
+            && f.comments().comments_before_character(left_end, operator).last()
+                == last_before_operator
+            && f.comments()
+                .comments_trailing_on_line_after(operator_end)
+                .last()
+                .is_some_and(Comment::is_line)
+    }
+
     fn operator(&self) -> &'static str {
         match self {
             Self::AssignmentExpression(assignment) => assignment.op.as_str(),
@@ -570,6 +595,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
         // The left side's trailing run stops at the operator: comments past it print after the
         // operator or lead the right side.
         let operator_end = self.operator_end(f);
+        let keeps_operator_line = self.keeps_operator_line(operator_end, f);
         let view_limit = f.comments().limit_comments_up_to(operator_end);
         let mut is_left_short = false;
         let formatted_left = f.format_to_vec(|f| {
@@ -583,16 +609,23 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
         let operator_line_run = self.operator_line_run(operator_end, f);
         // A line comment on the operator's line, before it (printed by the left side) or after
         // it (the run): the pending `line_suffix` must be followed by the break.
+        // Kept on its own line, the operator's line holds only the comments after it.
+        let operator_line_run = if keeps_operator_line {
+            f.comments().comments_trailing_on_line_after(operator_end)
+        } else {
+            operator_line_run
+        };
         let has_line_comment_on_operator_line =
             operator_line_run.last().is_some_and(Comment::is_line)
-                || riding_comment.is_some_and(|comment| {
-                    comment.span.start > left_end
-                        || f.comments().unprinted_comments().first().is_some_and(|next| {
-                            next.is_block()
-                                && next.span.start >= operator_end
-                                && next.span.end <= self.right_start()
-                        })
-                });
+                || !keeps_operator_line
+                    && riding_comment.is_some_and(|comment| {
+                        comment.span.start > left_end
+                            || f.comments().unprinted_comments().first().is_some_and(|next| {
+                                next.is_block()
+                                    && next.span.start >= operator_end
+                                    && next.span.end <= self.right_start()
+                            })
+                    });
         let layout =
             self.layout(is_left_short, left_may_break, has_line_comment_on_operator_line, f);
         // Block comments on the operator's line stay there while it fits; this group breaks before
@@ -652,6 +685,22 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AssignmentLike<'a, '_> {
                 }
             }
         };
+
+        if keeps_operator_line {
+            // The operator starts the next line with the comments after it, and the
+            // right side follows them.
+            let rest = format_once(|f| {
+                write!(f, [hard_line_break(), self.operator()]);
+                FormatTrailingComments::Comments(operator_line_run).fmt(f);
+                if has_line_comment_on_operator_line {
+                    write!(f, [hard_line_break(), right]);
+                } else {
+                    write_layout(&right, f);
+                }
+            });
+            write!(f, [group(&left), wrapped_indent(false, &rest)]);
+            return;
+        }
 
         let wrapped = self.left_wraps_line(f);
         let rest = format_once(|f| {
