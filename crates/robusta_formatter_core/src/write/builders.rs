@@ -779,6 +779,14 @@ impl<C> Group<'_, '_, C> {
         self
     }
 
+    /// Try every other break, those of [`measure_flat`](Self::measure_flat) groups
+    /// included, before breaking this group.
+    #[must_use]
+    pub fn last_resort(mut self) -> Self {
+        self.mode = GroupMode::LastResort;
+        self
+    }
+
     /// Measure every line of the flat content; see [tag::Group::with_fits_all_lines].
     #[must_use]
     pub fn fits_all_lines(mut self, fits_all_lines: bool) -> Self {

@@ -328,6 +328,9 @@ where
                                 GroupMode::MeasureFlat => {
                                     w!(f, [token("measure_flat: true,"), space()]);
                                 }
+                                GroupMode::LastResort => {
+                                    w!(f, [token("last_resort: true,"), space()]);
+                                }
                                 GroupMode::Expand => {
                                     w!(f, [token("expand: true,"), space()]);
                                 }

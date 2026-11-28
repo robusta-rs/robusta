@@ -102,7 +102,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TypeArguments<'a>> {
                 write!(
                     f,
                     [group(&format_args!("<", soft_block_indent(&format_once(entries)), ">"))
-                        .measure_flat()]
+                        .last_resort()]
                 );
             } else {
                 format_delimited_frame(f, "<", ">", None, entries);

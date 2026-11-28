@@ -673,6 +673,28 @@ fn a_lone_simple_type_argument_splits_only_when_no_other_break_fits() {
     ");
 }
 
+/// The break after a cast's `)` and the break before a qualified name's `.`
+/// come before a lone simple type argument splits.
+#[test]
+fn a_lone_simple_type_argument_splits_after_a_cast_or_a_qualified_name_breaks() {
+    let source = "class Example { java.util.concurrent.atomic.AtomicReference<OrderLine> reference; \
+        void run() { Object lines = (Comparable<Object>) Collections.<OrderLine>emptyList(); } }";
+    let options =
+        Options { line_width: line_width(54), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class Example {
+      java.util.concurrent.atomic
+        .AtomicReference<OrderLine> reference;
+
+      void run() {
+        Object lines =
+          (Comparable<Object>)
+            Collections.<OrderLine>emptyList();
+      }
+    }
+    ");
+}
+
 #[test]
 fn comments_before_a_declarator_keep_their_lines_when_it_breaks_from_its_type() {
     let source = "class A { LongTypeName /* c */ longVariableName; \
@@ -2519,6 +2541,25 @@ fn a_cast_of_a_call_breaks_after_the_operator_before_its_closing_paren() {
             customer,
             region
           );
+      }
+    }
+    ");
+}
+
+/// A cast of a cast breaks after the outer `)` before the inner cast's types.
+#[test]
+fn a_cast_of_a_cast_breaks_after_the_outer_closing_paren_first() {
+    let source = "class Example { void run() { \
+        Object lines = (Comparable<Object>) (Map<String, List<OrderLine>>) session.getAttribute(KEY); } }";
+    let options =
+        Options { line_width: line_width(54), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class Example {
+      void run() {
+        Object lines =
+          (Comparable<Object>)
+            (Map<String, List<OrderLine>>)
+              session.getAttribute(KEY);
       }
     }
     ");

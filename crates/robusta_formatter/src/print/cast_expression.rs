@@ -37,7 +37,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CastExpression<'a>> {
         });
         "(".fmt(f);
         // Only a comment breaks the line inside the parentheses. The types
-        // break only when they do not fit before the break after the `)`.
+        // break only when they do not fit before the break after the `)`,
+        // and an enclosing cast breaks after its `)` first.
         if !format_after_opening_paren_comment(f, self.ty.span().start, &format_types)
             && let Some(types) = f.intern(&format_types)
         {
@@ -46,7 +47,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CastExpression<'a>> {
             if will_break {
                 block_indent(&types).fmt(f);
             } else {
-                group(&types).measure_flat().fmt(f);
+                group(&types).last_resort().fmt(f);
             }
         }
         let has_deferred_comment =

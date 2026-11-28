@@ -236,12 +236,8 @@ impl<'a> Printer<'a> {
                                 args.with_print_mode(PrintMode::Flat)
                                     .with_fits_all_lines(group.fits_all_lines()),
                             );
-                            let fits = self.fits(
-                                queue,
-                                stack,
-                                indent_stack,
-                                group.mode() == GroupMode::MeasureFlat,
-                            )?;
+                            let fits =
+                                self.fits(queue, stack, indent_stack, group.mode().is_fallback())?;
                             stack.pop(TagKind::Group)?;
 
                             if fits { PrintMode::Flat } else { PrintMode::Expanded }
@@ -1331,6 +1327,7 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
 
                 let group_mode = match group.mode() {
                     GroupMode::MeasureFlat if !self.allow_fallback_breaks => PrintMode::Flat,
+                    GroupMode::LastResort => PrintMode::Flat,
                     GroupMode::Flat | GroupMode::MeasureFlat => args.mode(),
                     GroupMode::Expand | GroupMode::Propagated => PrintMode::Expanded,
                 };
@@ -1604,8 +1601,8 @@ mod tests {
     use robusta_allocator::{Allocator, Vec as ArenaVec};
 
     use crate::{
-        BestFittingElement, Document, Format, FormatElement, FormatState, Formatter, IndentStyle,
-        LineEnding, Printed, Printer, PrinterOptions, SimpleFormatContext,
+        BestFittingElement, Document, Format, FormatElement, FormatState, Formatter, GroupMode,
+        IndentStyle, LineEnding, Printed, Printer, PrinterOptions, SimpleFormatContext,
         builders::{
             align, align_to_column, best_fitting_variant, block_indent, dedent_to_root, empty_line,
             expand_parent, group, hard_line_break, if_group_breaks, if_group_fits_on_line, indent,
@@ -2658,6 +2655,42 @@ Group 1 breaks"
 
         assert_eq!(print("fits"), "short\nfits");
         assert_eq!(print("much too long"), "broken");
+    }
+
+    #[test]
+    fn last_resort_group_breaks_after_every_other_break() {
+        let allocator = Allocator::default();
+        let options =
+            PrinterOptions { print_width: PrintWidth::new(10), ..PrinterOptions::default() };
+        // A list in `mode` and a fallback break, the list first or second.
+        let print = |list_first, mode| {
+            let root = test_format_with(|f| {
+                let separator = test_format_with(|f| {
+                    write!(f, [group(&indent(&soft_line_break_or_space())).measure_flat()]);
+                });
+                let content = test_format_with(|f| {
+                    write!(f, [token("<"), soft_block_indent(&token("bbbbbb")), token(">")]);
+                });
+                let list = match mode {
+                    GroupMode::MeasureFlat => group(&content).measure_flat(),
+                    GroupMode::LastResort => group(&content).last_resort(),
+                    _ => group(&content),
+                };
+                if list_first {
+                    write!(f, [list, separator, token("cc")]);
+                } else {
+                    write!(f, [token("aa"), separator, list]);
+                }
+            });
+            format_simple_with_options(&allocator, &root, options.clone()).as_code().to_string()
+        };
+
+        // A fallback break counts a later fallback group's breaks, but not a last resort's.
+        assert_eq!(print(false, GroupMode::MeasureFlat), "aa <\n  bbbbbb\n>");
+        assert_eq!(print(false, GroupMode::LastResort), "aa\n  <bbbbbb>");
+        // A last resort counts the fallback breaks after it, as a fallback group does.
+        assert_eq!(print(true, GroupMode::Flat), "<\n  bbbbbb\n> cc");
+        assert_eq!(print(true, GroupMode::LastResort), "<bbbbbb>\n  cc");
     }
 
     /// Prints `content` in an expanded `fits_last_line` group followed by `rest`,

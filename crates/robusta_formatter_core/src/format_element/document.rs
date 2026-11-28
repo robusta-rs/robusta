@@ -7,7 +7,7 @@ use crate::{PrintResult, Printed, Printer, PrinterOptions};
 
 use super::{
     FormatElement, FormatElements, Interned,
-    tag::{self, GroupMode, LabelId, Tag, TagKind},
+    tag::{self, LabelId, Tag, TagKind},
 };
 
 /// A formatted document.
@@ -198,7 +198,7 @@ impl FormatElements for [FormatElement<'_>] {
                     FormatElement::Tag(EndLineSuffix) => suffix_depth -= 1,
                     // A fallback cannot contribute a soft break to a surrounding layout.
                     FormatElement::Tag(StartGroup(group))
-                        if flat_depth > 0 || group.mode() == GroupMode::MeasureFlat =>
+                        if flat_depth > 0 || group.mode().is_fallback() =>
                     {
                         flat_depth += 1;
                     }
