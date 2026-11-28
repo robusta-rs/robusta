@@ -229,8 +229,8 @@ fn comments_moved_behind_a_return_throw_or_switch_rule_semicolon_keep_their_line
           case 1, 2 -> 10; // c
           default -> throw error; // error
         };
-        return n; // seed
-        /* counted */
+        return n // seed
+        ; /* counted */
       }
     }
     ");
@@ -505,8 +505,9 @@ fn comments_moved_behind_a_return_or_throw_semicolon_that_break_a_group() {
           return d; // c
         while (a);
         {
-          if (c) return n; // seed
-          /* counted */
+          if (c)
+            return n // seed
+            ; /* counted */
         }
         return switch (x) {
           default ->
@@ -524,8 +525,9 @@ fn comments_moved_behind_a_return_or_throw_semicolon_that_break_a_group() {
           return d; // c
         while (a);
         {
-          if (c) return n; // seed
-          /* counted */
+          if (c)
+            return n // seed
+            ; /* counted */
         }
         return switch (x) {
           default -> throw error; /* first

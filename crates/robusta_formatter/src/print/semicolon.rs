@@ -1,7 +1,9 @@
 // Adapted from https://github.com/oxc-project/oxc/blob/732a8e42617296af7aed3b0b374cb76863ac0efc/crates/oxc_formatter/src/print/semicolon.rs
 
 use crate::formatter::prelude::*;
-use crate::formatter::trivia::{FormatTrailingComments, format_documentation_comments_before};
+use crate::formatter::trivia::{
+    FormatTrailingComments, format_comment_slice_before_token, format_documentation_comments_before,
+};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use robusta_ast::{Comment, Expression};
 use robusta_span::{GetSpan, Span};
@@ -26,7 +28,9 @@ pub fn trailing_comments_to_move_behind_semicolon<'a>(
 /// Formats `content` followed by a `;`, printing the content's same-line
 /// trailing comments behind the `;`: `int x /* c */;` becomes `int x; /* c */`.
 /// A line comment among them does not break the group around the statement:
-/// `while (a) x = 1 // c` + `;` prints `while (a) x = 1; // c`.
+/// `while (a) x = 1 // c` + `;` prints `while (a) x = 1; // c`. Where a comment
+/// trails the `;` on its line, the `;` keeps its line instead, as moving it
+/// would join that comment to the line comment.
 ///
 /// Documentation comments stay before a `;` that could precede a declaration.
 /// A trailing `///` can move when `else` or a `do`'s `while` follows instead.
@@ -39,11 +43,20 @@ pub struct FormatContentWithSemicolon<'b, T> {
     node_end: u32,
     /// Whether documentation comments before the `;` stay before it.
     keeps_documentation_comments: bool,
+    /// Whether a documentation comment after the `;` takes the comments on its
+    /// line with it to lead what follows the node.
+    documentation_comments_lead_next: bool,
 }
 
 impl<'b, T> FormatContentWithSemicolon<'b, T> {
     pub fn new(content: &'b T, content_end: u32, node_end: u32) -> Self {
-        Self { content, content_end, node_end, keeps_documentation_comments: true }
+        Self {
+            content,
+            content_end,
+            node_end,
+            keeps_documentation_comments: true,
+            documentation_comments_lead_next: false,
+        }
     }
 
     /// For a `;` no declaration can follow, as one ending a module directive
@@ -51,6 +64,13 @@ impl<'b, T> FormatContentWithSemicolon<'b, T> {
     /// behind it as well.
     pub fn moving_documentation_comments(mut self) -> Self {
         self.keeps_documentation_comments = false;
+        self
+    }
+
+    /// For an import, which sorting moves without a documentation comment on
+    /// the line after its `;`: the comments on that line lead what follows.
+    pub fn leading_next_with_documentation_comments(mut self) -> Self {
+        self.documentation_comments_lead_next = true;
         self
     }
 
@@ -98,6 +118,22 @@ where
                 comments =
                     trailing_comments_to_move_behind_semicolon(f, content_end, self.node_end);
             }
+        }
+        let after = f.comments().comments_trailing_on_line_after(self.node_end);
+        let comment_follows = !after.is_empty()
+            && (!self.documentation_comments_lead_next
+                || !after.iter().any(Comment::is_documentation));
+        // The line comment must be the last before the `;`: one on a line of its
+        // own after it would stay between them.
+        if comments.last().is_some_and(Comment::is_line)
+            && f.comments().comments_before(self.node_end).last() == comments.last()
+            && comment_follows
+        {
+            // In front of the line comment, the `;` would bring the comment
+            // after it onto that line.
+            format_comment_slice_before_token(comments, f);
+            ";".fmt(f);
+            return;
         }
         ";".fmt(f);
         FormatTrailingComments::Dangling(comments).fmt(f);

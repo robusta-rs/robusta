@@ -98,31 +98,31 @@ fn terminator_comments_follow_the_semicolon_that_ends_their_construct() {
 }
 
 #[test]
-fn line_comments_merge_after_their_terminating_semicolon() {
+fn a_semicolon_keeps_its_line_between_two_line_comments() {
     use crate::fixtures::format_source_with_options;
     use robusta_formatter::{JavadocOptions, Options};
 
     for (input, expected) in [
         (
             "class A { void f() { call() // c\n; // keep\n} }",
-            "class A {\n  void f() {\n    call(); // c // keep\n  }\n}\n",
+            "class A {\n  void f() {\n    call() // c\n    ; // keep\n  }\n}\n",
         ),
         (
             "class A { void f() { int value = 42 // c\n; // keep\n} }",
-            "class A {\n  void f() {\n    int value = 42; // c // keep\n  }\n}\n",
+            "class A {\n  void f() {\n    int value = 42 // c\n    ; // keep\n  }\n}\n",
         ),
         (
             "class A { int value = 42 // c\n; // keep\n}",
-            "class A {\n  int value = 42; // c // keep\n}\n",
+            "class A {\n  int value = 42 // c\n  ; // keep\n}\n",
         ),
-        // Joining the comments changes the directive's rule list.
+        // Joined, the comments would change the directive's rule list.
         (
             "class A { long n = 2l // robusta-disable-line\n; // why\n}",
-            "class A {\n  long n = 2l; // robusta-disable-line // why\n}\n",
+            "class A {\n  long n = 2l // robusta-disable-line\n  ; // why\n}\n",
         ),
-        ("import a.A // c\n; // keep\nclass B {}", "import a.A; // c // keep\n\nclass B {}\n"),
-        ("package p // c\n; // keep\nclass A {}", "package p; // c // keep\n\nclass A {}\n"),
-        ("enum E { A // c\n; // keep\n}", "enum E {\n  A; // c // keep\n}\n"),
+        ("import a.A // c\n; // keep\nclass B {}", "import a.A // c\n; // keep\n\nclass B {}\n"),
+        ("package p // c\n; // keep\nclass A {}", "package p // c\n; // keep\n\nclass A {}\n"),
+        ("enum E { A // c\n; // keep\n}", "enum E {\n  A // c\n  ; // keep\n}\n"),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
             let options = Options { javadoc, ..Options::default() };
@@ -132,23 +132,23 @@ fn line_comments_merge_after_their_terminating_semicolon() {
 }
 
 #[test]
-fn enum_semicolon_comments_keep_their_order_behind_a_moved_line_comment() {
+fn enum_semicolon_comments_keep_their_order_after_a_line_comment() {
     use crate::fixtures::format_source_with_options;
     use robusta_formatter::{JavadocOptions, Options};
 
     for (input, expected) in [
         (
             "enum E { ONLY, // x\n; /* after */ /* more */ }",
-            "enum E {\n  ONLY; // x\n  /* after */ /* more */\n}\n",
+            "enum E {\n  ONLY // x\n  ; /* after */ /* more */\n}\n",
         ),
         (
             "enum E { ONLY // x\n; /* after */ /* more */ }",
-            "enum E {\n  ONLY; // x\n  /* after */ /* more */\n}\n",
+            "enum E {\n  ONLY // x\n  ; /* after */ /* more */\n}\n",
         ),
-        ("enum E { ONLY, // x\n; /// d\n}", "enum E {\n  ONLY; // x\n  /// d\n}\n"),
+        ("enum E { ONLY, // x\n; /// d\n}", "enum E {\n  ONLY // x\n  ; /// d\n}\n"),
         (
             "enum E { ONLY, // x\n; /// d\nvoid f() {} }",
-            "enum E {\n  ONLY; // x\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  ONLY // x\n  ; /// d\n\n  void f() {}\n}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
@@ -166,11 +166,11 @@ fn enum_semicolon_comments_before_a_member_trail_it_as_a_field_terminator_keeps_
     for (input, expected) in [
         (
             "enum E { A // c\n; // keep\nvoid f() {} }",
-            "enum E {\n  A; // c // keep\n\n  void f() {}\n}\n",
+            "enum E {\n  A // c\n  ; // keep\n\n  void f() {}\n}\n",
         ),
         (
             "class C { int x = 1 // c\n; // keep\nvoid f() {} }",
-            "class C {\n  int x = 1; // c // keep\n\n  void f() {}\n}\n",
+            "class C {\n  int x = 1 // c\n  ; // keep\n\n  void f() {}\n}\n",
         ),
         (
             "enum E { A, /* c */\n; /* after */\nvoid f() {} }",
@@ -183,12 +183,12 @@ fn enum_semicolon_comments_before_a_member_trail_it_as_a_field_terminator_keeps_
         ("enum E { A,\n; // keep\nvoid f() {} }", "enum E {\n  A; // keep\n\n  void f() {}\n}\n"),
         (
             "enum E { A // c\n, ; // keep\nvoid f() {} }",
-            "enum E {\n  A; // c // keep\n\n  void f() {}\n}\n",
+            "enum E {\n  A // c\n  ; // keep\n\n  void f() {}\n}\n",
         ),
-        // A `///` on the line would become part of the moved comment.
+        // A `///` on the line would become part of the line comment.
         (
             "enum E { A // c\n, ; /// d\nvoid f() {} }",
-            "enum E {\n  A; // c\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  A // c\n  ; /// d\n\n  void f() {}\n}\n",
         ),
         // A comment on its own line before the `;` leads the member, with what follows it.
         (
@@ -199,7 +199,7 @@ fn enum_semicolon_comments_before_a_member_trail_it_as_a_field_terminator_keeps_
         ("enum E { A\\u003b // y\n}", "enum E {\n  A; // y\n}\n"),
         (
             "enum E { A // c\n\\u002c \\u003b /// d\nvoid f() {} }",
-            "enum E {\n  A; // c\n\n  /// d\n  void f() {}\n}\n",
+            "enum E {\n  A // c\n  ; /// d\n\n  void f() {}\n}\n",
         ),
         // With no member, it stays in the body, whatever follows the enum.
         (
@@ -303,10 +303,10 @@ fn documentation_comments_stay_before_a_terminator_a_declaration_could_follow() 
             "class A { int value = 42 /// c\n; /* t\n u */ // keep\n}",
             "class A {\n  int value = 42 /// c\n  ; /* t\n u */ // keep\n}\n",
         ),
-        // Joining the moved line comment would make the documentation part of it.
+        // Joined, the line comment would make the documentation part of it.
         (
             "class A { int value = 42 // c\n; /// keep\nint next; }",
-            "class A {\n  int value = 42; // c\n  /// keep\n  int next;\n}\n",
+            "class A {\n  int value = 42 // c\n  ; /// keep\n  int next;\n}\n",
         ),
         // No declaration follows a module directive or a switch rule.
         ("module m { requires a /** doc */; }", "module m {\n  requires a; /** doc */\n}\n"),
@@ -324,22 +324,22 @@ fn documentation_comments_stay_before_a_terminator_a_declaration_could_follow() 
 }
 
 #[test]
-fn a_documentation_comment_after_a_moved_line_comment_leads_the_next_member() {
+fn a_documentation_comment_after_a_member_line_comment_keeps_the_semicolon_line() {
     use crate::fixtures::format_source_with_options;
     use robusta_formatter::{JavadocOptions, Options};
 
     for (input, expected) in [
         (
             "class A { int x = 1 // x\n; /// d\nvoid f() {} }",
-            "class A {\n  int x = 1; // x\n\n  /// d\n  void f() {}\n}\n",
+            "class A {\n  int x = 1 // x\n  ; /// d\n\n  void f() {}\n}\n",
         ),
         (
             "class A { int x = 1 // x\n; /** d */\nvoid f() {} }",
-            "class A {\n  int x = 1; // x\n\n  /** d */\n  void f() {}\n}\n",
+            "class A {\n  int x = 1 // x\n  ; /** d */\n\n  void f() {}\n}\n",
         ),
         (
             "abstract class A { abstract void g() // x\n; /// d\nclass B {} }",
-            "abstract class A {\n  abstract void g(); // x\n\n  /// d\n  class B {}\n}\n",
+            "abstract class A {\n  abstract void g() // x\n  ; /// d\n\n  class B {}\n}\n",
         ),
         (
             "class A { void g // x\n() {} /// d\nvoid f() {} }",
@@ -347,16 +347,16 @@ fn a_documentation_comment_after_a_moved_line_comment_leads_the_next_member() {
         ),
         (
             "@interface A { int a() // x\n; /// d\nint b(); }",
-            "@interface A {\n  int a(); // x\n\n  /// d\n  int b();\n}\n",
+            "@interface A {\n  int a() // x\n  ; /// d\n\n  int b();\n}\n",
         ),
-        ("package p // x\n; /// d\nclass A {}", "package p; // x\n\n/// d\nclass A {}\n"),
+        ("package p // x\n; /// d\nclass A {}", "package p // x\n; /// d\n\nclass A {}\n"),
         (
             "class A { void g() { foo() // x\n; /// d\n\nbar(); } }",
-            "class A {\n  void g() {\n    foo(); // x\n    /// d\n\n    bar();\n  }\n}\n",
+            "class A {\n  void g() {\n    foo() // x\n    ; /// d\n\n    bar();\n  }\n}\n",
         ),
         (
             "class A { int x = 1 // x\n\\u003b /// d\nvoid f() {} }",
-            "class A {\n  int x = 1; // x\n\n  /// d\n  void f() {}\n}\n",
+            "class A {\n  int x = 1 // x\n  ; /// d\n\n  void f() {}\n}\n",
         ),
         // No line comment moves behind a `}`.
         (
@@ -364,15 +364,15 @@ fn a_documentation_comment_after_a_moved_line_comment_leads_the_next_member() {
             "class A {\n  void f() {\n    g(); // x\n  } /// d\n\n  void h() {}\n}\n",
         ),
         // With no member to lead, it starts a line of its own.
-        ("class A { int x = 1 // x\n; /// d\n}", "class A {\n  int x = 1; // x\n  /// d\n}\n"),
+        ("class A { int x = 1 // x\n; /// d\n}", "class A {\n  int x = 1 // x\n  ; /// d\n}\n"),
         // The comments after it on later lines stay inside the body.
         (
             "class A { int x = 1 // x\n; /// d\n// e\n}",
-            "class A {\n  int x = 1; // x\n  /// d\n  // e\n}\n",
+            "class A {\n  int x = 1 // x\n  ; /// d\n  // e\n}\n",
         ),
         (
             "class A { void g() { foo() // x\n; /** d */\n\n// e\n} }",
-            "class A {\n  void g() {\n    foo(); // x\n    /** d */\n\n    // e\n  }\n}\n",
+            "class A {\n  void g() {\n    foo() // x\n    ; /** d */\n\n    // e\n  }\n}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
@@ -383,94 +383,103 @@ fn a_documentation_comment_after_a_moved_line_comment_leads_the_next_member() {
 }
 
 #[test]
-fn a_documentation_comment_after_a_moved_line_comment_goes_to_what_follows_a_body() {
+fn a_documentation_comment_after_a_body_line_comment_keeps_the_semicolon_line() {
     use crate::fixtures::format_source_with_options;
     use robusta_formatter::{JavadocOptions, Options};
 
     for (input, expected) in [
-        // The next statement leads with it, as if written on a line of its own.
-        ("if (c) foo() // x\n; /// d\n\nbar();", "if (c) foo(); // x\n/// d\n\nbar();\n"),
-        ("if (c) foo() // x\n; /** d */\n\nbar();", "if (c) foo(); // x\n/** d */\n\nbar();\n"),
+        // The `;` keeps its line with it, whatever follows the body.
+        ("if (c) foo() // x\n; /// d\n\nbar();", "if (c)\n  foo() // x\n  ; /// d\n\nbar();\n"),
+        (
+            "if (c) foo() // x\n; /** d */\n\nbar();",
+            "if (c)\n  foo() // x\n  ; /** d */\n\nbar();\n",
+        ),
         (
             "if (c) a(); else foo() // x\n; /// d\n\nbar();",
-            "if (c) a();\nelse foo(); // x\n/// d\n\nbar();\n",
+            "if (c) a();\nelse\n  foo() // x\n  ; /// d\n\nbar();\n",
         ),
-        ("while (c) foo() // x\n; /// d\n\nbar();", "while (c) foo(); // x\n/// d\n\nbar();\n"),
-        ("for (;;) foo() // x\n; /// d\n\nbar();", "for (;;) foo(); // x\n/// d\n\nbar();\n"),
+        (
+            "while (c) foo() // x\n; /// d\n\nbar();",
+            "while (c)\n  foo() // x\n  ; /// d\n\nbar();\n",
+        ),
+        ("for (;;) foo() // x\n; /// d\n\nbar();", "for (;;)\n  foo() // x\n  ; /// d\n\nbar();\n"),
         (
             "for (int i : a) foo() // x\n; /// d\n\nbar();",
-            "for (int i : a) foo(); // x\n/// d\n\nbar();\n",
+            "for (int i : a)\n  foo() // x\n  ; /// d\n\nbar();\n",
         ),
-        ("l: foo() // x\n; /// d\n\nbar();", "l:\nfoo(); // x\n/// d\n\nbar();\n"),
+        ("l: foo() // x\n; /// d\n\nbar();", "l:\nfoo() // x\n; /// d\n\nbar();\n"),
         (
             "l: while (c) if (e) foo() // x\n; /// d\n\nbar();",
-            "l:\nwhile (c) if (e) foo(); // x\n/// d\n\nbar();\n",
+            "l:\nwhile (c)\n  if (e)\n    foo() // x\n    ; /// d\n\nbar();\n",
         ),
         (
             r"if (c) foo() // x
 \u003b /// d
 
 bar();",
-            "if (c) foo(); // x\n/// d\n\nbar();\n",
+            "if (c)\n  foo() // x\n  ; /// d\n\nbar();\n",
         ),
-        // No declaration can follow the semicolon before a continuation keyword.
-        ("do foo() // x\n; /// d\nwhile (c);", "do\n  foo(); // x /// d\nwhile (c);\n"),
-        ("do foo() // x\n; /** d */\nwhile (c);", "do\n  foo(); // x\n/** d */\nwhile (c);\n"),
-        ("if (c) foo() // x\n; /// d\nelse bar();", "if (c) foo(); // x /// d\nelse bar();\n"),
+        // Before a continuation keyword too, where no declaration can follow.
+        ("do foo() // x\n; /// d\nwhile (c);", "do\n  foo() // x\n  ; /// d\nwhile (c);\n"),
+        ("do foo() // x\n; /** d */\nwhile (c);", "do\n  foo() // x\n  ; /** d */\nwhile (c);\n"),
+        (
+            "if (c) foo() // x\n; /// d\nelse bar();",
+            "if (c)\n  foo() // x\n  ; /// d\nelse bar();\n",
+        ),
         ("if (c) foo() // x\n; /** d */ else bar();", "if (c) foo(); // x\n/** d */ else bar();\n"),
         (
             "if (c) foo() // x\n; /* c */ /// d\n\nelse bar();",
-            "if (c) foo(); // x\n/* c */ /// d\n\nelse bar();\n",
+            "if (c)\n  foo() // x\n  ; /* c */ /// d\nelse bar();\n",
         ),
         (
             "if (c) while (a) foo(1l) /* note */ // robusta-disable-line\n; /// d\nelse bar();",
-            "if (c) while (a) foo(1l); /* note */ // robusta-disable-line\n/// d\nelse bar();\n",
+            "if (c)\n  while (a)\n    foo(1l) /* note */ // robusta-disable-line\n    ; /// d\nelse bar();\n",
         ),
         (
             "do foo() // robusta-disable-next-line -- reason\n; /// d\nwhile (c);",
-            "do\n  foo(); // robusta-disable-next-line -- reason\n/// d\nwhile (c);\n",
+            "do\n  foo() // robusta-disable-next-line -- reason\n  ; /// d\nwhile (c);\n",
         ),
-        // The next group or rule leads with it, at the label's indent.
+        // In a switch group or rule too.
         (
             "switch (x) { case 1: foo() // x\n; /// d\ncase 2: bar(); }",
-            "switch (x) {\n  case 1:\n    foo(); // x\n  /// d\n  case 2:\n    bar();\n}\n",
+            "switch (x) {\n  case 1:\n    foo() // x\n    ; /// d\n  case 2:\n    bar();\n}\n",
         ),
         (
             "switch (x) { case 1: if (c) foo() // x\n; /// d\ncase 2: bar(); }",
-            "switch (x) {\n  case 1:\n    if (c) foo(); // x\n  /// d\n  case 2:\n    bar();\n}\n",
+            "switch (x) {\n  case 1:\n    if (c)\n      foo() // x\n      ; /// d\n  case 2:\n    bar();\n}\n",
         ),
         (
             "switch (x) { case 1 -> foo() // x\n; /// d\n\ndefault -> {} }",
-            "switch (x) {\n  case 1 -> foo(); // x /// d\n\n  default -> {}\n}\n",
+            "switch (x) {\n  case 1 -> foo() // x\n  ; /// d\n\n  default -> {}\n}\n",
         ),
         (
             "switch (x) { case 1 -> throw e() // x\n; /// d\n\ndefault -> {} }",
-            "switch (x) {\n  case 1 -> throw e(); // x /// d\n\n  default -> {}\n}\n",
+            "switch (x) {\n  case 1 ->\n    throw e() // x\n    ; /// d\n\n  default -> {}\n}\n",
         ),
         (
             "switch (x) { case 1 -> foo() // x\n; /// d  \n/// more\ndefault -> {} }",
-            "switch (x) {\n  case 1 -> foo(); // x\n  /// d  \n  /// more\n  default -> {}\n}\n",
+            "switch (x) {\n  case 1 -> foo() // x\n  ; /// d  \n  /// more\n  default -> {}\n}\n",
         ),
         // A `///` comment moves behind this `;` too, as no declaration can follow it.
         (
             "switch (x) { case 1 -> foo() /// D\n; /** d */\ndefault -> {} }",
-            "switch (x) {\n  case 1 -> foo(); /// D\n  /** d */\n  default -> {}\n}\n",
+            "switch (x) {\n  case 1 -> foo() /// D\n  ; /** d */\n  default -> {}\n}\n",
         ),
-        // With nothing to lead, it follows the entry that ends the body.
-        ("if (c) foo() // x\n; /// d\n", "if (c) foo(); // x\n/// d\n"),
-        ("foo() // x\n; /* c */ /// d\n", "foo(); // x\n/* c */ /// d\n"),
-        ("l: foo() // x\n; /// d\n", "l:\nfoo(); // x\n/// d\n"),
+        // And at the end of a body.
+        ("if (c) foo() // x\n; /// d\n", "if (c)\n  foo() // x\n  ; /// d\n"),
+        ("foo() // x\n; /* c */ /// d\n", "foo() // x\n; /* c */ /// d\n"),
+        ("l: foo() // x\n; /// d\n", "l:\nfoo() // x\n; /// d\n"),
         (
             "switch (x) { case 1: foo() // x\n; /// d\n}",
-            "switch (x) {\n  case 1:\n    foo(); // x\n  /// d\n}\n",
+            "switch (x) {\n  case 1:\n    foo() // x\n    ; /// d\n}\n",
         ),
         (
             "switch (x) { case 1: foo() // x\n; /** d */ /* e */\n}",
-            "switch (x) {\n  case 1:\n    foo(); // x\n  /** d */ /* e */\n}\n",
+            "switch (x) {\n  case 1:\n    foo() // x\n    ; /** d */ /* e */\n}\n",
         ),
         (
             "switch (x) { default -> foo() // x\n; /// d\n}",
-            "switch (x) {\n  default -> foo(); // x /// d\n}\n",
+            "switch (x) {\n  default -> foo() // x\n  ; /// d\n}\n",
         ),
         // A line comment that leads the `;` stays before it, so nothing joins it.
         ("while (c) // x\n; /// d\nbar();", "while (c) // x\n; /// d\nbar();\n"),
@@ -494,13 +503,13 @@ bar();",
     for (input, expected) in [
         (
             "module m { requires a /// x\n; /// d\n\nrequires b; }",
-            "module m {\n  requires a; /// x /// d\n\n  requires b;\n}\n",
+            "module m {\n  requires a /// x\n  ; /// d\n\n  requires b;\n}\n",
         ),
         (
             "module m { requires a /// x\n; /// d\n// own\n}",
-            "module m {\n  requires a; /// x /// d\n  // own\n}\n",
+            "module m {\n  requires a /// x\n  ; /// d\n  // own\n}\n",
         ),
-        ("module m { requires a // x\n; /// d\n}", "module m {\n  requires a; // x /// d\n}\n"),
+        ("module m { requires a // x\n; /// d\n}", "module m {\n  requires a // x\n  ; /// d\n}\n"),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
             let options = Options { javadoc, ..Options::default() };
@@ -510,26 +519,26 @@ bar();",
 }
 
 #[test]
-fn markdown_comments_cross_semicolons_before_continuation_keywords() {
+fn markdown_comments_keep_the_semicolon_line_before_continuation_keywords() {
     use crate::fixtures::{format_stable_with_options, line_width};
     use robusta_formatter::{JavadocOptions, Options};
 
     for (statement, expected) in [
         (
             "if (c) foo() /// first\n; /// second\nelse bar();",
-            "    if (c) foo(); /// first /// second\n    else bar();\n",
+            "    if (c)\n      foo() /// first\n      ; /// second\n    else bar();\n",
         ),
         (
             "do foo() /// first\n; /// second\nwhile (c);",
-            "    do\n      foo(); /// first /// second\n    while (c);\n",
+            "    do\n      foo() /// first\n      ; /// second\n    while (c);\n",
         ),
         (
             "if (c) again: while (d) foo() /// first\n\\u003b /// second\nelse bar();",
-            "    if (c)\n      again:\n      while (d) foo(); /// first /// second\n    else bar();\n",
+            "    if (c)\n      again:\n      while (d)\n        foo() /// first\n        ; /// second\n    else bar();\n",
         ),
         (
             "do while (d) foo() /// first\n; /* second */\nwhile (c);",
-            "    do\n      while (d) foo(); /// first\n    /* second */\n    while (c);\n",
+            "    do\n      while (d)\n        foo() /// first\n        ; /* second */\n    while (c);\n",
         ),
         (
             "if (c) { foo() /// first\n; /// second\nclass Local {} } else bar();",
@@ -594,7 +603,7 @@ fn a_documentation_comment_after_a_member_keeps_the_lines_that_continue_it() {
 }
 
 #[test]
-fn multiline_block_comments_after_a_line_comment_moved_behind_a_semicolon_start_the_next_line() {
+fn a_multiline_block_comment_after_a_line_comment_keeps_the_semicolon_line() {
     use crate::fixtures::format_source_with_options;
     use cow_utils::CowUtils;
     use robusta_formatter::{JavadocOptions, LineEnding, Options};
@@ -602,19 +611,19 @@ fn multiline_block_comments_after_a_line_comment_moved_behind_a_semicolon_start_
     for (input, expected) in [
         (
             "class A { int value = 42 // c\n; /* t\n u */ // keep\n}",
-            "class A {\n  int value = 42; // c\n  /* t\n u */ // keep\n}\n",
+            "class A {\n  int value = 42 // c\n  ; /* t\n u */ // keep\n}\n",
         ),
         (
             "class A { int value = 42 // c\n; /* t\n * u */\n}",
-            "class A {\n  int value = 42; // c\n  /* t\n   * u */\n}\n",
+            "class A {\n  int value = 42 // c\n  ; /* t\n     * u */\n}\n",
         ),
         (
             "class A { void f() { call() // c\n; /* t\n u */\n} }",
-            "class A {\n  void f() {\n    call(); // c\n    /* t\n u */\n  }\n}\n",
+            "class A {\n  void f() {\n    call() // c\n    ; /* t\n u */\n  }\n}\n",
         ),
         (
             "class A { void f() { int value = 42 // c\n; /* t\n * u */\n} }",
-            "class A {\n  void f() {\n    int value = 42; // c\n    /* t\n     * u */\n  }\n}\n",
+            "class A {\n  void f() {\n    int value = 42 // c\n    ; /* t\n       * u */\n  }\n}\n",
         ),
         (
             "class A { void f() { if (a) x = 1 // c\n; /* t\n u */ else y(); } }",
@@ -634,7 +643,7 @@ fn multiline_block_comments_after_a_line_comment_moved_behind_a_semicolon_start_
 }
 
 #[test]
-fn block_comments_after_a_line_comment_start_the_next_line() {
+fn code_keeps_its_line_rather_than_join_two_comments() {
     use crate::fixtures::{format_source_with_options, line_width};
     use robusta_formatter::Options;
 
@@ -658,9 +667,10 @@ int total = totalFor(order, customer, shippingRegion); // note
           c,
           d
         );
-        int y = 1; // first // second
-        int n = 2; // seed
-        /* counted */
+        int y = 1 // first
+        ; // second
+        int n = 2 // seed
+        ; /* counted */
         int total = totalFor(
           order,
           customer,
@@ -672,8 +682,8 @@ int total = totalFor(order, customer, shippingRegion); // note
     assert_snapshot!(fmt("class A { int f() { return 2 // seed\n; /* one\ntwo */ } }"), @"
     class A {
       int f() {
-        return 2; // seed
-        /* one
+        return 2 // seed
+        ; /* one
     two */
       }
     }
@@ -833,11 +843,12 @@ fn documentation_comments_lay_out_as_ordinary_comments_unless_that_changes_what_
 }";
     assert_snapshot!(fmt(source), @"
     class Order {
-      int a = /// B /// C
+      int a /// B
+        = /// C
         1 /// D
       ;
-      int y = 1; // first
-      /// Documents z.
+      int y = 1 // first
+      ; /// Documents z.
       int z;
 
       enum Kind {
@@ -930,24 +941,21 @@ count /* kept */
     ");
 }
 
-/// After a package's line comment they lead what follows. An import keeps
-/// them, as sorting moves them with it, so after the last import the second
-/// pass reads them as leading the declaration.
+/// A package's or import's `;` keeps its line with a multi-line block comment
+/// after it, which in front of the line comment it would bring onto that line.
 #[test]
-fn multiline_block_comments_after_a_moved_package_or_import_line_comment_start_the_next_line() {
+fn a_multiline_block_comment_keeps_a_package_or_import_semicolon_line() {
     use crate::fixtures::format_source_with_options;
     use robusta_formatter::{JavadocOptions, Options};
 
     for (input, expected) in [
         (
             "import a.A // c\n; /* t\n u */\nclass B {}",
-            "import a.A; // c\n/* t\n u */\n\nclass B {}\n\
-             ---------- Not idempotent (second pass) ----------\n\
-             import a.A; // c\n\n/* t\n u */\n\nclass B {}\n",
+            "import a.A // c\n; /* t\n u */\n\nclass B {}\n",
         ),
         (
             "package p // c\n; /* t\n * u */\nclass A {}",
-            "package p; // c\n\n/* t\n * u */\nclass A {}\n",
+            "package p // c\n; /* t\n   * u */\n\nclass A {}\n",
         ),
     ] {
         for javadoc in [None, Some(JavadocOptions::default())] {
@@ -962,7 +970,10 @@ fn multiline_block_comments_after_a_moved_package_or_import_line_comment_start_t
 #[test]
 fn comments_after_a_bare_keyword_statement_keep_their_order() {
     let source = "class A { void f() { return // c\n; /* t\n u */ } }";
-    assert_eq!(fmt(source), "class A {\n  void f() {\n    return; // c\n    /* t\n u */\n  }\n}\n");
+    assert_eq!(
+        fmt(source),
+        "class A {\n  void f() {\n    return // c\n    ; /* t\n u */\n  }\n}\n"
+    );
 }
 
 #[test]
@@ -1074,6 +1085,11 @@ fn annotation_element_default_comments_lay_out_as_an_assignment() {
         ("int f() /* a */ // b\ndefault 1;", "int f() /* a */ default // b\n    1;"),
         ("int[] f() // c\ndefault {1};", "int[] f() default // c\n    {1};"),
         ("@B\nint f() // c\ndefault 1;", "@B\n  int f() default // c\n    1;"),
+        // In front of `// c`, `default` would bring `// d` onto that line.
+        ("int f() // c\ndefault // d\n1;", "int f() // c\n    default // d\n    1;"),
+        ("int f() // c\ndefault /// d\n1;", "int f() // c\n    default /// d\n    1;"),
+        // A block comment ending the line leads the value, so nothing joins `// c`.
+        ("int f() // c\ndefault /* d */\n1;", "int f() default // c\n    /* d */\n    1;"),
     ] {
         let source = format!("@interface A {{ {source} }}");
         assert_eq!(fmt(&source), format!("@interface A {{\n  {expected}\n}}\n"));

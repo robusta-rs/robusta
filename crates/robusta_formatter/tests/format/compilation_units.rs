@@ -182,7 +182,7 @@ fn detached_import_comments_keep_their_slot_beside_terminator_comments() {
         ),
         (
             "import z.Z // first\n; /* second */",
-            "import a.A;\n// orphan\n\nimport b.B;\nimport z.Z; // first\n/* second */\n",
+            "import a.A;\n// orphan\n\nimport b.B;\nimport z.Z // first\n; /* second */\n",
         ),
     ] {
         let source = format!("{declaration}\n// orphan\n\nimport a.A;\nimport b.B;\n");
@@ -508,7 +508,7 @@ fn comments_around_an_import_terminator_move_with_their_import() {
             "import a.B;\nimport b.C;\n/* c */\nimport c.D;\n",
         ),
         ("import a.B\n/* c */;\n", "import a.B;\n/* c */\n"),
-        ("import b.C;\nimport a.B // c\n; /* d */\n", "import a.B; // c\n/* d */\nimport b.C;\n"),
+        ("import b.C;\nimport a.B // c\n; /* d */\n", "import a.B // c\n; /* d */\nimport b.C;\n"),
         ("import b.B; /* c */\nimport a.A;\n", "import a.A;\nimport b.B; /* c */\n"),
         (
             "import b.C;\nimport a.B;\n// c\nimport c.D;\n",

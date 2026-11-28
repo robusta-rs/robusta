@@ -77,7 +77,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ImportDeclaration<'a>> {
             } else {
                 name.end
             };
-            FormatContentWithSemicolon::new(&content, content_end, self.span.end).fmt(f);
+            FormatContentWithSemicolon::new(&content, content_end, self.span.end)
+                .leading_next_with_documentation_comments()
+                .fmt(f);
         });
         labelled(LabelId::of(JavaLabels::ImportDeclaration), &declaration).fmt(f);
     }

@@ -2755,32 +2755,29 @@ fn name_comments_keep_their_tokens() {
     ];
     for template in templates {
         for gap in [" /* a */ // b\n", "\n/* a */\n// b\n", " /* a */ /* b */ "] {
-            // `block_comment_after_a_constructor_type_parameter_line_comment_spaces_on_a_second_pass`
-            // pins the constructor's second pass.
-            if gap == " /* a */ // b\n" && template.starts_with("class C {#<#T#>#C#") {
-                continue;
-            }
             crate::fixtures::check_contract_at_widths_and_modes(&template.cow_replace('#', gap));
         }
     }
 }
 
-/// A line comment that moves behind a member's `;`, or behind the empty `()`
-/// and body after a name, ends the member's line, so the block comment after
-/// it starts the next line and leads the next member, below the blank line
-/// between them.
+/// A member's `;` keeps its line with the block comment after it, which in
+/// front of the line comment it would bring onto that line. A line comment
+/// that rides past the empty `()` and body after a method's name or a
+/// constructor's type parameters ends the member's line, so the block comment
+/// after it starts the next line and leads the next member, below the blank
+/// line between them.
 #[test]
-fn block_comment_after_a_member_line_comment_leads_the_next_member() {
+fn a_block_comment_after_a_member_line_comment_keeps_the_terminator_line() {
     let source = "class C { int x = 1 // c\n; /* field */\nint y = 2 // d\n; /* next field */\n\
                   int z;\nvoid m // e\n() {} /* method */\nabstract void a // f\n(); /* bodyless */\n\
                   <T> // g\nC() {} /* constructor */\nvoid n() {} }\n\
                   enum E { A // h\n; /* constant */\nE() {} }";
     assert_snapshot!(fmt(source), @"
     class C {
-      int x = 1; // c
-      /* field */
-      int y = 2; // d
-      /* next field */
+      int x = 1 // c
+      ; /* field */
+      int y = 2 // d
+      ; /* next field */
       int z;
 
       void m() {} // e
@@ -2796,30 +2793,49 @@ fn block_comment_after_a_member_line_comment_leads_the_next_member() {
     }
 
     enum E {
-      A; // h
+      A // h
+      ; /* constant */
 
-      /* constant */
       E() {}
     }
     ");
 }
 
-/// The type parameters' line comment rides past the constructor's name, so
-/// the block comment after the name starts the next line. The second pass
-/// reads it on a line of its own and puts a space before the `(`.
+/// In front of the type parameters' line comment, the constructor's name would
+/// bring the block comment after it onto that line, so the name moves to the
+/// next line, as after a return type.
 #[test]
-fn block_comment_after_a_constructor_type_parameter_line_comment_spaces_on_a_second_pass() {
+fn a_comment_after_a_constructor_name_moves_it_below_a_type_parameter_line_comment() {
     assert_snapshot!(fmt("class C { <T> // b\nC /* a */ () {} }"), @"
     class C {
-      <T> C // b
-      /* a */() {}
-    }
-    ---------- Not idempotent (second pass) ----------
-    class C {
-      <T> C // b
-      /* a */ () {}
+      <T> // b
+          C /* a */() {}
     }
     ");
+}
+
+/// A comment after the constructor's `(` stays off the type parameters' line
+/// comment, which moves after the `(` or `{`, or rides past an empty `()` and
+/// body, so the name stays on the type parameters' line.
+#[test]
+fn a_comment_after_a_constructors_parameters_keeps_its_name_after_the_type_parameters() {
+    for (source, expected) in [
+        (
+            "class C { <T> // b\nC(int a) {} /* x */ }",
+            "class C {\n  <T> C( // b\n    int a\n  ) {} /* x */\n}\n",
+        ),
+        (
+            "class C { <T> // b\nC() { foo(); } // x\n}",
+            "class C {\n  <T> C() { // b\n    foo();\n  } // x\n}\n",
+        ),
+        (
+            "class C { <T> // b\nC() {} /* x */ int y; }",
+            "class C {\n  <T> C() {} // b\n\n  /* x */ int y;\n}\n",
+        ),
+    ] {
+        assert_eq!(fmt(source), expected);
+        crate::fixtures::check_contract_at_widths_and_modes(source);
+    }
 }
 
 /// A name's line comment that moved after the `(` of a parameter list has
