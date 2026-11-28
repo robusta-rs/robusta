@@ -4,7 +4,7 @@ use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
 use crate::formatter::separated::argument_list_end;
 use crate::print::call_like_expression::arguments::format_arguments;
-use crate::print::names::format_class_type_name;
+use crate::print::names::{class_type_wraps_line, format_class_type_name};
 use crate::print::type_parameters::format_type_arguments_before_name;
 use crate::print::{FormatWrite, format_dot_before_nodeless_operand};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
@@ -42,7 +42,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, QualifiedClassInstanceCreation<'a>>
                     &self.annotations(),
                     &self.name(),
                     self.type_args(),
-                    true,
+                    false,
                 );
             });
             format_creation(f, &class, class_end, &self.args(), self.body());
@@ -51,20 +51,18 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, QualifiedClassInstanceCreation<'a>>
     }
 }
 
-/// Whether a comment that ends its line comes before the type arguments of the
-/// class that `creation` creates, so the code after them continues a wrapped
-/// line.
+/// Whether a comment that ends its line comes before the type arguments of one
+/// of the names of the class that `creation` creates, so the code after them
+/// continues a wrapped line.
 fn created_class_wraps_line(f: &JavaFormatter<'_, '_>, creation: &AstNodes<'_, '_>) -> bool {
-    let (name_end, has_type_args) = match creation {
-        AstNodes::ClassInstanceCreation(creation) => {
-            (creation.ty.name_span().end, creation.ty.type_arguments().is_some())
-        }
+    match creation {
+        AstNodes::ClassInstanceCreation(creation) => class_type_wraps_line(f, &creation.ty),
         AstNodes::QualifiedClassInstanceCreation(creation) => {
-            (creation.name.span.end, creation.type_args.is_some())
+            creation.type_args.is_some()
+                && comment_ends_line_before_opener(creation.name.span.end, f)
         }
         _ => unreachable!("only a class instance creation creates a class"),
-    };
-    has_type_args && comment_ends_line_before_opener(name_end, f)
+    }
 }
 
 /// `new` and its constructor type arguments, up to the class.

@@ -1,6 +1,6 @@
 use robusta_allocator::Vec;
 use robusta_ast::{
-    Annotation, BindingIdentifier, FieldAccess, IdentifierName, IdentifierReference,
+    Annotation, BindingIdentifier, ClassType, FieldAccess, IdentifierName, IdentifierReference,
     LabelIdentifier, QualifiedClassType, QualifiedName, QualifiedTypeName, SimpleClassType,
     TypeArguments,
 };
@@ -15,11 +15,12 @@ use crate::print::member_expression::{
     Member, MemberLayout, format_comments_around_member_separator, format_member_after_object,
     format_member_separator,
 };
+use crate::print::type_parameters::is_type_declaration;
 use crate::print::{FormatWrite, format_indented_continuation_with_mode};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::is_header_condition;
 use crate::utils::statement_body::{
-    format_after_comments_before_opener, write_same_line_comments_before_opener,
+    comment_ends_line_before_opener, format_after_comments_before_opener_with_indent,
 };
 
 // A name keeps its source spelling, escapes included.
@@ -148,26 +149,39 @@ fn format_dotted_name<'a, Part>(
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, SimpleClassType<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let created = is_created_class(self.parent());
-        format_class_type_name(f, &self.annotations(), &self.name(), self.args(), created);
+        let in_header = is_header_type(self.parent());
+        format_class_type_name(f, &self.annotations(), &self.name(), self.args(), in_header);
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, QualifiedClassType<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let in_header = is_header_type(self.parent());
         let (first, types) = dotted_parts!(self, qualifier, as_qualified, it => *it, f);
         let parts = types.iter().rev().map(|ty| (Span::new(last_name_start(ty), ty.span.end), ty));
         format_dotted_name(&first, parts, true, f, |ty, f| {
-            let created = is_created_class(ty.parent());
-            format_class_type_name(f, &ty.annotations(), &ty.name(), ty.args(), created);
+            format_class_type_name(f, &ty.annotations(), &ty.name(), ty.args(), in_header);
         });
     }
 }
 
-/// Whether a class type with this parent names the class an instance creation
-/// creates.
-fn is_created_class(parent: &AstNodes<'_, '_>) -> bool {
-    matches!(parent, AstNodes::ClassInstanceCreation(_))
+/// Whether a class type with this parent is, or starts, a method's return type
+/// or an entry of a `throws`, `extends`, or `implements` clause: every class
+/// type a method or type declaration holds outside its parameters and body.
+fn is_header_type(parent: &AstNodes<'_, '_>) -> bool {
+    match parent {
+        AstNodes::QualifiedClassType(_) | AstNodes::ArrayType(_) => is_header_type(parent.parent()),
+        AstNodes::MethodDeclaration(_) | AstNodes::ConstructorDeclaration(_) => true,
+        _ => is_type_declaration(parent),
+    }
+}
+
+/// Whether a comment that ends its line comes before the type arguments of
+/// one of `ty`'s names, so the code after `ty` continues a wrapped line.
+pub fn class_type_wraps_line(f: &JavaFormatter<'_, '_>, ty: &ClassType<'_>) -> bool {
+    ty.self_and_qualifiers().any(|ty| {
+        ty.type_arguments().is_some() && comment_ends_line_before_opener(ty.name_span().end, f)
+    })
 }
 
 /// Where the last name starts, with its annotations.
@@ -176,16 +190,15 @@ fn last_name_start(ty: &QualifiedClassType<'_>) -> u32 {
 }
 
 /// One name of a class type, with its annotations and type arguments. The
-/// comments before a `created` class's type arguments stay before the `<`.
-/// Before any other type's `<`, those on the name's line trail the name and
-/// those on later lines lead the type arguments, so a block comment that ends
-/// its line prints as it does once joined to the `<`.
+/// comments before the type arguments stay before the `<`. When one ends its
+/// line, the type arguments start the next line, indented as a wrapped line,
+/// or twice `in_header`, as a moved method name is.
 pub fn format_class_type_name<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     annotations: &AstNode<'_, 'a, Vec<'a, Annotation<'a>>>,
     name: &(impl Format<'a, JavaFormatContext<'a>> + GetSpan),
     args: Option<AstNode<'_, 'a, TypeArguments<'a>>>,
-    created: bool,
+    in_header: bool,
 ) {
     format_type_annotations(f, annotations);
     let Some(args) = args else {
@@ -194,10 +207,5 @@ pub fn format_class_type_name<'a>(
     };
     let end = name.span().end;
     format_content_without_comments_after(name, end, f);
-    if created {
-        format_after_comments_before_opener(end, b'<', &args, f);
-    } else {
-        write_same_line_comments_before_opener(end, b'<', f);
-        args.fmt(f);
-    }
+    format_after_comments_before_opener_with_indent(end, b'<', &args, in_header, f);
 }

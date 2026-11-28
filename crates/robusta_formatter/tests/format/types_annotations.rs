@@ -755,18 +755,128 @@ fn shared_type_annotation_and_list_boundaries_keep_comments_local() {
     ");
 }
 
-/// A class type's name takes its trailing comments, so a line comment rides
-/// to the end of the line. A `///` comment stops before the declared name,
-/// since behind the `;` it would document the next field.
+/// A comment that ends its line before a class type's `<` stays there, and
+/// the type arguments start the next line, indented as a wrapped line.
 #[test]
-fn comments_before_type_arguments_trail_the_type_name() {
-    let source = "class A {\n  Map // e\n  <K, V> z;\n  List /// d\n  <T> x;\n  int y;\n}\n";
+fn a_comment_ending_the_line_before_type_arguments_stays_before_the_opener() {
+    let source = "class A {\n  Map // e\n  <K, V> z;\n  List /// d\n  <T> x;\n  \
+                  java.util.List // c\n  <@NonNull /* annotated argument */ String> values;\n  \
+                  boolean f(Object o) {\n    return o instanceof java.util.Map // m\n    \
+                  <String, Integer> m;\n  }\n}\n";
     assert_snapshot!(fmt(source), @"
     class A {
-      Map<K, V> z; // e
-      List<T> /// d
-        x;
-      int y;
+      Map // e
+        <K, V> z;
+      List /// d
+        <T> x;
+      java.util.List // c
+        <@NonNull /* annotated argument */ String> values;
+
+      boolean f(Object o) {
+        return o
+          instanceof
+          java.util.Map // m
+            <String, Integer> m;
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+/// Type arguments moved after a comment are indented twice in a return type or
+/// a declaration clause, and the code after them continues their line.
+#[test]
+fn type_arguments_moved_after_a_comment_start_a_wrapped_line_for_the_code_after_them() {
+    let source = "class Ledger<E> extends Base // base
+<E>.Entry implements Comparable // order
+<Ledger<E>>, Serializable {
+  java.util.List // c
+  <String> values = computeTheValues(alphaArgument, betaArgument, gammaArgument, deltaArgument, e);
+  Object entry = new Outer // o
+  <String>.Inner<Integer>(alphaArgument, betaArgument, gammaArgument, deltaArgument, epsilonArgument);
+  <T> List // t
+  <T> entries(int alphaArgument, int betaArgument, int gammaArgument, int deltaArgument, int epsilon) throws Failure // f
+  <T>.Kind { return null; }
+}
+";
+    assert_snapshot!(fmt(source), @"
+    class Ledger<E>
+        extends Base // base
+            <E>.Entry
+        implements Comparable // order
+                <Ledger<E>>,
+            Serializable {
+      java.util.List // c
+        <String> values = computeTheValues(
+          alphaArgument,
+          betaArgument,
+          gammaArgument,
+          deltaArgument,
+          e
+        );
+      Object entry = new Outer // o
+        <String>.Inner<Integer>(
+          alphaArgument,
+          betaArgument,
+          gammaArgument,
+          deltaArgument,
+          epsilonArgument
+        );
+
+      <T> List // t
+          <T> entries(
+            int alphaArgument,
+            int betaArgument,
+            int gammaArgument,
+            int deltaArgument,
+            int epsilon
+          ) throws Failure // f
+              <T>.Kind {
+        return null;
+      }
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+/// An array creation's initializer and a record pattern's components continue
+/// the line of type arguments moved after a comment.
+#[test]
+fn an_initializer_or_record_components_continue_type_arguments_moved_after_a_comment() {
+    let source = "class A {
+  Object kinds = new Class // c
+  <?>[] {String.class, Integer.class, Long.class, Double.class, Float.class, Short.class, Byte.class};
+  boolean f(Object o) {
+    return o instanceof Box // b
+    <String>(var alphaComponent, var betaComponent, var gammaComponent, var deltaComponent, var e);
+  }
+}
+";
+    assert_snapshot!(fmt(source), @"
+    class A {
+      Object kinds = new Class // c
+        <?>[] {
+          String.class,
+          Integer.class,
+          Long.class,
+          Double.class,
+          Float.class,
+          Short.class,
+          Byte.class,
+        };
+
+      boolean f(Object o) {
+        return o
+          instanceof
+          Box // b
+            <String>(
+              var alphaComponent,
+              var betaComponent,
+              var gammaComponent,
+              var deltaComponent,
+              var e
+            );
+      }
     }
     ");
     check_contract_at_widths_and_modes(source);
@@ -785,7 +895,8 @@ fn block_comments_ending_the_line_before_type_arguments_trail_the_name() {
 
       List /* a
       b */<T> m(
-        Map /* e */<K, V> p // f
+        Map /* e */ // f
+          <K, V> p
       ) {
         return (List /** g */<T>) p;
       }
@@ -815,8 +926,8 @@ fn line_comments_before_annotation_and_type_argument_lists_keep_their_lines() {
         (1)
       int x;
       List
-      /* b */
-      <T> y;
+        /* b */
+        <T> y;
     }
     ");
 }

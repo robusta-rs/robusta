@@ -1229,6 +1229,27 @@ fn a_comment_kept_before_an_opener_indents_as_a_wrapped_line_and_a_calls_moves_i
 }
 
 #[test]
+fn a_comment_kept_before_type_arguments_indents_them_twice_in_a_return_type() {
+    let source = "class Audit {
+  List // unsorted
+  <Order> orders;
+  List // newest first
+  <Order> recent() { return orders; }
+}";
+    assert_snapshot!(fmt(source), @"
+    class Audit {
+      List // unsorted
+        <Order> orders;
+
+      List // newest first
+          <Order> recent() {
+        return orders;
+      }
+    }
+    ");
+}
+
+#[test]
 fn a_line_comment_after_an_opening_parenthesis_keeps_its_line() {
     let source = "class Orders {
   boolean ship() {

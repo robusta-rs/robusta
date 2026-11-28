@@ -2677,8 +2677,8 @@ fn comments_around_a_member_dot_keep_their_side_or_move_in_front_of_it() {
       }
 
       List
-      /* before the opener */
-      <String> generic;
+        /* before the opener */
+        <String> generic;
     }
     ");
 }

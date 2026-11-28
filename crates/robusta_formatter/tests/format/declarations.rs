@@ -553,12 +553,11 @@ fn comments_after_a_method_name_trail_it() {
     check_contract_at_widths_and_modes(source);
 }
 
-/// The line comment after the name, the type parameters, or a return type's
-/// name rides to the body's `{` and stays on its line.
+/// The line comment after the name or the type parameters rides to the body's
+/// `{` and stays on its line.
 #[test]
 fn line_comment_in_a_method_header_follows_the_body_brace() {
-    let source = "class Z { void m // c\n(int a) { f(); } <U> // r\nU last(U v) { return v; } \
-                  List // t\n<T> g() { return null; } }";
+    let source = "class Z { void m // c\n(int a) { f(); } <U> // r\nU last(U v) { return v; } }";
     assert_snapshot!(fmt(source), @"
     class Z {
       void m(int a) { // c
@@ -567,10 +566,6 @@ fn line_comment_in_a_method_header_follows_the_body_brace() {
 
       <U> U last(U v) { // r
         return v;
-      }
-
-      List<T> g() { // t
-        return null;
       }
     }
     ");
