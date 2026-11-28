@@ -522,12 +522,15 @@ jobs:
           name: robusta-winget-manifest-${{ needs.version.outputs.number }}
           path: winget
 
-      # The hosted Windows images do not include winget.
-      - name: Install winget
+      # The image's winget predates the manifests' schema version, and its
+      # validation rejects their schema headers.
+      - name: Update winget
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           Install-Module Microsoft.WinGet.Client -RequiredVersion 1.29.380 -Repository PSGallery -Force
-          Repair-WinGetPackageManager -Version v1.29.380 -AllUsers
+          Repair-WinGetPackageManager -Version v1.29.380
 
       # A local server stands in for the release, which does not exist yet.
       - name: Test manifest
@@ -544,6 +547,7 @@ jobs:
           trap 'kill "$server"' EXIT
           for _ in $(seq 30); do curl -fs "$url/robusta-x86_64-pc-windows-msvc.exe.sha256" > /dev/null && break; sleep 1; done
 
+          winget --version
           winget validate --manifest "$manifest"
           winget settings --enable LocalManifestFiles
           winget install --manifest "$manifest" --accept-package-agreements --disable-interactivity
