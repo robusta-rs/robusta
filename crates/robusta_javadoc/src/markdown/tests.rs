@@ -195,6 +195,25 @@ fn a_dash_line_after_a_setext_heading_is_a_thematic_break() {
 }
 
 #[test]
+fn an_indented_first_line_of_a_container_after_a_paragraph_is_code() {
+    // The code line is an `other`, so a dash line after it is a thematic break.
+    assert_eq!(read("x\n>     a\n> ---"), "root[paragraph, quote[other, other]]");
+    assert_eq!(read("x\n-     a\n  ---"), "root[paragraph, list[item[other, other]]]");
+    assert_eq!(read("x\n>      ---\n> ---"), "root[paragraph, quote[other, other]]");
+    assert_eq!(read("[a]: b\n>     c\n> d"), "root[other, quote[other, paragraph]]");
+    assert_eq!(read("x\n>     - a\n> ---"), "root[paragraph, quote[other, other]]");
+    // The item stays tight, as it does for HTML and a list the quote opens with.
+    assert_eq!(
+        read("- x\n  > >     a\n  > > ---"),
+        "root[list[item[paragraph, quote[quote[other, other]]]]]"
+    );
+    assert_eq!(read("- x\n  > <b>"), "root[list[item[paragraph, quote[other]]]]");
+    assert_eq!(read("- x\n  > 2. c"), "root[list[item[paragraph, quote[list[item[paragraph]]]]]]");
+    // Three columns in, the line is paragraph text, which the dash line underlines.
+    assert_eq!(read("x\n>    a\n> ---"), "root[paragraph, quote[other]]");
+}
+
+#[test]
 fn tabs_in_list_and_fence_indentation_take_their_columns() {
     fn code(content: &str) -> (String, usize) {
         let mut node = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
