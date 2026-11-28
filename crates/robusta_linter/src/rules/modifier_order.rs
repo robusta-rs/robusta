@@ -31,7 +31,7 @@ declare_robusta_lint! {
             ConstructorDeclaration,
             CompactConstructorDeclaration,
             FormalParameter,
-            CatchClause,
+            CatchParameter,
             LocalVariableDeclaration,
         ],
     }
@@ -142,7 +142,7 @@ fn modifier_list(kind: AstKind<'_>) -> Option<&[Modifier<'_>]> {
         AstKind::ConstructorDeclaration(node) => &node.modifiers,
         AstKind::CompactConstructorDeclaration(node) => &node.modifiers,
         AstKind::FormalParameter(node) => &node.modifiers,
-        AstKind::CatchClause(node) => &node.modifiers,
+        AstKind::CatchParameter(node) => &node.modifiers,
         AstKind::LocalVariableDeclaration(node) => &node.modifiers,
         _ => return None,
     })

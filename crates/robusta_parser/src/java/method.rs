@@ -181,7 +181,7 @@ impl<'a> Parser<'a> {
             return self.separated_list(
                 TokenKind::Comma,
                 |parser| matches!(parser.kind(), TokenKind::LBrace | TokenKind::Semicolon),
-                Self::class_type,
+                |parser| parser.class_type().map(Type::from),
             );
         }
         Ok(Vec::new_in(self))

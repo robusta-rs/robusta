@@ -126,8 +126,11 @@ impl<'a> Parser<'a> {
         let start = modifiers.first().map_or(class_token.span, robusta_span::GetSpan::span);
         let name = self.binding_identifier("a class name")?;
         let type_params = self.type_parameters()?;
-        let superclass =
-            if self.eat(TokenKind::Extends).is_some() { Some(self.class_type()?) } else { None };
+        let superclass = if self.eat(TokenKind::Extends).is_some() {
+            Some(self.class_type()?.into())
+        } else {
+            None
+        };
         let interfaces = self.implements_clause()?;
         let permits = self.permits_clause()?;
         let body = self.type_body()?;
@@ -158,7 +161,7 @@ impl<'a> Parser<'a> {
             self.separated_list(
                 TokenKind::Comma,
                 |parser| parser.kind() == TokenKind::Permits || parser.kind() == TokenKind::LBrace,
-                Self::class_type,
+                |parser| parser.class_type().map(Type::from),
             )?
         } else {
             Vec::new_in(self)
@@ -266,7 +269,7 @@ impl<'a> Parser<'a> {
             return self.separated_list(
                 TokenKind::Comma,
                 |parser| parser.kind() == TokenKind::Permits || parser.kind() == TokenKind::LBrace,
-                Self::class_type,
+                |parser| parser.class_type().map(Type::from),
             );
         }
         Ok(Vec::new_in(self))

@@ -155,7 +155,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CaseLabel<'a>> {
         write!(f, ["case", space()]);
         let constants = self.constants();
         let mut constants_iter = constants.iter();
-        format_undelimited_list(f, false, node.constants.len(), |f, index| {
+        format_undelimited_list(f, node.constants.len(), |f, index| {
             let constant = constants_iter.next().expect("case constant");
             if index + 1 < constants.len() || node.has_default {
                 write!(f, [constant, ",", line_suffix_boundary()]);
@@ -177,7 +177,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CasePatternLabel<'a>> {
         // The guard follows the patterns as a binary operand follows the
         // operator, so a line comment before `when` breaks the line there.
         group(&format_once(|f| {
-            format_undelimited_list(f, false, count, |f, index| {
+            format_undelimited_list(f, count, |f, index| {
                 let pattern = self.patterns().get(index).expect("pattern");
                 pattern.fmt(f);
                 if index + 1 < count {

@@ -210,6 +210,18 @@ impl GetAddress for ResourceAccess<'_> {
     }
 }
 
+impl GetAddress for CatchType<'_> {
+    // `#[inline]` because compiler should boil this down to a single assembly instruction
+    #[inline]
+    fn address(&self) -> Address {
+        match self {
+            Self::Union(it) => GetAddress::address(it),
+            Self::Simple(it) => GetAddress::address(it),
+            Self::Qualified(it) => GetAddress::address(it),
+        }
+    }
+}
+
 impl GetAddress for VariableInitializer<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]

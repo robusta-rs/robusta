@@ -373,6 +373,21 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
+    fn visit_catch_parameter(&mut self, it: &'a CatchParameter<'a>) {
+        walk_catch_parameter(self, it);
+    }
+
+    #[inline]
+    fn visit_catch_type(&mut self, it: &'a CatchType<'a>) {
+        walk_catch_type(self, it);
+    }
+
+    #[inline]
+    fn visit_union_type(&mut self, it: &'a UnionType<'a>) {
+        walk_union_type(self, it);
+    }
+
+    #[inline]
     fn visit_synchronized_statement(&mut self, it: &'a SynchronizedStatement<'a>) {
         walk_synchronized_statement(self, it);
     }
@@ -906,6 +921,11 @@ pub trait Visit<'a>: Sized {
     #[inline]
     fn visit_catch_clauses(&mut self, it: &'a Vec<'a, CatchClause<'a>>) {
         walk_catch_clauses(self, it);
+    }
+
+    #[inline]
+    fn visit_class_types(&mut self, it: &'a Vec<'a, ClassType<'a>>) {
+        walk_class_types(self, it);
     }
 
     #[inline]
@@ -1751,11 +1771,35 @@ pub mod walk {
         let kind = AstKind::CatchClause(it);
         visitor.enter_node(kind);
         visitor.enter_scope(&it.scope_id);
-        visitor.visit_modifiers(&it.modifiers);
-        visitor.visit_types(&it.types);
-        visitor.visit_binding_identifier(&it.name);
+        visitor.visit_catch_parameter(&it.param);
         visitor.visit_block(&it.block);
         visitor.leave_scope();
+        visitor.leave_node(kind);
+    }
+
+    #[inline]
+    pub fn walk_catch_parameter<'a, V: Visit<'a>>(visitor: &mut V, it: &'a CatchParameter<'a>) {
+        let kind = AstKind::CatchParameter(it);
+        visitor.enter_node(kind);
+        visitor.visit_modifiers(&it.modifiers);
+        visitor.visit_catch_type(&it.ty);
+        visitor.visit_binding_identifier(&it.name);
+        visitor.leave_node(kind);
+    }
+
+    #[inline]
+    pub fn walk_catch_type<'a, V: Visit<'a>>(visitor: &mut V, it: &'a CatchType<'a>) {
+        match it {
+            CatchType::Union(it) => visitor.visit_union_type(it),
+            match_class_type!(CatchType) => visitor.visit_class_type(it.to_class_type()),
+        }
+    }
+
+    #[inline]
+    pub fn walk_union_type<'a, V: Visit<'a>>(visitor: &mut V, it: &'a UnionType<'a>) {
+        let kind = AstKind::UnionType(it);
+        visitor.enter_node(kind);
+        visitor.visit_class_types(&it.types);
         visitor.leave_node(kind);
     }
 
@@ -2789,6 +2833,13 @@ pub mod walk {
     pub fn walk_catch_clauses<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Vec<'a, CatchClause<'a>>) {
         for el in it {
             visitor.visit_catch_clause(el);
+        }
+    }
+
+    #[inline]
+    pub fn walk_class_types<'a, V: Visit<'a>>(visitor: &mut V, it: &'a Vec<'a, ClassType<'a>>) {
+        for el in it {
+            visitor.visit_class_type(el);
         }
     }
 

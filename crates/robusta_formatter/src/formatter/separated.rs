@@ -70,21 +70,17 @@ pub fn format_empty_parentheses(f: &mut JavaFormatter<'_, '_>, span: Span) {
 }
 
 /// An undelimited list whose entries own their separators and comments,
-/// with wrapped lines as [`wrapped_indent`] places them.
+/// with wrapped lines one level deeper.
 pub fn format_undelimited_list<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
-    dart: bool,
     count: usize,
     render: impl FnMut(&mut JavaFormatter<'_, 'ast>, usize),
 ) {
     write!(
         f,
-        [group(&wrapped_indent(
-            dart,
-            &format_once(|f| {
-                format_list_entries(f, count, render);
-            }),
-        ))]
+        [group(&indent(&format_once(|f| {
+            format_list_entries(f, count, render);
+        })))]
     );
 }
 

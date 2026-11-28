@@ -377,8 +377,8 @@ fn annotated_declaration_span(kind: AstKind<'_>) -> Option<Span> {
         | AstKind::ConstructorDeclaration(_)
         | AstKind::CompactConstructorDeclaration(_)
         | AstKind::FormalParameter(_)
+        | AstKind::CatchParameter(_)
         | AstKind::LocalVariableDeclaration(_) => Some(kind.span()),
-        AstKind::CatchClause(node) => Some(Span::new(node.span.start, node.name.span.end)),
         _ => None,
     }
 }
@@ -1005,10 +1005,11 @@ mod tests {
             "class A {{ void f(Object o, Iterable<A> xs) throws Exception {{ \
             for ({suppressed} A x : xs) {{}} for (final public A y : xs) {{}} \
             try ({suppressed} A r = new A(); final public A s = new A()) {{}} \
-            if (o instanceof {suppressed} A a && o instanceof final public A b) {{}} }} }}"
+            if (o instanceof {suppressed} A a && o instanceof final public A b) {{}} \
+            try {{}} catch ({suppressed} E e) {{}} try {{}} catch (final public E e) {{}} }} }}"
         );
 
-        assert_eq!(rule_ids(&lint(&source)), ["modifier-order"; 3]);
+        assert_eq!(rule_ids(&lint(&source)), ["modifier-order"; 4]);
     }
 
     #[test]

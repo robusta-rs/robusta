@@ -576,6 +576,30 @@ impl GetSpan for CatchClause<'_> {
     }
 }
 
+impl GetSpan for CatchParameter<'_> {
+    #[inline]
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl GetSpan for CatchType<'_> {
+    fn span(&self) -> Span {
+        match self {
+            Self::Union(it) => GetSpan::span(&**it),
+            Self::Simple(it) => GetSpan::span(&**it),
+            Self::Qualified(it) => GetSpan::span(&**it),
+        }
+    }
+}
+
+impl GetSpan for UnionType<'_> {
+    #[inline]
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
 impl GetSpan for SynchronizedStatement<'_> {
     #[inline]
     fn span(&self) -> Span {

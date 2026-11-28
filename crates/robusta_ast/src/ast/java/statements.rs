@@ -302,7 +302,7 @@ pub enum ResourceAccess<'a> {
     Field(Box<'a, FieldAccess<'a>>) = 1,
 }
 
-/// `catch (T | U name) block` with multi-catch type alternatives.
+/// `catch (parameter) block` (JLS §14.20).
 #[ast(visit)]
 #[scope]
 #[derive(Debug)]
@@ -310,11 +310,41 @@ pub enum ResourceAccess<'a> {
 pub struct CatchClause<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub modifiers: Vec<'a, Modifier<'a>>,
-    pub types: Vec<'a, Type<'a>>,
-    pub name: BindingIdentifier<'a>,
+    pub param: CatchParameter<'a>,
     pub block: Block<'a>,
     pub scope_id: Cell<Option<ScopeId>>,
+}
+
+/// The `T | U name` between a `catch` clause's parentheses.
+#[ast(visit)]
+#[derive(Debug)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
+pub struct CatchParameter<'a> {
+    pub node_id: Cell<NodeId>,
+    /// From the first modifier or the type to the name.
+    pub span: Span,
+    pub modifiers: Vec<'a, Modifier<'a>>,
+    pub ty: CatchType<'a>,
+    pub name: BindingIdentifier<'a>,
+}
+
+/// The exception type a `catch` clause handles, or a multi-catch's alternatives.
+#[ast(visit)]
+#[derive(Debug)]
+#[generate_derive(ContentEq, GetAddress, GetSpan)]
+pub enum CatchType<'a> {
+    Union(Box<'a, UnionType<'a>>) = 0,
+    INHERIT(ClassType<'a>),
+}
+
+/// `T | U`, the alternatives of a multi-catch (JLS §14.20).
+#[ast(visit)]
+#[derive(Debug)]
+#[generate_derive(ContentEq, GetSpan, UnstableAddress)]
+pub struct UnionType<'a> {
+    pub node_id: Cell<NodeId>,
+    pub span: Span,
+    pub types: Vec<'a, ClassType<'a>>,
 }
 
 /// `synchronized (lock) block` (JLS §14.19).

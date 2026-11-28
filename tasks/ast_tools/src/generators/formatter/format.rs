@@ -48,6 +48,8 @@ const AST_NODE_WITHOUT_PRINTING_COMMENTS_LIST: &[&str] = &[
     // The `try` statement prints `catch` with the comments before it,
     // and the next clause or the statement prints those after it.
     "CatchClause",
+    // Its printer prints the parentheses, keeping the comments before the `)` inside them.
+    "CatchParameter",
 ];
 
 pub(super) fn generate(schema: &Schema) -> String {

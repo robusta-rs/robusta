@@ -1027,6 +1027,34 @@ impl CatchClause<'_> {
     }
 }
 
+impl CatchParameter<'_> {
+    /// Get [`NodeId`] of [`CatchParameter`].
+    #[inline]
+    pub fn node_id(&self) -> NodeId {
+        self.node_id.get()
+    }
+
+    /// Set [`NodeId`] of [`CatchParameter`].
+    #[inline]
+    pub fn set_node_id(&self, node_id: NodeId) {
+        self.node_id.set(node_id);
+    }
+}
+
+impl UnionType<'_> {
+    /// Get [`NodeId`] of [`UnionType`].
+    #[inline]
+    pub fn node_id(&self) -> NodeId {
+        self.node_id.get()
+    }
+
+    /// Set [`NodeId`] of [`UnionType`].
+    #[inline]
+    pub fn set_node_id(&self, node_id: NodeId) {
+        self.node_id.set(node_id);
+    }
+}
+
 impl SynchronizedStatement<'_> {
     /// Get [`NodeId`] of [`SynchronizedStatement`].
     #[inline]
@@ -2445,6 +2473,30 @@ impl ResourceAccess<'_> {
         match self {
             Self::Identifier(it) => it.set_node_id(node_id),
             Self::Field(it) => it.set_node_id(node_id),
+        }
+    }
+}
+
+impl CatchType<'_> {
+    /// Get [`NodeId`] of [`CatchType`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
+    pub fn node_id(&self) -> NodeId {
+        match self {
+            Self::Union(it) => it.node_id(),
+            Self::Simple(it) => it.node_id(),
+            Self::Qualified(it) => it.node_id(),
+        }
+    }
+
+    /// Set [`NodeId`] of [`CatchType`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
+    pub fn set_node_id(&self, node_id: NodeId) {
+        match self {
+            Self::Union(it) => it.set_node_id(node_id),
+            Self::Simple(it) => it.set_node_id(node_id),
+            Self::Qualified(it) => it.set_node_id(node_id),
         }
     }
 }

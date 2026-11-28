@@ -45,7 +45,7 @@ macro_rules! list_elements {
 
 list_elements!(false;
     AnnotationArgument<'_>, AnnotationInterfaceMemberDeclaration<'_>, Annotation<'_>,
-    ArrayDimension<'_>, ArrayTypeDimension<'_>, CatchClause<'_>, ClassMember<'_>,
+    ArrayDimension<'_>, ArrayTypeDimension<'_>, CatchClause<'_>, ClassMember<'_>, ClassType<'_>,
     ComponentPattern<'_>, ElementValue<'_>, Expression<'_>, FormalParameter<'_>,
     InterfaceMember<'_>, KeywordModifier, Modifier<'_>, ModuleDirective<'_>, Name<'_>,
     RecordComponent<'_>, Resource<'_>, Statement<'_>,

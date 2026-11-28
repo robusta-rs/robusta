@@ -1474,6 +1474,52 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CatchClause<'a>> 
         self.write(f);
     }
 }
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CatchParameter<'a>> {
+    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
+        self.write(f);
+    }
+}
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, CatchType<'a>> {
+    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
+        match self.inner {
+            CatchType::Union(field_0) => {
+                AstNode::<UnionType<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+            CatchType::Simple(field_0) => {
+                AstNode::<SimpleClassType<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+            CatchType::Qualified(field_0) => {
+                AstNode::<QualifiedClassType<'a>> {
+                    inner: field_0.as_ref(),
+                    parent: self.parent,
+                    following_span_start: self.following_span_start,
+                }
+                .fmt(f);
+            }
+        }
+    }
+}
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, UnionType<'a>> {
+    fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
+        if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {
+            self.write(f);
+            return;
+        }
+        self.format_leading_comments(f);
+        self.write(f);
+        self.format_trailing_comments(f);
+    }
+}
 impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, SynchronizedStatement<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         if f.comments().is_quiet(self.span(), || self.enclosing_span(), self.following_span_start) {

@@ -1,18 +1,15 @@
 use crate::ast_nodes::AstNode;
+use crate::formatter::builders::wrapped_indent;
 use crate::formatter::prelude::*;
-use crate::formatter::separated::{
-    format_after_opening_paren_comment, format_parenthesized_frame, format_undelimited_list,
-};
-use crate::formatter::trivia::{
-    FormatTrailingComments, format_hoisted_leading_comments, format_leading_comments,
-};
+use crate::formatter::separated::{format_after_opening_paren_comment, format_parenthesized_frame};
+use crate::formatter::trivia::{FormatTrailingComments, format_leading_comments};
 use crate::print::annotations::format_modifiers_inline;
 use crate::print::{FormatWrite, write_type_name_separator};
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{
     format_continuation_keyword, format_head_body, write_node_with_terminator,
 };
-use robusta_ast::{CatchClause, Resource, TryStatement};
+use robusta_ast::{CatchClause, CatchParameter, Resource, TryStatement};
 use robusta_formatter_core::write;
 use robusta_span::{GetSpan, Span};
 
@@ -45,31 +42,6 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, TryStatement<'a>> {
             format_head_body(&finally_block, f);
         }
     }
-}
-
-fn format_catch_parameter<'ast>(
-    f: &mut JavaFormatter<'_, 'ast>,
-    catch: &AstNode<'_, 'ast, CatchClause<'ast>>,
-) {
-    // The types wrap inside the `catch` parentheses, as dart format wraps an `if`.
-    let types = catch.types();
-    let count = catch.types.len();
-    format_undelimited_list(f, true, count, |f, index| {
-        let ty = types.get(index).expect("catch type");
-        if index > 0 {
-            write!(f, [format_hoisted_leading_comments(ty.span()), "|", space()]);
-        } else {
-            format_modifiers_inline(f, &catch.modifiers());
-        }
-        if index + 1 == count {
-            // The comments before the name lead the name.
-            format_content_without_comments_after(&ty, ty.span().end, f);
-            write_type_name_separator(catch.name.span.start, f);
-            format_content_without_comments_after(&catch.name(), catch.name.span.end, f);
-        } else {
-            ty.fmt(f);
-        }
-    });
 }
 
 fn format_resource_specification<'ast>(
@@ -110,39 +82,40 @@ fn format_resource_entry<'ast>(
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
-        let node = self.inner();
-        space().fmt(f);
+        write!(f, [space(), self.param()]);
+        format_head_body(&self.block(), f);
+    }
+}
+
+impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchParameter<'a>> {
+    fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
+        let span = self.span;
         "(".fmt(f);
-        let first_start = node.modifiers.first().map_or_else(
-            || node.types.first().expect("a catch parameter has a type").span().start,
-            |modifier| modifier.span().start,
-        );
-        let name_end = node.name.span.end;
         let comments = f.comments();
         // The leading comments, those between `catch` and `(` included, start
         // a line where the source does: before the first, and after each, even
         // where the `(` comes between.
-        let leading = comments.comments_before(first_start);
+        let leading = comments.comments_before(span.start);
         let leading_comment_with_break = leading.iter().enumerate().any(|(index, comment)| {
-            let next = leading.get(index + 1).map_or(first_start, |next| next.span.start);
+            let next = leading.get(index + 1).map_or(span.start, |next| next.span.start);
             comment.preceded_by_newline()
                 || f.source_text().contains_newline_between(comment.span.end, next)
         });
         let trailing_comment_with_break = comments
-            .comments_before_character(name_end, b')')
+            .comments_before_character(span.end, b')')
             .iter()
             .any(|comment| comment.is_line() || comment.preceded_by_newline());
         // The comments before the `)` trail the name, inside the parentheses.
         let trailing = format_once(|f| {
-            let comments = f.comments().comments_before_character(name_end, b')');
+            let comments = f.comments().comments_before_character(span.end, b')');
             FormatTrailingComments::Comments(comments).fmt(f);
         });
         let parameter = format_once(|f| {
-            format_leading_comments(Span::empty(first_start)).fmt(f);
+            format_leading_comments(Span::empty(span.start)).fmt(f);
             format_catch_parameter(f, self);
             trailing.fmt(f);
         });
-        if !format_after_opening_paren_comment(f, first_start, &parameter) {
+        if !format_after_opening_paren_comment(f, span.start, &parameter) {
             if leading_comment_with_break || trailing_comment_with_break {
                 soft_block_indent(&parameter).fmt(f);
             } else {
@@ -151,6 +124,22 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, CatchClause<'a>> {
             }
         }
         ")".fmt(f);
-        format_head_body(&self.block(), f);
     }
+}
+
+/// The parameter wraps inside the `catch` parentheses, as dart format wraps an
+/// `if`.
+fn format_catch_parameter<'ast>(
+    f: &mut JavaFormatter<'_, 'ast>,
+    param: &AstNode<'_, 'ast, CatchParameter<'ast>>,
+) {
+    let content = format_once(|f| {
+        format_modifiers_inline(f, &param.modifiers());
+        // The comments before the name lead the name.
+        let ty = param.ty();
+        format_content_without_comments_after(&ty, ty.span().end, f);
+        write_type_name_separator(param.name.span.start, f);
+        format_content_without_comments_after(&param.name(), param.name.span.end, f);
+    });
+    group(&wrapped_indent(true, &content)).fmt(f);
 }

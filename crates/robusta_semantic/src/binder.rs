@@ -1,7 +1,7 @@
 //! Declare symbols for Java declarations.
 
 use robusta_ast::{
-    AnnotationInterfaceElementDeclaration, AstKind, BindingIdentifier, CatchClause,
+    AnnotationInterfaceElementDeclaration, AstKind, BindingIdentifier, CatchParameter,
     CompactConstructorDeclaration, EnumConstant, FormalParameter, ImportDeclaration,
     MethodDeclaration, Modifier, ModifierKind, RecordComponent, TypeDeclarationKind, TypeParameter,
     VariableDeclarator,
@@ -134,9 +134,15 @@ impl<'a> Binder<'a> for FormalParameter<'a> {
     }
 }
 
-impl<'a> Binder<'a> for CatchClause<'a> {
+impl<'a> Binder<'a> for CatchParameter<'a> {
     fn bind(&self, builder: &mut SemanticBuilder<'a>) {
-        builder.declare_symbol_within(&self.name, SymbolKind::CatchParameter, self.block.span);
+        if let AstKind::CatchClause(clause) = builder.parent_kind() {
+            builder.declare_symbol_within(
+                &self.name,
+                SymbolKind::CatchParameter,
+                clause.block.span,
+            );
+        }
     }
 }
 

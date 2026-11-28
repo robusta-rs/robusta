@@ -1401,6 +1401,122 @@ impl<'a> From<ResourceAccess<'a>> for Resource<'a> {
     }
 }
 
+impl<'a> CatchType<'a> {
+    /// Return if a [`CatchType`] is a [`ClassType`].
+    #[inline]
+    pub fn is_class_type(&self) -> bool {
+        matches!(self, Self::Simple(_) | Self::Qualified(_))
+    }
+
+    /// Convert a [`CatchType`] to a [`ClassType`].
+    ///
+    /// # Panics
+    /// Panics if not convertible.
+    #[inline]
+    pub fn into_class_type(self) -> ClassType<'a> {
+        ClassType::try_from(self).unwrap()
+    }
+
+    /// Convert a [`&CatchType`] to a [`&ClassType`].
+    ///
+    /// [`&CatchType`]: CatchType
+    /// [`&ClassType`]: ClassType
+    #[inline]
+    pub fn as_class_type(&self) -> Option<&ClassType<'a>> {
+        if self.is_class_type() {
+            // SAFETY: Transmute is safe because discriminants + types are identical between
+            // `parent` and `child` for the shared variants
+            Some(unsafe { NonNull::from_ref(self).cast::<ClassType>().as_ref() })
+        } else {
+            None
+        }
+    }
+
+    /// Convert a [`&mut CatchType`] to a [`&mut ClassType`].
+    ///
+    /// [`&mut CatchType`]: CatchType
+    /// [`&mut ClassType`]: ClassType
+    #[inline]
+    pub fn as_class_type_mut(&mut self) -> Option<&mut ClassType<'a>> {
+        if self.is_class_type() {
+            // SAFETY: Transmute is safe because discriminants + types are identical between
+            // `parent` and `child` for the shared variants
+            Some(unsafe { NonNull::from_mut(self).cast::<ClassType>().as_mut() })
+        } else {
+            None
+        }
+    }
+
+    /// Convert a [`&CatchType`] to a [`&ClassType`].
+    ///
+    /// # Panics
+    /// Panics if not convertible.
+    ///
+    /// [`&CatchType`]: CatchType
+    /// [`&ClassType`]: ClassType
+    #[inline]
+    pub fn to_class_type(&self) -> &ClassType<'a> {
+        self.as_class_type().unwrap()
+    }
+
+    /// Convert a [`&mut CatchType`] to a [`&mut ClassType`].
+    ///
+    /// # Panics
+    /// Panics if not convertible.
+    ///
+    /// [`&mut CatchType`]: CatchType
+    /// [`&mut ClassType`]: ClassType
+    #[inline]
+    pub fn to_class_type_mut(&mut self) -> &mut ClassType<'a> {
+        self.as_class_type_mut().unwrap()
+    }
+}
+
+impl<'a> ClassType<'a> {
+    /// Convert a [`&ClassType`] to a [`&CatchType`].
+    ///
+    /// [`&ClassType`]: ClassType
+    /// [`&CatchType`]: CatchType
+    #[inline]
+    pub fn as_catch_type(&self) -> &CatchType<'a> {
+        // SAFETY: Transmute is safe because discriminants + types are identical between
+        // `parent` and `child` for the shared variants
+        unsafe { NonNull::from_ref(self).cast::<CatchType>().as_ref() }
+    }
+}
+
+impl<'a> TryFrom<CatchType<'a>> for ClassType<'a> {
+    type Error = ();
+
+    /// Convert a [`CatchType`] to a [`ClassType`].
+    ///
+    /// # Errors
+    /// Returns `Err` if not convertible.
+    #[inline]
+    fn try_from(value: CatchType<'a>) -> Result<Self, Self::Error> {
+        // Compiler should implement this as a check of discriminant and then zero-cost transmute,
+        // as discriminants for `parent` and `child` are aligned
+        match value {
+            CatchType::Simple(o) => Ok(ClassType::Simple(o)),
+            CatchType::Qualified(o) => Ok(ClassType::Qualified(o)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a> From<ClassType<'a>> for CatchType<'a> {
+    /// Convert a [`ClassType`] to a [`CatchType`].
+    #[inline]
+    fn from(value: ClassType<'a>) -> Self {
+        // Compiler should implement this as zero-cost transmute as discriminants
+        // for `child` and `parent` are aligned
+        match value {
+            ClassType::Simple(o) => CatchType::Simple(o),
+            ClassType::Qualified(o) => CatchType::Qualified(o),
+        }
+    }
+}
+
 impl<'a> VariableInitializer<'a> {
     /// Return if a [`VariableInitializer`] is an [`Expression`].
     #[inline]

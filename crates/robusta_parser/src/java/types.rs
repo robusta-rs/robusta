@@ -6,7 +6,7 @@ impl<'a> Parser<'a> {
         let element = if self.nth_kind(after_annotations).is_primitive_type() {
             self.primitive_type()?
         } else {
-            self.class_type()?
+            Type::from(self.class_type()?)
         };
         // Leave annotations before `...` for the varargs parser.
         let dims = self.array_type_dimensions()?;
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
         Ok(dimensions)
     }
 
-    pub(crate) fn class_type(&mut self) -> Result<Type<'a>> {
+    pub(crate) fn class_type(&mut self) -> Result<ClassType<'a>> {
         let ty = self.class_type_allowing_diamond(false)?;
         if ty.name() == "var" {
             return Err(diagnostics::message(
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
                 ty.name_span(),
             ));
         }
-        Ok(Type::from(ty))
+        Ok(ty)
     }
 
     /// Parse a class type, each of whose names allows annotations and type
@@ -168,11 +168,11 @@ impl<'a> Parser<'a> {
             annotations.first().map_or(name.span, |annotation| annotation.span).cover(name.span);
         let mut bounds = Vec::new_in(self);
         if self.eat(TokenKind::Extends).is_some() {
-            let bound = self.class_type()?;
+            let bound = Type::from(self.class_type()?);
             span = span.cover(bound.span());
             bounds.push(bound);
             while self.eat(TokenKind::Amp).is_some() {
-                let bound = self.class_type()?;
+                let bound = Type::from(self.class_type()?);
                 span = span.cover(bound.span());
                 bounds.push(bound);
             }

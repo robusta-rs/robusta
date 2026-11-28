@@ -4636,16 +4636,12 @@ impl<'a> CatchClause<'a> {
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `modifiers`
-    /// * `types`
-    /// * `name`
+    /// * `param`
     /// * `block`
     #[inline]
     pub fn new(
         span: Span,
-        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
-        types: impl IntoIn<'a, Vec<'a, Type<'a>>>,
-        name: BindingIdentifier<'a>,
+        param: CatchParameter<'a>,
         block: Block<'a>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
@@ -4653,12 +4649,146 @@ impl<'a> CatchClause<'a> {
         CatchClause {
             node_id: Cell::new(builder.node_id()),
             span,
-            modifiers: modifiers.into_in(builder.allocator()),
-            types: types.into_in(builder.allocator()),
-            name,
+            param,
             block,
             scope_id: Default::default(),
         }
+    }
+}
+
+impl<'a> CatchParameter<'a> {
+    /// Build a [`CatchParameter`].
+    ///
+    /// ## Parameters
+    /// * `span`: From the first modifier or the type to the name.
+    /// * `modifiers`
+    /// * `ty`
+    /// * `name`
+    #[inline]
+    pub fn new(
+        span: Span,
+        modifiers: impl IntoIn<'a, Vec<'a, Modifier<'a>>>,
+        ty: CatchType<'a>,
+        name: BindingIdentifier<'a>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        let builder = builder.builder();
+        CatchParameter {
+            node_id: Cell::new(builder.node_id()),
+            span,
+            modifiers: modifiers.into_in(builder.allocator()),
+            ty,
+            name,
+        }
+    }
+}
+
+impl<'a> CatchType<'a> {
+    /// Build a [`CatchType::Union`].
+    ///
+    /// This node contains a [`UnionType`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `types`
+    #[inline]
+    pub fn new_union_type(
+        span: Span,
+        types: impl IntoIn<'a, Vec<'a, ClassType<'a>>>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Union(UnionType::boxed(span, types, builder.builder()))
+    }
+
+    /// Build a [`CatchType::Simple`].
+    ///
+    /// This node contains a [`SimpleClassType`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `annotations`
+    /// * `name`
+    /// * `args`
+    #[inline]
+    pub fn new_simple_class_type(
+        span: Span,
+        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        name: IdentifierReference<'a>,
+        args: Option<Box<'a, TypeArguments<'a>>>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Simple(SimpleClassType::boxed(span, annotations, name, args, builder.builder()))
+    }
+
+    /// Build a [`CatchType::Qualified`].
+    ///
+    /// This node contains a [`QualifiedClassType`] that will be stored in the memory arena.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `qualifier`
+    /// * `annotations`
+    /// * `name`
+    /// * `args`
+    #[inline]
+    pub fn new_qualified_class_type(
+        span: Span,
+        qualifier: ClassType<'a>,
+        annotations: impl IntoIn<'a, Vec<'a, Annotation<'a>>>,
+        name: IdentifierName<'a>,
+        args: Option<Box<'a, TypeArguments<'a>>>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        Self::Qualified(QualifiedClassType::boxed(
+            span,
+            qualifier,
+            annotations,
+            name,
+            args,
+            builder.builder(),
+        ))
+    }
+}
+
+impl<'a> UnionType<'a> {
+    /// Build a [`UnionType`].
+    ///
+    /// If you want the built node to be allocated in the memory arena,
+    /// use [`UnionType::boxed`] instead.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `types`
+    #[inline]
+    pub fn new(
+        span: Span,
+        types: impl IntoIn<'a, Vec<'a, ClassType<'a>>>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Self {
+        let builder = builder.builder();
+        UnionType {
+            node_id: Cell::new(builder.node_id()),
+            span,
+            types: types.into_in(builder.allocator()),
+        }
+    }
+
+    /// Build a [`UnionType`], and store it in the memory arena.
+    ///
+    /// Returns a [`Box`] containing the newly-allocated node.
+    /// If you want a stack-allocated node, use [`UnionType::new`] instead.
+    ///
+    /// ## Parameters
+    /// * `span`: The [`Span`] covering this node
+    /// * `types`
+    #[inline]
+    pub fn boxed(
+        span: Span,
+        types: impl IntoIn<'a, Vec<'a, ClassType<'a>>>,
+        builder: &impl GetAstBuilder<'a>,
+    ) -> Box<'a, Self> {
+        let builder = builder.builder();
+        Box::new_in(Self::new(span, types, builder), &builder.allocator())
     }
 }
 
