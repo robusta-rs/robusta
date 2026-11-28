@@ -15,8 +15,8 @@ In no specific order:
   - The CLI, the Gradle plugin, and the Maven coordinates all read that version
 - Run [Release CLI](https://github.com/robusta-rs/robusta/actions/workflows/release_cli.yml)
   - Also runs automatically on a `v*.*.*` tag push, without publishing the plugins
-  - Builds and tests the five native executables, the five jars that publish them, and the two plugin jars
-  - On the tag push, creates the `v<version>` GitHub release with the native executables, their checksums, and the license
+  - Builds and tests the five native executables, their install scripts, the five jars that publish them, and the two plugin jars
+  - On the tag push, creates the `v<version>` GitHub release with the native executables, their checksums, the `install.sh` and `install.ps1` scripts, and the license
 
 ### Local Rehearsal
 
