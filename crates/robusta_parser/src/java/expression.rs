@@ -320,7 +320,7 @@ impl<'a> Parser<'a> {
         }
         let mut additional_bounds = Vec::new_in(self);
         while self.eat(TokenKind::Amp).is_some() {
-            additional_bounds.push(self.class_type()?);
+            additional_bounds.push(self.class_type()?.into());
         }
         self.expect(TokenKind::RParen, "`)` to close the cast")?;
         // Reference casts accept lambdas: `(Runnable) () -> {}` (JLS §15.16).

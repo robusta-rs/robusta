@@ -26,6 +26,7 @@ pub mod switch_statement;
 pub mod text_block;
 pub mod try_statement;
 pub mod type_parameters;
+mod union_type;
 pub mod variable_declaration;
 
 use crate::formatter::comments::stays_on_operator_line;

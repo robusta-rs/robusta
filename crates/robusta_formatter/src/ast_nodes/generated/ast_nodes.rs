@@ -64,6 +64,8 @@ pub enum AstNodes<'parent, 'a> {
     AssertStatement(&'parent AstNode<'parent, 'a, AssertStatement<'a>>),
     TryStatement(&'parent AstNode<'parent, 'a, TryStatement<'a>>),
     CatchClause(&'parent AstNode<'parent, 'a, CatchClause<'a>>),
+    CatchParameter(&'parent AstNode<'parent, 'a, CatchParameter<'a>>),
+    UnionType(&'parent AstNode<'parent, 'a, UnionType<'a>>),
     SynchronizedStatement(&'parent AstNode<'parent, 'a, SynchronizedStatement<'a>>),
     LabeledStatement(&'parent AstNode<'parent, 'a, LabeledStatement<'a>>),
     ConstructorInvocation(&'parent AstNode<'parent, 'a, ConstructorInvocation<'a>>),
@@ -185,6 +187,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
             Self::CatchClause(node) => node.span(),
+            Self::CatchParameter(node) => node.span(),
+            Self::UnionType(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
             Self::ConstructorInvocation(node) => node.span(),
@@ -304,6 +308,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::AssertStatement(node) => node.parent(),
             Self::TryStatement(node) => node.parent(),
             Self::CatchClause(node) => node.parent(),
+            Self::CatchParameter(node) => node.parent(),
+            Self::UnionType(node) => node.parent(),
             Self::SynchronizedStatement(node) => node.parent(),
             Self::LabeledStatement(node) => node.parent(),
             Self::ConstructorInvocation(node) => node.parent(),
@@ -425,6 +431,8 @@ impl<'parent, 'a> AstNodes<'parent, 'a> {
             Self::AssertStatement(_) => "AssertStatement",
             Self::TryStatement(_) => "TryStatement",
             Self::CatchClause(_) => "CatchClause",
+            Self::CatchParameter(_) => "CatchParameter",
+            Self::UnionType(_) => "UnionType",
             Self::SynchronizedStatement(_) => "SynchronizedStatement",
             Self::LabeledStatement(_) => "LabeledStatement",
             Self::ConstructorInvocation(_) => "ConstructorInvocation",
@@ -546,6 +554,8 @@ pub enum AstNodeKind<'parent, 'a> {
     AssertStatement(AstNode<'parent, 'a, AssertStatement<'a>>),
     TryStatement(AstNode<'parent, 'a, TryStatement<'a>>),
     CatchClause(AstNode<'parent, 'a, CatchClause<'a>>),
+    CatchParameter(AstNode<'parent, 'a, CatchParameter<'a>>),
+    UnionType(AstNode<'parent, 'a, UnionType<'a>>),
     SynchronizedStatement(AstNode<'parent, 'a, SynchronizedStatement<'a>>),
     LabeledStatement(AstNode<'parent, 'a, LabeledStatement<'a>>),
     ConstructorInvocation(AstNode<'parent, 'a, ConstructorInvocation<'a>>),
@@ -670,6 +680,8 @@ impl<'a> AstNodeKind<'_, 'a> {
             Self::AssertStatement(node) => AstNodes::AssertStatement(node),
             Self::TryStatement(node) => AstNodes::TryStatement(node),
             Self::CatchClause(node) => AstNodes::CatchClause(node),
+            Self::CatchParameter(node) => AstNodes::CatchParameter(node),
+            Self::UnionType(node) => AstNodes::UnionType(node),
             Self::SynchronizedStatement(node) => AstNodes::SynchronizedStatement(node),
             Self::LabeledStatement(node) => AstNodes::LabeledStatement(node),
             Self::ConstructorInvocation(node) => AstNodes::ConstructorInvocation(node),
@@ -794,6 +806,8 @@ impl GetSpan for AstNodeKind<'_, '_> {
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
             Self::CatchClause(node) => node.span(),
+            Self::CatchParameter(node) => node.span(),
+            Self::UnionType(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
             Self::ConstructorInvocation(node) => node.span(),
@@ -4075,20 +4089,35 @@ impl<'a> AstNode<'_, 'a, CatchClause<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::CatchClause(self)
     }
+    pub fn param(&self) -> AstNode<'_, 'a, CatchParameter<'a>> {
+        AstNode {
+            inner: &self.inner.param,
+            parent: self.as_ast_nodes(),
+            following_span_start: self.inner.block.span().start,
+        }
+    }
+    pub fn block(&self) -> AstNode<'_, 'a, Block<'a>> {
+        AstNode {
+            inner: &self.inner.block,
+            parent: self.as_ast_nodes(),
+            following_span_start: self.following_span_start,
+        }
+    }
+}
+impl<'a> AstNode<'_, 'a, CatchParameter<'a>> {
+    pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
+        AstNodes::CatchParameter(self)
+    }
     pub fn modifiers(&self) -> AstNode<'_, 'a, Vec<'a, Modifier<'a>>> {
         AstNode {
             inner: &self.inner.modifiers,
             parent: self.as_ast_nodes(),
-            following_span_start: self
-                .inner
-                .types
-                .first()
-                .map_or(self.inner.name.span().start, |it| it.span().start),
+            following_span_start: self.inner.ty.span().start,
         }
     }
-    pub fn types(&self) -> AstNode<'_, 'a, Vec<'a, Type<'a>>> {
+    pub fn ty(&self) -> AstNode<'_, 'a, CatchType<'a>> {
         AstNode {
-            inner: &self.inner.types,
+            inner: &self.inner.ty,
             parent: self.as_ast_nodes(),
             following_span_start: self.inner.name.span().start,
         }
@@ -4097,12 +4126,75 @@ impl<'a> AstNode<'_, 'a, CatchClause<'a>> {
         AstNode {
             inner: &self.inner.name,
             parent: self.as_ast_nodes(),
-            following_span_start: self.inner.block.span().start,
+            following_span_start: self.following_span_start,
         }
     }
-    pub fn block(&self) -> AstNode<'_, 'a, Block<'a>> {
+}
+impl<'parent, 'a> AstNode<'parent, 'a, CatchType<'a>> {
+    pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
+        match self.inner {
+            CatchType::Union(field_0) => AstNodeKind::UnionType(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            CatchType::Simple(field_0) => AstNodeKind::SimpleClassType(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            CatchType::Qualified(field_0) => AstNodeKind::QualifiedClassType(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+        }
+    }
+    pub fn as_union(&self) -> Option<AstNode<'parent, 'a, UnionType<'a>>> {
+        match self.inner {
+            CatchType::Union(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_simple(&self) -> Option<AstNode<'parent, 'a, SimpleClassType<'a>>> {
+        match self.inner {
+            CatchType::Simple(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_qualified(&self) -> Option<AstNode<'parent, 'a, QualifiedClassType<'a>>> {
+        match self.inner {
+            CatchType::Qualified(field_0) => Some(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            _ => None,
+        }
+    }
+    pub fn as_class_type(&self) -> Option<AstNode<'parent, 'a, ClassType<'a>>> {
+        self.inner.as_class_type().map(|inner| AstNode {
+            inner,
+            parent: self.parent,
+            following_span_start: self.following_span_start,
+        })
+    }
+}
+impl<'a> AstNode<'_, 'a, UnionType<'a>> {
+    pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
+        AstNodes::UnionType(self)
+    }
+    pub fn types(&self) -> AstNode<'_, 'a, Vec<'a, ClassType<'a>>> {
         AstNode {
-            inner: &self.inner.block,
+            inner: &self.inner.types,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,
         }

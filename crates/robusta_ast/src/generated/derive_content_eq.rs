@@ -644,10 +644,33 @@ impl ContentEq for ResourceAccess<'_> {
 
 impl ContentEq for CatchClause<'_> {
     fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.modifiers, &other.modifiers)
-            && ContentEq::content_eq(&self.types, &other.types)
-            && ContentEq::content_eq(&self.name, &other.name)
+        ContentEq::content_eq(&self.param, &other.param)
             && ContentEq::content_eq(&self.block, &other.block)
+    }
+}
+
+impl ContentEq for CatchParameter<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        ContentEq::content_eq(&self.modifiers, &other.modifiers)
+            && ContentEq::content_eq(&self.ty, &other.ty)
+            && ContentEq::content_eq(&self.name, &other.name)
+    }
+}
+
+impl ContentEq for CatchType<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Union(a), Self::Union(b)) => a.content_eq(b),
+            (Self::Simple(a), Self::Simple(b)) => a.content_eq(b),
+            (Self::Qualified(a), Self::Qualified(b)) => a.content_eq(b),
+            _ => false,
+        }
+    }
+}
+
+impl ContentEq for UnionType<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        ContentEq::content_eq(&self.types, &other.types)
     }
 }
 

@@ -279,7 +279,7 @@ pub fn format_node_leading_comments<'a>(
         }
         AstNodes::InstanceofExpression(parent) => start >= parent.rhs.span().start,
         // A multi-catch type after its `|`.
-        AstNodes::CatchClause(parent) => {
+        AstNodes::UnionType(parent) => {
             parent.types.iter().skip(1).any(|ty| ty.span().start == start)
         }
         // A bound after `extends` or `&`.

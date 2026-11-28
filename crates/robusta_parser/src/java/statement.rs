@@ -722,16 +722,32 @@ impl<'a> Parser<'a> {
     fn catch_clause(&mut self) -> Result<CatchClause<'a>> {
         let start = self.expect(TokenKind::Catch, "`catch`")?.span;
         self.expect(TokenKind::LParen, "`(` after `catch`")?;
-        let modifiers = self.modifiers()?;
-        let mut types = Vec::new_in(self);
-        types.push(self.class_type()?);
-        while self.eat(TokenKind::Pipe).is_some() {
-            types.push(self.class_type()?);
-        }
-        let name = self.variable_declarator_id("the catch parameter name")?;
+        let param = self.catch_parameter()?;
         self.expect(TokenKind::RParen, "`)` after the catch parameter")?;
         let block = self.block()?;
-        Ok(CatchClause::new(start.cover(block.span), modifiers, types, name, block, self))
+        Ok(CatchClause::new(start.cover(block.span), param, block, self))
+    }
+
+    /// Parse `{VariableModifier} CatchType VariableDeclaratorId` (JLS §14.20).
+    fn catch_parameter(&mut self) -> Result<CatchParameter<'a>> {
+        let modifiers = self.modifiers()?;
+        let first = self.class_type()?;
+        let ty = if self.kind() == TokenKind::Pipe {
+            let mut span = first.span();
+            let mut types = Vec::new_in(self);
+            types.push(first);
+            while self.eat(TokenKind::Pipe).is_some() {
+                let ty = self.class_type()?;
+                span = span.cover(ty.span());
+                types.push(ty);
+            }
+            CatchType::new_union_type(span, types, self)
+        } else {
+            CatchType::from(first)
+        };
+        let name = self.variable_declarator_id("the catch parameter name")?;
+        let start = modifiers.first().map_or(ty.span(), GetSpan::span);
+        Ok(CatchParameter::new(start.cover(name.span), modifiers, ty, name, self))
     }
 
     fn synchronized_statement(&mut self) -> Result<Statement<'a>> {

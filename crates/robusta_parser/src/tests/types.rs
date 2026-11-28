@@ -533,7 +533,7 @@ fn parses_unnamed_variables_in_declarator_id_positions() {
     let Statement::Try(catch_try) = &statements[3] else {
         panic!("expected a try-catch statement");
     };
-    assert_eq!(catch_try.catches[0].name.name, "_");
+    assert_eq!(catch_try.catches[0].param.name.name, "_");
 
     let Expression::Lambda(concise) = assignment_value(&statements[4]) else {
         panic!("expected a concise lambda");

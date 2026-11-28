@@ -63,6 +63,8 @@ pub enum AstKind<'a> {
     AssertStatement(&'a AssertStatement<'a>),
     TryStatement(&'a TryStatement<'a>),
     CatchClause(&'a CatchClause<'a>),
+    CatchParameter(&'a CatchParameter<'a>),
+    UnionType(&'a UnionType<'a>),
     SynchronizedStatement(&'a SynchronizedStatement<'a>),
     LabeledStatement(&'a LabeledStatement<'a>),
     ConstructorInvocation(&'a ConstructorInvocation<'a>),
@@ -184,6 +186,8 @@ pub enum AstType {
     AssertStatement,
     TryStatement,
     CatchClause,
+    CatchParameter,
+    UnionType,
     SynchronizedStatement,
     LabeledStatement,
     ConstructorInvocation,
@@ -251,7 +255,7 @@ pub enum AstType {
 
 impl AstType {
     /// Number of node kinds; discriminants are dense in `0..COUNT`.
-    pub const COUNT: usize = 114;
+    pub const COUNT: usize = 116;
 
     /// Every node kind, in discriminant order.
     pub const ALL: [Self; Self::COUNT] = [
@@ -306,6 +310,8 @@ impl AstType {
         Self::AssertStatement,
         Self::TryStatement,
         Self::CatchClause,
+        Self::CatchParameter,
+        Self::UnionType,
         Self::SynchronizedStatement,
         Self::LabeledStatement,
         Self::ConstructorInvocation,
@@ -426,6 +432,8 @@ impl GetSpan for AstKind<'_> {
             Self::AssertStatement(node) => node.span(),
             Self::TryStatement(node) => node.span(),
             Self::CatchClause(node) => node.span(),
+            Self::CatchParameter(node) => node.span(),
+            Self::UnionType(node) => node.span(),
             Self::SynchronizedStatement(node) => node.span(),
             Self::LabeledStatement(node) => node.span(),
             Self::ConstructorInvocation(node) => node.span(),
@@ -551,6 +559,8 @@ impl GetAddress for AstKind<'_> {
             Self::AssertStatement(it) => it.unstable_address(),
             Self::TryStatement(it) => it.unstable_address(),
             Self::CatchClause(it) => it.unstable_address(),
+            Self::CatchParameter(it) => it.unstable_address(),
+            Self::UnionType(it) => it.unstable_address(),
             Self::SynchronizedStatement(it) => it.unstable_address(),
             Self::LabeledStatement(it) => it.unstable_address(),
             Self::ConstructorInvocation(it) => it.unstable_address(),
@@ -674,6 +684,8 @@ impl AstKind<'_> {
             Self::AssertStatement(it) => it.node_id(),
             Self::TryStatement(it) => it.node_id(),
             Self::CatchClause(it) => it.node_id(),
+            Self::CatchParameter(it) => it.node_id(),
+            Self::UnionType(it) => it.node_id(),
             Self::SynchronizedStatement(it) => it.node_id(),
             Self::LabeledStatement(it) => it.node_id(),
             Self::ConstructorInvocation(it) => it.node_id(),
@@ -795,6 +807,8 @@ impl AstKind<'_> {
             Self::AssertStatement(it) => it.set_node_id(node_id),
             Self::TryStatement(it) => it.set_node_id(node_id),
             Self::CatchClause(it) => it.set_node_id(node_id),
+            Self::CatchParameter(it) => it.set_node_id(node_id),
+            Self::UnionType(it) => it.set_node_id(node_id),
             Self::SynchronizedStatement(it) => it.set_node_id(node_id),
             Self::LabeledStatement(it) => it.set_node_id(node_id),
             Self::ConstructorInvocation(it) => it.set_node_id(node_id),
@@ -918,6 +932,8 @@ impl AstKind<'_> {
             Self::AssertStatement(_) => AstType::AssertStatement,
             Self::TryStatement(_) => AstType::TryStatement,
             Self::CatchClause(_) => AstType::CatchClause,
+            Self::CatchParameter(_) => AstType::CatchParameter,
+            Self::UnionType(_) => AstType::UnionType,
             Self::SynchronizedStatement(_) => AstType::SynchronizedStatement,
             Self::LabeledStatement(_) => AstType::LabeledStatement,
             Self::ConstructorInvocation(_) => AstType::ConstructorInvocation,
@@ -1041,6 +1057,8 @@ impl AstKind<'_> {
             Self::AssertStatement(_) => "AssertStatement",
             Self::TryStatement(_) => "TryStatement",
             Self::CatchClause(_) => "CatchClause",
+            Self::CatchParameter(_) => "CatchParameter",
+            Self::UnionType(_) => "UnionType",
             Self::SynchronizedStatement(_) => "SynchronizedStatement",
             Self::LabeledStatement(_) => "LabeledStatement",
             Self::ConstructorInvocation(_) => "ConstructorInvocation",

@@ -5,7 +5,7 @@ InventoryLedger.java:
   sys deallocs: 2
   sys alloc bytes: 35468 # 35.47 kB
   sys peak growth: 35468 # 35.47 kB
-  arena allocs: 1689
+  arena allocs: 1688
   arena reallocs: 196
   arena size: 118864 # 118.86 kB
 
@@ -16,6 +16,6 @@ RetryPolicy.java:
   sys deallocs: 2
   sys alloc bytes: 10832 # 10.83 kB
   sys peak growth: 10832 # 10.83 kB
-  arena allocs: 556
+  arena allocs: 554
   arena reallocs: 63
   arena size: 34808 # 34.81 kB

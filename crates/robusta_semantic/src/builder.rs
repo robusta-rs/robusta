@@ -8,7 +8,7 @@ use std::{
 use robusta_allocator::{Address, GetAddress, UnstableAddress};
 use robusta_ast::{
     AnnotationInterfaceDeclaration, AnnotationInterfaceElementDeclaration, AstKind,
-    BindingIdentifier, CatchClause, ClassDeclaration, ClassType, CompactConstructorDeclaration,
+    BindingIdentifier, CatchParameter, ClassDeclaration, ClassType, CompactConstructorDeclaration,
     CompilationUnit, EnumConstant, EnumDeclaration, FormalParameter, IdentifierReference,
     ImportDeclaration, ImportKind, InterfaceDeclaration, MethodDeclaration, ModifierKind,
     RecordComponent, RecordDeclaration, Statement, Type, TypeDeclarationKind, TypeParameter,
@@ -642,16 +642,13 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
         self.leave_node(kind);
     }
 
-    fn visit_catch_clause(&mut self, clause: &'a CatchClause<'a>) {
-        let kind = AstKind::CatchClause(clause);
+    fn visit_catch_parameter(&mut self, param: &'a CatchParameter<'a>) {
+        let kind = AstKind::CatchParameter(param);
         self.enter_node(kind);
-        self.enter_scope(&clause.scope_id);
-        clause.bind(self);
-        self.visit_modifiers(&clause.modifiers);
-        self.visit_types(&clause.types);
-        self.visit_binding_identifier(&clause.name);
-        self.visit_block(&clause.block);
-        self.leave_scope();
+        param.bind(self);
+        self.visit_modifiers(&param.modifiers);
+        self.visit_catch_type(&param.ty);
+        self.visit_binding_identifier(&param.name);
         self.leave_node(kind);
     }
 

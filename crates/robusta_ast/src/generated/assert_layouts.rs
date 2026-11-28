@@ -526,15 +526,32 @@ const _: () = {
     assert!(align_of::<ResourceAccess>() == 8);
 
     // Padding: 0 bytes
-    assert!(size_of::<CatchClause>() == 136);
+    assert!(size_of::<CatchClause>() == 144);
     assert!(align_of::<CatchClause>() == 8);
     assert!(offset_of!(CatchClause, span) == 0);
     assert!(offset_of!(CatchClause, node_id) == 8);
     assert!(offset_of!(CatchClause, scope_id) == 12);
-    assert!(offset_of!(CatchClause, modifiers) == 16);
-    assert!(offset_of!(CatchClause, types) == 40);
-    assert!(offset_of!(CatchClause, name) == 64);
-    assert!(offset_of!(CatchClause, block) == 96);
+    assert!(offset_of!(CatchClause, param) == 16);
+    assert!(offset_of!(CatchClause, block) == 104);
+
+    // Padding: 4 bytes
+    assert!(size_of::<CatchParameter>() == 88);
+    assert!(align_of::<CatchParameter>() == 8);
+    assert!(offset_of!(CatchParameter, span) == 0);
+    assert!(offset_of!(CatchParameter, node_id) == 8);
+    assert!(offset_of!(CatchParameter, modifiers) == 16);
+    assert!(offset_of!(CatchParameter, ty) == 40);
+    assert!(offset_of!(CatchParameter, name) == 56);
+
+    assert!(size_of::<CatchType>() == 16);
+    assert!(align_of::<CatchType>() == 8);
+
+    // Padding: 4 bytes
+    assert!(size_of::<UnionType>() == 40);
+    assert!(align_of::<UnionType>() == 8);
+    assert!(offset_of!(UnionType, span) == 0);
+    assert!(offset_of!(UnionType, node_id) == 8);
+    assert!(offset_of!(UnionType, types) == 16);
 
     // Padding: 4 bytes
     assert!(size_of::<SynchronizedStatement>() == 72);
@@ -1682,15 +1699,32 @@ const _: () = {
     assert!(align_of::<ResourceAccess>() == 4);
 
     // Padding: 0 bytes
-    assert!(size_of::<CatchClause>() == 104);
+    assert!(size_of::<CatchClause>() == 108);
     assert!(align_of::<CatchClause>() == 4);
     assert!(offset_of!(CatchClause, span) == 0);
     assert!(offset_of!(CatchClause, node_id) == 8);
     assert!(offset_of!(CatchClause, scope_id) == 12);
-    assert!(offset_of!(CatchClause, modifiers) == 16);
-    assert!(offset_of!(CatchClause, types) == 32);
-    assert!(offset_of!(CatchClause, name) == 48);
-    assert!(offset_of!(CatchClause, block) == 72);
+    assert!(offset_of!(CatchClause, param) == 16);
+    assert!(offset_of!(CatchClause, block) == 76);
+
+    // Padding: 0 bytes
+    assert!(size_of::<CatchParameter>() == 60);
+    assert!(align_of::<CatchParameter>() == 4);
+    assert!(offset_of!(CatchParameter, span) == 0);
+    assert!(offset_of!(CatchParameter, node_id) == 8);
+    assert!(offset_of!(CatchParameter, modifiers) == 12);
+    assert!(offset_of!(CatchParameter, ty) == 28);
+    assert!(offset_of!(CatchParameter, name) == 36);
+
+    assert!(size_of::<CatchType>() == 8);
+    assert!(align_of::<CatchType>() == 4);
+
+    // Padding: 0 bytes
+    assert!(size_of::<UnionType>() == 28);
+    assert!(align_of::<UnionType>() == 4);
+    assert!(offset_of!(UnionType, span) == 0);
+    assert!(offset_of!(UnionType, node_id) == 8);
+    assert!(offset_of!(UnionType, types) == 12);
 
     // Padding: 0 bytes
     assert!(size_of::<SynchronizedStatement>() == 52);

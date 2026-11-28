@@ -401,15 +401,29 @@ fn parses_try_catch_finally_statements() {
     assert!(try_stmt.finally_block.is_some());
 
     let first_catch = &try_stmt.catches[0];
-    assert_eq!(first_catch.modifiers.len(), 1);
-    assert_eq!(first_catch.types.len(), 2);
-    assert_eq!(first_catch.name.name, "ex");
+    let param = &first_catch.param;
+    assert_eq!(
+        param.span.source_text(unit.source_text),
+        "final java.io.IOException | IllegalStateException ex"
+    );
+    assert_eq!(param.modifiers.len(), 1);
+    assert_eq!(param.name.name, "ex");
     assert_eq!(first_catch.block.statements.len(), 1);
 
-    let Some(first_type) = first_catch.types[0].as_class_type() else {
-        panic!("expected a class catch type");
+    let CatchType::Union(union) = &param.ty else {
+        panic!("expected a multi-catch union");
     };
-    assert_eq!(class_type_names(first_type), ["java", "io", "IOException"]);
+    assert_eq!(
+        union.span.source_text(unit.source_text),
+        "java.io.IOException | IllegalStateException"
+    );
+    let names = union.types.iter().map(class_type_names).collect::<std::vec::Vec<_>>();
+    assert_eq!(names, [vec!["java", "io", "IOException"], vec!["IllegalStateException"]]);
+
+    let Some(single) = try_stmt.catches[1].param.ty.as_class_type() else {
+        panic!("expected a single class catch type");
+    };
+    assert_eq!(class_type_names(single), ["RuntimeException"]);
 
     let TypeDeclaration::Class(class) = &unit.types()[0] else {
         panic!("expected a class");

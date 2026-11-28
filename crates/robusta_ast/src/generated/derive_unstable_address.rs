@@ -113,6 +113,10 @@ impl UnstableAddress for TryStatement<'_> {}
 
 impl UnstableAddress for CatchClause<'_> {}
 
+impl UnstableAddress for CatchParameter<'_> {}
+
+impl UnstableAddress for UnionType<'_> {}
+
 impl UnstableAddress for SynchronizedStatement<'_> {}
 
 impl UnstableAddress for LabeledStatement<'_> {}
