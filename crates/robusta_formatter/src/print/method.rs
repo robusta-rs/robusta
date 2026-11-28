@@ -10,7 +10,9 @@ use crate::print::class::{FormatDeclarationClause, format_declaration_header};
 use crate::print::names::class_type_wraps_line;
 use crate::print::parameters::format_parameter_list;
 use crate::print::semicolon::FormatContentWithSemicolon;
-use crate::print::{FormatWrite, format_name_after_type, format_name_after_type_with_indent};
+use crate::print::{
+    FormatWrite, comments_move_name, format_name_after_type, format_name_after_type_with_indent,
+};
 use crate::utils::assignment_like::AssignmentLike;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use crate::utils::statement_body::{format_head_body, format_on_wrapped_line_with_indent};
@@ -191,14 +193,23 @@ where
     type_params.format_trailing_comments(f);
     let result_through_throws = result_through_throws.memoized();
     let return_type_start = return_type.span().start;
+    let name_start = signature.name.span().start;
+    // A name that a comment moves leaves the return type's line, so the header
+    // breaks after the type parameters first.
+    let name_moves =
+        comments_move_name(f.comments().comments_in_range(return_type.span().end, name_start));
     let broken_after = format_once(|f| {
-        format_name_after_type_with_indent(
-            return_type_start,
-            &result_through_throws,
-            false,
-            true,
-            f,
-        );
+        if name_moves {
+            wrapped_indent(true, &format_args!(hard_line_break(), result_through_throws)).fmt(f);
+        } else {
+            format_name_after_type_with_indent(
+                return_type_start,
+                &result_through_throws,
+                false,
+                true,
+                f,
+            );
+        }
     });
     write!(
         f,
