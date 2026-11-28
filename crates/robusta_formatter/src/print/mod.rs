@@ -376,13 +376,7 @@ fn format_name_after_type_with_indent<'a>(
     double: bool,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
-    let comments = f.comments().comments_before(name_start);
-    if comments.iter().any(|comment| {
-        comment.preceded_by_newline()
-            || comment.followed_by_newline()
-            || comment.is_multiline_block()
-    }) {
-        // A comment that starts, ends or spans a line moves the name itself.
+    if comments_move_name(f.comments().comments_before(name_start)) {
         let separated = format_once(|f| {
             write_type_name_separator(name_start, f);
             name.fmt(f);
@@ -391,6 +385,16 @@ fn format_name_after_type_with_indent<'a>(
     } else {
         format_wrapped_continuation(soft_line_break_or_space(), name, measure_flat, double, f);
     }
+}
+
+/// Whether one of the comments before a name starts, ends or spans a line,
+/// which moves the name to a line of its own.
+fn comments_move_name(comments: &[Comment]) -> bool {
+    comments.iter().any(|comment| {
+        comment.preceded_by_newline()
+            || comment.followed_by_newline()
+            || comment.is_multiline_block()
+    })
 }
 
 /// The break between a type and the name after it, inside an indent the

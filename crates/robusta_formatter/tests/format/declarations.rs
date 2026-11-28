@@ -424,6 +424,33 @@ fn comments_after_method_type_parameters_keep_the_break_after_them() {
     ");
 }
 
+/// A comment that moves a generic method's name breaks the header after the
+/// type parameters first.
+#[test]
+fn comments_that_move_a_method_name_break_after_the_type_parameters() {
+    let source = "class C { <T> LongTypeName<T> /* n */ longMethodName(T value) { return null; } \
+                  <T> T // n\nm() { return null; } }";
+    let options =
+        Options { line_width: line_width(40), indent_width: indent_width(2), ..Options::default() };
+    assert_snapshot!(format_stable_with_options(source, &options), @"
+    class C {
+      <T>
+          LongTypeName<T>
+              /* n */ longMethodName(
+                T value
+              ) {
+        return null;
+      }
+
+      <T>
+          T // n
+              m() {
+        return null;
+      }
+    }
+    ");
+}
+
 #[test]
 fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
     let source = "class C { Invoice createInvoice(Customer customer, List<Item> items, \
