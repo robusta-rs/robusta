@@ -518,6 +518,50 @@ fn clause_after_a_split_list_stays_on_the_closing_paren_line() {
 }
 
 #[test]
+fn clause_after_broken_empty_parentheses_stays_on_the_closing_paren_line() {
+    let source = "class C {
+  void close( // idempotent
+  ) throws IOException {}
+
+  void flush /// Writes the pending lines.
+  () throws IOException {}
+
+  C(/* filled in by the builder the processor writes */) throws IOException {}
+
+  void reset() throws IOException {}
+
+  Object read() throws UnsupportedEncodingException {}
+}
+
+record Empty( // no components yet
+) implements Document {}
+";
+    let options = Options { line_width: line_width(50), ..Options::default() };
+    assert_snapshot!(fmt_with_options(source, &options), @"
+    class C {
+      void close( // idempotent
+      ) throws IOException {}
+
+      void flush( /// Writes the pending lines.
+      ) throws IOException {}
+
+      C(
+        /* filled in by the builder the processor writes */
+      ) throws IOException {}
+
+      void reset() throws IOException {}
+
+      Object read()
+          throws UnsupportedEncodingException {}
+    }
+
+    record Empty( // no components yet
+    ) implements Document {}
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
+#[test]
 fn comments_before_a_declared_list_stay_before_its_delimiter() {
     let source = "record R<T> /* d */ (int x) {} record S /* e */ () {} \
                   class Y { Y /* f */ (int t) {} <T> void /* g */ m /* h */ (T t) {} \
