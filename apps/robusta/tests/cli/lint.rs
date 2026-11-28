@@ -366,6 +366,58 @@ fn lint_rules_lists_sorted_metadata_as_json() {
 }
 
 #[test]
+fn lint_rules_lists_enabled_rules_by_category_for_agents() {
+    let temp = TempProject::new();
+    temp.write(
+        "robusta.yaml",
+        r#"lint:
+  categories:
+    correctness: allow
+    style: warn
+  overrides:
+    - files: ["*.java"]
+      rules:
+        broken-null-check: deny
+"#,
+    );
+    temp.write("Example.java", "class Example {}\n");
+
+    let output = robusta_in_dir(
+        &[
+            "lint",
+            "--rules",
+            "--reporter",
+            "agent",
+            "-W",
+            "pedantic",
+            "-A",
+            "redundant-return",
+            "Example.java",
+        ],
+        &temp.dir,
+    );
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    assert!(output.stderr.is_empty(), "{}", stderr(&output));
+    insta::assert_snapshot!(stdout(&output), @"
+    ## Rules (11 total, 5 enabled)
+    ## Correctness
+     broken-null-check
+     duplicate-import
+     redundant-semicolons
+     unused-import
+     unused-local-variable
+    ## Pedantic
+     redundant-return
+    ✅ redundant-super-call
+    ## Style
+    ✅ modifier-order
+    ✅ prefer-expression-lambda
+    ✅ redundant-lambda-parameter-parentheses
+    ✅ uppercase-long-suffix
+    ");
+}
+
+#[test]
 fn lint_rules_with_unsupported_reporter_produces_no_output() {
     let temp = TempProject::new();
     let output = robusta_in_dir(&["lint", "--rules", "--reporter", "checkstyle"], &temp.dir);

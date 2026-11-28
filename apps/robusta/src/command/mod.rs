@@ -185,7 +185,7 @@ pub struct FormatCommand {
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(command("lint"))]
 pub struct LintCommand {
-    /// List registered rules using the default or JSON reporter.
+    /// List registered rules using the default, JSON, or agent reporter.
     #[bpaf(long("rules"), switch, hide_usage)]
     pub list_rules: bool,
     #[bpaf(external)]
