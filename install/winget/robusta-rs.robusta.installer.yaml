@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+
+PackageIdentifier: robusta-rs.robusta
+PackageVersion: "@VERSION@"
+InstallerType: portable
+Commands:
+- robusta
+Installers:
+- Architecture: x64
+  InstallerUrl: "@RELEASE_URL@/robusta-x86_64-pc-windows-msvc.exe"
+  InstallerSha256: "@SHA256_x86_64-pc-windows-msvc.exe@"
+ManifestType: installer
+ManifestVersion: 1.12.0

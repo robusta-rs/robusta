@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
+PackageIdentifier: robusta-rs.robusta
+PackageVersion: "@VERSION@"
+PackageLocale: en-US
+Publisher: robusta-rs
+PublisherUrl: https://github.com/robusta-rs
+PublisherSupportUrl: https://github.com/robusta-rs/robusta/issues
+PackageName: Robusta
+PackageUrl: https://robusta.rs
+License: MIT
+LicenseUrl: https://github.com/robusta-rs/robusta/blob/main/LICENSE
+ShortDescription: Fast, Rust-native Java formatter and linter
+Moniker: robusta
+Tags:
+- formatter
+- java
+- linter
+ReleaseNotesUrl: https://github.com/robusta-rs/robusta/releases/tag/v@VERSION@
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0
