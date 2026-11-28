@@ -1,8 +1,27 @@
 use std::fmt::Write as _;
 
 use robusta_diagnostics::{FileReport, Severity};
+use robusta_linter::{RuleId, table::RuleTable};
+use rustc_hash::FxHashSet;
 
 use super::Info;
+
+// Adapted from https://github.com/oxc-project/oxc/blob/ee7d14d6c40d03b0f287bc66834bdf4ec95167ca/apps/oxlint/src/output_formatter/agent.rs
+/// List every registered rule under its category, marking the ones `enabled`
+/// holds.
+pub(super) fn all_rules(enabled: &FxHashSet<RuleId>) -> String {
+    let table = RuleTable::default();
+    let mut output = String::new();
+    let _ = writeln!(output, "## Rules ({} total, {} enabled)", table.total, enabled.len());
+    for section in &table.sections {
+        let _ = writeln!(output, "## {}", section.category);
+        for row in &section.rows {
+            let mark = if enabled.contains(&RuleId::new(row.name)) { "✅" } else { "" };
+            let _ = writeln!(output, "{mark} {}", row.name);
+        }
+    }
+    output
+}
 
 /// Render one compact physical line per finding, with no source excerpt or
 /// completion summary. The enclosing [`super::BufferedReporter`] holds these

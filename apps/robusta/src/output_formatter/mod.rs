@@ -499,6 +499,7 @@ impl ReportFormat {
         match self {
             Self::Default => Some(DefaultReporter::all_rules(enabled)),
             Self::Buffered(BufferedFormat::Json) => Some(json::get_all_rules_json()),
+            Self::Buffered(BufferedFormat::Agent) => Some(agent::all_rules(enabled)),
             Self::Buffered(_) => None,
         }
     }

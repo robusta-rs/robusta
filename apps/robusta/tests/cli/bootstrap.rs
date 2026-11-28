@@ -292,7 +292,7 @@ fn lint_help_documents_fix_mode() {
                                   directory. Paths must not contain a `..` component.
 
     Available options:
-            --rules               List registered rules using the default or JSON reporter.
+            --rules               List registered rules using the default, JSON, or agent reporter.
             --diff                Print a unified diff for files that would be changed, and the report
                                   to stderr.
             --list-different      Print only the paths of files that would be changed, and the report to

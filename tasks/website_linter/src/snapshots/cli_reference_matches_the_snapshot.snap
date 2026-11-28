@@ -229,7 +229,7 @@ Arguments:
 
 ## Available options:
 - **`    --rules`** &mdash; 
-  List registered rules using the default or JSON reporter.
+  List registered rules using the default, JSON, or agent reporter.
 - **`    --diff`** &mdash; 
   Print a unified diff for files that would be changed, and the report to stderr.
 - **`    --list-different`** &mdash; 
