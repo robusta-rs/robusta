@@ -73,15 +73,15 @@ fn shape(node: &Node) -> String {
     format!("{name}[{}]", children.join(", "))
 }
 
+/// The shape of `content`, which must parse without any of a repair's text in the tree.
+fn read(content: &str) -> String {
+    let root = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
+    assert!(!format!("{root:?}").contains("***"), "{content:?} keeps a repair: {root:?}");
+    shape(&root)
+}
+
 #[test]
 fn a_list_at_a_zero_padded_one_interrupts_a_paragraph() {
-    // No input holds a thematic break, so none of the repair's text may stay in the tree.
-    let read = |content: &str| {
-        let root = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
-        assert!(!format!("{root:?}").contains("***"), "{content:?} keeps a repair: {root:?}");
-        shape(&root)
-    };
-
     assert_eq!(read("a\n01. b"), "root[paragraph, list[item[paragraph]]]");
     assert_eq!(
         read("a\n001) b\n002) c"),
@@ -152,12 +152,6 @@ fn a_lazy_line_continues_the_paragraph_its_containers_hold() {
 
 #[test]
 fn a_line_after_a_setext_heading_leaves_the_containers_it_lacks() {
-    let read = |content: &str| {
-        let root = parse(content).unwrap_or_else(|| panic!("{content:?} parses"));
-        assert!(!format!("{root:?}").contains("***"), "{content:?} keeps a repair: {root:?}");
-        shape(&root)
-    };
-
     assert_eq!(read("- a\n  ==\nb"), "root[list[item[other]], paragraph]");
     assert_eq!(read("- a\n  ---\nb"), "root[list[item[other]], paragraph]");
     assert_eq!(read("> a\n> ==\nb"), "root[quote[other], paragraph]");
@@ -178,6 +172,26 @@ fn a_line_after_a_setext_heading_leaves_the_containers_it_lacks() {
     let Some(Node::Root(root)) = parse(content) else { panic!("{content:?} parses") };
     let position = root.children[1].position().unwrap();
     assert_eq!((position.start.offset, position.start.line, position.start.column), (9, 3, 1));
+}
+
+#[test]
+fn a_dash_line_after_a_setext_heading_is_a_thematic_break() {
+    // The dash line reads as a thematic break, an `other`, and the list stays tight.
+    assert_eq!(read("a\n==\n---"), "root[other, other]");
+    assert_eq!(read("a\n---\n---\n---"), "root[other, other, other]");
+    assert_eq!(read("a\n==\n   ----  \nb"), "root[other, other, paragraph]");
+    assert_eq!(read("a\n==\n---\n==="), "root[other, other, paragraph]");
+    assert_eq!(read("- a\n  ==\n  ---\n- b"), "root[list[item[other, other], item[paragraph]]]");
+    assert_eq!(read("> a\n>  ==\n  e q\n==\n---"), "root[quote[other], other, other]");
+    // Too few dashes, or indented code, is not a break.
+    assert_eq!(read("a\n==\n--"), "root[other, paragraph]");
+    assert_eq!(read("a\n==\n    ---"), "root[other, other]");
+
+    // The break spans its line, indentation included, as after a blank line.
+    let content = "a\n==\n   ---\nb";
+    let Some(Node::Root(root)) = parse(content) else { panic!("{content:?} parses") };
+    assert!(matches!(root.children[1], Node::ThematicBreak(_)));
+    assert_eq!(span(&root.children[1]).map(|range| &content[range]), Some("   ---"));
 }
 
 #[test]

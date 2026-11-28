@@ -167,9 +167,9 @@ fn wide_tabs(node: &Node, content: &str, repairs: &mut Vec<Repair<'_>>) {
 /// before it, so that `a\n> <b>` starts an HTML block and `a\n> 2. c` and `[a]: b\n2. c` a list,
 /// indentation before the first list it reads without that guard, so that `- a\n\nb\n2. c`
 /// continues the paragraph `b`, the containers of the paragraph before the first lazy line it
-/// does not continue, a break before the first line it reads lazily after a setext heading, or
-/// a break before the first zero-padded item it reads with the guard. Later ones wait, as that
-/// block can take them in.
+/// does not continue, a break before the first line it reads lazily or as text after a setext
+/// heading, or a break before the first zero-padded item it reads with the guard. Later ones
+/// wait, as that block can take them in.
 fn next_guard_repair<'a>(
     node: &Node,
     content: &'a str,
@@ -225,14 +225,17 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
         let line = content[..range.start].rfind('\n')? + 1;
         return lazy_line_containers(content, paragraph.start, line);
     }
-    // A setext underline closes its paragraph, so no line after it is lazy, but markdown-rs
-    // keeps a paragraph line that lacks the heading's containers in them, as in
-    // `- a\n  ==\nb`. A break before it, behind the same markers, closes them first.
+    // A setext underline closes its paragraph, so no line after it is lazy or underlines it, but
+    // markdown-rs keeps a paragraph line that lacks the heading's containers in them, as in
+    // `- a\n  ==\nb`, and reads a `---` line as text, as in `a\n==\n---`. A break before the
+    // line, behind the same markers, closes them first and leaves no paragraph to underline.
     if let Node::Heading(_) = before
         && content[before_range.clone()].contains('\n')
-        && matches!(block, Node::Paragraph(_) | Node::Definition(_))
         && let line = content[..range.start].rfind('\n')? + 1
-        && lazy_line_containers(content, before_range.start, line).is_some()
+        && (matches!(block, Node::Paragraph(_) | Node::Definition(_))
+            && lazy_line_containers(content, before_range.start, line).is_some()
+            || matches!(block, Node::Paragraph(_) | Node::Heading(_))
+                && dash_line(&content[range.start..]))
     {
         return Some(break_before(content, line));
     }
@@ -394,6 +397,12 @@ fn after_list_marker(text: &str) -> Option<&str> {
 /// Whether the line after a list marker is blank.
 fn blank_first_line(rest: &str) -> bool {
     rest[..rest.find('\n').unwrap_or(rest.len())].trim_matches([' ', '\t']).is_empty()
+}
+
+/// Whether the first line of `text` is three or more `-` between spaces or tabs.
+fn dash_line(text: &str) -> bool {
+    let line = text[..text.find('\n').unwrap_or(text.len())].trim_matches([' ', '\t']);
+    line.len() >= 3 && line.bytes().all(|byte| byte == b'-')
 }
 
 /// Parse `content` with `repairs` inserted, with positions in `content`.
