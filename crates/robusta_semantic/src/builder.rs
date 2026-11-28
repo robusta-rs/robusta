@@ -3,16 +3,17 @@
 use std::{
     cell::{Cell, OnceCell},
     cmp::Reverse,
+    mem,
 };
 
-use robusta_allocator::{Address, GetAddress, UnstableAddress};
 use robusta_ast::{
-    AnnotationInterfaceDeclaration, AnnotationInterfaceElementDeclaration, AstKind,
-    BindingIdentifier, CatchParameter, ClassDeclaration, ClassType, CompactConstructorDeclaration,
-    CompilationUnit, EnumConstant, EnumDeclaration, FormalParameter, IdentifierReference,
-    ImportDeclaration, ImportKind, InterfaceDeclaration, MethodDeclaration, ModifierKind,
-    RecordComponent, RecordDeclaration, Statement, Type, TypeDeclarationKind, TypeParameter,
-    VariableDeclarator, VariableInitializer,
+    AnnotationInterfaceDeclaration, AnnotationInterfaceElementDeclaration, ArrayAccess,
+    AssignmentExpression, AssignmentTarget, AstKind, BindingIdentifier, Callee, CatchParameter,
+    ClassDeclaration, ClassType, CompactConstructorDeclaration, CompilationUnit, EnumConstant,
+    EnumDeclaration, FieldAccess, FormalParameter, IdentifierReference, ImportDeclaration,
+    ImportKind, InterfaceDeclaration, MethodDeclaration, ModifierKind, RecordComponent,
+    RecordDeclaration, SimpleClassType, Statement, Type, TypeDeclarationKind, TypeName,
+    TypeParameter, UpdateExpression, VariableDeclarator, VariableInitializer,
 };
 use robusta_ast_visit::Visit;
 use robusta_span::{GetSpan, Span};
@@ -31,6 +32,9 @@ use crate::{
 pub struct SemanticBuilder<'a> {
     pub(crate) current_node_id: NodeId,
     pub(crate) current_scope_id: ScopeId,
+    /// How the context the builder is in uses the next name it visits (JLS
+    /// 6.5). The name takes it, leaving `Read`.
+    current_reference_kind: ReferenceKind,
     pub(crate) nodes: AstNodes<'a>,
     pub(crate) scoping: Scoping<'a>,
     /// Where each symbol is usable, gathered until symbols are indexed.
@@ -51,6 +55,7 @@ impl<'a> SemanticBuilder<'a> {
         Self {
             current_node_id: NodeId::ROOT,
             current_scope_id: ScopeId::ROOT,
+            current_reference_kind: ReferenceKind::Read,
             nodes: AstNodes::default(),
             scoping: Scoping::default(),
             symbol_parts: Vec::new(),
@@ -188,8 +193,7 @@ impl<'a> SemanticBuilder<'a> {
         let reference_id = self.scoping.create_reference(Reference {
             name: Ident::from(name.name),
             span: name.span,
-            // The builder borrows the AST, so the name stays in place.
-            kind: self.reference_kind(name.unstable_address()),
+            kind: mem::replace(&mut self.current_reference_kind, ReferenceKind::Read),
             scope_id: self.current_scope_id,
             node_id: self.current_node_id,
             symbol_id: None,
@@ -197,58 +201,11 @@ impl<'a> SemanticBuilder<'a> {
         name.reference_id.set(Some(reference_id));
     }
 
-    /// What the context of the name at `address` expects it to be (JLS 6.5).
-    fn reference_kind(&self, address: Address) -> ReferenceKind {
-        match self.parent_kind() {
-            AstKind::SimpleClassType(_)
-            | AstKind::QualifiedTypeName(_)
-            | AstKind::QualifiedThis(_)
-            | AstKind::QualifiedSuper(_)
-            | AstKind::UsesDirective(_)
-            | AstKind::ProvidesDirective(_)
-            | AstKind::ClassDeclaration(_)
-            | AstKind::InterfaceDeclaration(_) => ReferenceKind::Type,
-            // The other name directly in an annotation is an element value.
-            AstKind::Annotation(annotation) if annotation.name.address() == address => {
-                ReferenceKind::Type
-            }
-            AstKind::MethodCall(call) if call.callee.address() == address => ReferenceKind::Method,
-            _ => self.expression_reference_kind(address),
-        }
-    }
-
-    /// Whether the name at `address` is read, written, or both: only the
-    /// target of an assignment or an update writes it. The target may be a
-    /// parenthesized variable (JLS 15.8.5), so parentheses are looked
-    /// through.
-    fn expression_reference_kind(&self, address: Address) -> ReferenceKind {
-        let mut operand = address;
-        for ancestor in self.nodes.ancestor_kinds(self.current_node_id) {
-            match ancestor {
-                AstKind::ParenthesizedExpression(_) => operand = ancestor.address(),
-                AstKind::AssignmentExpression(assignment)
-                    if assignment.target.address() == operand =>
-                {
-                    return if assignment.op == AssignOp::Assign {
-                        ReferenceKind::Write
-                    } else {
-                        ReferenceKind::ReadWrite
-                    };
-                }
-                AstKind::UpdateExpression(update) if update.target.address() == operand => {
-                    return ReferenceKind::ReadWrite;
-                }
-                _ => break,
-            }
-        }
-        ReferenceKind::Read
-    }
-
     /// A name in one unmatched branch can fall in the part after another `if`
     /// only when that `if`'s branch ends first, so deciding in order of branch
     /// end decides that part first.
     fn end_pattern_scopes(&mut self) {
-        let mut pending = std::mem::take(&mut self.pending_patterns);
+        let mut pending = mem::take(&mut self.pending_patterns);
         pending.sort_unstable_by_key(|(_, unmatched)| unmatched.span().end);
         for (symbol_id, unmatched) in pending {
             if can_complete_normally(unmatched, &*self) {
@@ -652,11 +609,69 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
         self.leave_node(kind);
     }
 
+    fn visit_field_access(&mut self, access: &'a FieldAccess<'a>) {
+        // `a.f = 1` writes the field, so `a` is only read.
+        self.current_reference_kind = ReferenceKind::Read;
+        robusta_ast_visit::walk::walk_field_access(self, access);
+    }
+
+    fn visit_callee(&mut self, callee: &'a Callee<'a>) {
+        if matches!(callee, Callee::Identifier(_)) {
+            self.current_reference_kind = ReferenceKind::Method;
+        }
+        robusta_ast_visit::walk::walk_callee(self, callee);
+    }
+
+    fn visit_array_access(&mut self, access: &'a ArrayAccess<'a>) {
+        // `a[i] = 1` writes the element, so `a` and `i` are only read.
+        self.current_reference_kind = ReferenceKind::Read;
+        robusta_ast_visit::walk::walk_array_access(self, access);
+    }
+
+    fn visit_update_expression(&mut self, update: &'a UpdateExpression<'a>) {
+        self.current_reference_kind = ReferenceKind::ReadWrite;
+        robusta_ast_visit::walk::walk_update_expression(self, update);
+    }
+
+    fn visit_assignment_expression(&mut self, assignment: &'a AssignmentExpression<'a>) {
+        // A compound assignment reads its target before writing it (JLS 15.26.2).
+        if assignment.op != AssignOp::Assign {
+            self.current_reference_kind = ReferenceKind::ReadWrite;
+        }
+        robusta_ast_visit::walk::walk_assignment_expression(self, assignment);
+    }
+
+    /// The target is written, and parentheses around it keep it a variable
+    /// (JLS 15.8.5).
+    fn visit_assignment_target(&mut self, target: &'a AssignmentTarget<'a>) {
+        if self.current_reference_kind != ReferenceKind::ReadWrite {
+            self.current_reference_kind = ReferenceKind::Write;
+        }
+        robusta_ast_visit::walk::walk_assignment_target(self, target);
+    }
+
+    fn visit_simple_class_type(&mut self, ty: &'a SimpleClassType<'a>) {
+        let kind = AstKind::SimpleClassType(ty);
+        self.enter_node(kind);
+        self.visit_annotations(&ty.annotations);
+        self.current_reference_kind = ReferenceKind::Type;
+        self.visit_identifier_reference(&ty.name);
+        if let Some(args) = &ty.args {
+            self.visit_type_arguments(args);
+        }
+        self.leave_node(kind);
+    }
+
     fn visit_identifier_reference(&mut self, ident: &'a IdentifierReference<'a>) {
         let kind = AstKind::IdentifierReference(ident);
         self.enter_node(kind);
         self.reference_identifier(ident);
         self.leave_node(kind);
+    }
+
+    fn visit_type_name(&mut self, name: &'a TypeName<'a>) {
+        self.current_reference_kind = ReferenceKind::Type;
+        robusta_ast_visit::walk::walk_type_name(self, name);
     }
 }
 

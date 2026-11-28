@@ -341,6 +341,7 @@ fn a_variable_is_written_only_as_the_operand_of_an_assignment_or_update() {
         ("y[a] = b; y[c]++;", &[("y", Read), ("a", Read), ("b", Read), ("y", Read), ("c", Read)]),
         ("y[a = b] = c;", &[("y", Read), ("a", Write), ("b", Read), ("c", Read)]),
         ("a = a + 1;", &[("a", Write), ("a", Read)]),
+        ("this.f = a; (this.f) += b;", &[("a", Read), ("b", Read)]),
     ] {
         let source = format!(
             "class C {{ int f; void m(Integer a, int b, int c, C x, int[] y) {{ {statement} }} }}"
@@ -389,6 +390,43 @@ fn an_annotation_element_value_is_looked_up_as_a_variable() {
             ("X", ReferenceKind::Read, Some(SymbolKind::Field)),
         ]
     );
+}
+
+#[test]
+fn a_type_name_is_looked_up_as_a_type() {
+    use ReferenceKind::{Read, Type};
+    for (source, kinds) in [
+        ("sealed interface I permits J, k.L {}", &[("J", Type), ("k", Type)][..]),
+        (
+            "module m { uses a.S; provides S with T, b.U; }",
+            &[("a", Type), ("S", Type), ("T", Type), ("b", Type)],
+        ),
+        (
+            "class C { Object f = D.this; @e.A(x) List<@B(y) String> g; }",
+            &[
+                ("Object", Type),
+                ("D", Type),
+                ("e", Type),
+                ("x", Read),
+                ("List", Type),
+                ("B", Type),
+                ("y", Read),
+                ("String", Type),
+            ],
+        ),
+    ] {
+        let allocator = Allocator::new();
+        let parsed = parse(&allocator, source);
+        assert!(parsed.errors.is_empty(), "{source}: {:?}", parsed.errors);
+        let semantic = SemanticBuilder::new().build(&parsed.unit);
+        let found = semantic
+            .scoping()
+            .references()
+            .iter()
+            .map(|reference| (reference.name(), reference.kind()))
+            .collect::<Vec<_>>();
+        assert_eq!(found, kinds, "{source}");
+    }
 }
 
 #[test]
