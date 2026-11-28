@@ -5,7 +5,25 @@ use std::process::ExitCode;
 pub struct Output {
     stdout: Box<dyn Write>,
     stderr: Box<dyn Write>,
+    /// The stream holding text not yet flushed. It is flushed before the other
+    /// stream is written, so both keep program order on one terminal or pipe.
+    unflushed: Option<Stream>,
     failure: Option<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Stream {
+    Stdout,
+    Stderr,
+}
+
+impl Stream {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Stdout => "stdout",
+            Self::Stderr => "stderr",
+        }
+    }
 }
 
 impl Output {
@@ -17,44 +35,84 @@ impl Output {
     }
 
     fn new(stdout: Box<dyn Write>, stderr: Box<dyn Write>) -> Self {
-        Self { stdout, stderr, failure: None }
+        Self { stdout, stderr, unflushed: None, failure: None }
     }
 
     /// Write to stdout without a trailing newline.
     pub fn stdout(&mut self, text: &str) {
-        let result = write_and_flush(&mut self.stdout, text, "");
-        self.record("stdout", result);
+        self.write(Stream::Stdout, text, "");
+        self.flush();
     }
 
     /// Write one line to stdout.
     pub fn stdout_line(&mut self, line: &str) {
-        let result = write_and_flush(&mut self.stdout, line, "\n");
-        self.record("stdout", result);
+        self.write(Stream::Stdout, line, "\n");
+        self.flush();
     }
 
     /// Write one line to stderr.
     pub fn stderr_line(&mut self, line: &str) {
-        let result = write_and_flush(&mut self.stderr, line, "\n");
-        self.record("stderr", result);
+        self.write(Stream::Stderr, line, "\n");
+        self.flush();
     }
 
     /// Write to stderr without a trailing newline.
     pub fn stderr(&mut self, text: &str) {
-        let result = write_and_flush(&mut self.stderr, text, "");
-        self.record("stderr", result);
+        self.write(Stream::Stderr, text, "");
+        self.flush();
+    }
+
+    /// Write one file's report, its stdout before its stderr, leaving it in the
+    /// streams' buffers until [`Output::flush`] or the next write that flushes.
+    pub fn report(&mut self, stdout: &str, stderr: &str) {
+        if !stdout.is_empty() {
+            self.write(Stream::Stdout, stdout, "");
+        }
+        if !stderr.is_empty() {
+            self.write(Stream::Stderr, stderr, "");
+        }
+    }
+
+    /// Flush the text the streams' buffers hold.
+    pub fn flush(&mut self) {
+        let Some(stream) = self.unflushed.take() else {
+            return;
+        };
+        let result = self.writer(stream).flush();
+        self.record(stream, result);
     }
 
     /// Fold any recorded write failure into the command's exit code.
     pub fn finish(mut self, code: ExitCode) -> ExitCode {
+        self.flush();
         let Some(failure) = self.failure.take() else {
             return code;
         };
         // Best effort: the failed stream may be stderr itself.
-        let _ = write_and_flush(&mut self.stderr, &failure, "\n");
+        self.write(Stream::Stderr, &failure, "\n");
+        self.flush();
         ExitCode::from(2)
     }
 
-    fn record(&mut self, stream: &str, result: io::Result<()>) {
+    fn write(&mut self, stream: Stream, text: &str, ending: &str) {
+        if self.unflushed.is_some_and(|unflushed| unflushed != stream) {
+            self.flush();
+        }
+        self.unflushed = Some(stream);
+        let writer = self.writer(stream);
+        let result =
+            writer.write_all(text.as_bytes()).and_then(|()| writer.write_all(ending.as_bytes()));
+        self.record(stream, result);
+    }
+
+    fn writer(&mut self, stream: Stream) -> &mut Box<dyn Write> {
+        match stream {
+            Stream::Stdout => &mut self.stdout,
+            Stream::Stderr => &mut self.stderr,
+        }
+    }
+
+    fn record(&mut self, stream: Stream, result: io::Result<()>) {
         let Err(error) = result else {
             return;
         };
@@ -66,15 +124,9 @@ impl Output {
             return;
         }
         if self.failure.is_none() {
-            self.failure = Some(format!("failed to write {stream}: {error}"));
+            self.failure = Some(format!("failed to write {}: {error}", stream.name()));
         }
     }
-}
-
-fn write_and_flush(writer: &mut Box<dyn Write>, text: &str, ending: &str) -> io::Result<()> {
-    writer.write_all(text.as_bytes())?;
-    writer.write_all(ending.as_bytes())?;
-    writer.flush()
 }
 
 #[cfg(test)]
@@ -94,6 +146,36 @@ mod tests {
 
         fn flush(&mut self) -> io::Result<()> {
             Ok(())
+        }
+    }
+
+    /// Accepts every write and fails at the flush.
+    struct FailingFlush(ErrorKind);
+
+    impl Write for FailingFlush {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Err(io::Error::from(self.0))
+        }
+    }
+
+    /// One stream of a shared terminal: its text reaches the terminal only when flushed.
+    struct TerminalStream {
+        terminal: SharedBuffer,
+        buffer: Vec<u8>,
+    }
+
+    impl Write for TerminalStream {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.buffer.extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.terminal.write_all(&std::mem::take(&mut self.buffer))
         }
     }
 
@@ -169,5 +251,64 @@ mod tests {
         output.stderr_line("lost");
 
         assert_eq!(output.finish(ExitCode::SUCCESS), ExitCode::from(2));
+    }
+
+    #[test]
+    fn reports_reach_the_terminal_in_program_order_once_flushed() {
+        let terminal = SharedBuffer::default();
+        let stream = || TerminalStream { terminal: terminal.clone(), buffer: Vec::new() };
+        let mut output = Output::new(Box::new(stream()), Box::new(stream()));
+
+        output.report("A.java\n", "");
+        output.report("B.java\n", "B.java: error\n");
+        output.report("C.java\n", "");
+        output.report("D.java\n", "");
+        assert_eq!(terminal.contents(), "A.java\nB.java\nB.java: error\n");
+
+        output.flush();
+        assert_eq!(terminal.contents(), "A.java\nB.java\nB.java: error\nC.java\nD.java\n");
+
+        output.stderr_line("summary");
+        assert_eq!(output.finish(ExitCode::SUCCESS), ExitCode::SUCCESS);
+        assert_eq!(terminal.contents(), "A.java\nB.java\nB.java: error\nC.java\nD.java\nsummary\n");
+    }
+
+    #[test]
+    fn finish_flushes_a_report_left_in_the_buffer() {
+        let terminal = SharedBuffer::default();
+        let stream = || TerminalStream { terminal: terminal.clone(), buffer: Vec::new() };
+        let mut output = Output::new(Box::new(stream()), Box::new(stream()));
+
+        output.report("", "A.java: error\n");
+
+        assert_eq!(output.finish(ExitCode::FAILURE), ExitCode::FAILURE);
+        assert_eq!(terminal.contents(), "A.java: error\n");
+    }
+
+    #[test]
+    fn broken_pipe_at_the_flush_ends_output_without_changing_the_exit_code() {
+        for kind in [ErrorKind::BrokenPipe, ErrorKind::WouldBlock] {
+            let stderr = SharedBuffer::default();
+            let mut output = Output::new(Box::new(FailingFlush(kind)), Box::new(stderr.clone()));
+
+            output.report("A.java\n", "");
+            output.flush();
+
+            assert_eq!(output.finish(ExitCode::FAILURE), ExitCode::FAILURE);
+            assert_eq!(stderr.contents(), "");
+        }
+    }
+
+    #[test]
+    fn other_failures_at_the_flush_exit_operationally() {
+        let stderr = SharedBuffer::default();
+        let mut output =
+            Output::new(Box::new(FailingFlush(ErrorKind::StorageFull)), Box::new(stderr.clone()));
+
+        output.report("A.java\n", "");
+        output.flush();
+
+        assert_eq!(output.finish(ExitCode::SUCCESS), ExitCode::from(2));
+        assert!(stderr.contents().starts_with("failed to write stdout: "), "{}", stderr.contents());
     }
 }

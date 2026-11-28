@@ -6,7 +6,7 @@ use robusta_diagnostics::Output;
 
 /// A destination for one file's streamed output. The process-wide [`Output`]
 /// writes straight to stdio; a [`Buffer`] collects a worker's output so the
-/// main thread can flush results in input order. Both let the per-file work be
+/// main thread can write results in input order. Both let the per-file work be
 /// identical on the main thread (stdin) and on rayon workers.
 pub trait Sink {
     /// Append to stdout without a trailing newline.
@@ -32,7 +32,7 @@ impl Sink for Output {
     }
 }
 
-/// One file's buffered stdout and stderr, flushed to the shared [`Output`] in
+/// One file's buffered stdout and stderr, written to the shared [`Output`] in
 /// input order once the parallel map completes.
 #[derive(Default)]
 pub struct Buffer {
@@ -43,13 +43,8 @@ pub struct Buffer {
 impl Buffer {
     /// Emit this file's captured output to the shared streams. Called on the
     /// main thread in input order, so the byte stream matches a serial run.
-    pub fn flush_to(&self, out: &mut Output) {
-        if !self.stdout.is_empty() {
-            out.stdout(&self.stdout);
-        }
-        if !self.stderr.is_empty() {
-            out.stderr(&self.stderr);
-        }
+    pub fn write_to(&self, out: &mut Output) {
+        out.report(&self.stdout, &self.stderr);
     }
 }
 

@@ -352,7 +352,7 @@ struct RunReport {
 
 impl RunReport {
     fn absorb(&mut self, out: &mut Output, buffer: &Buffer, outcome: FileOutcome) {
-        buffer.flush_to(out);
+        buffer.write_to(out);
         self.diagnostics.merge(outcome.diagnostics);
         self.work_remains |= outcome.work_remains;
         if let (Some(reporter), Some(report)) = (&mut self.buffered, outcome.report) {
@@ -547,6 +547,7 @@ impl CliRunner {
         if let Some(baseline) = &baseline {
             settle_baseline(out, baseline, &mut scope, &run, &mut totals);
         }
+        out.flush();
         if files.is_empty() {
             report_no_files(out);
             return completed_result(

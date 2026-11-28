@@ -27,8 +27,16 @@ pub fn run_debug_files(
         return CliRunResult::FileSelectionFailed;
     };
     files.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+
+    let mut output = String::new();
     for file in files {
-        out.stdout_line(&file.display_path.to_string_lossy());
+        output.push_str(&file.display_path.to_string_lossy());
+        output.push('\n');
     }
+
+    if !output.is_empty() {
+        out.stdout(&output);
+    }
+
     CliRunResult::FilesListed
 }
