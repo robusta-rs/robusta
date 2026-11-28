@@ -416,8 +416,8 @@ pub fn format_declaration_header<'ast>(
 /// split.
 ///
 /// `head_end` is where what `format_head` prints ends, or the declared name
-/// when it prints nothing. `format_head` returns the group of a record's
-/// components.
+/// when it prints nothing. `format_head` returns the group a record's header
+/// breaks in.
 fn format_type_clauses<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     head_end: u32,

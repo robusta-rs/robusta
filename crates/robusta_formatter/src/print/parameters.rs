@@ -16,7 +16,7 @@ use robusta_ast::{
     RecordComponent, RecordHeader,
 };
 use robusta_formatter_core::{GroupId, format_args};
-use robusta_span::GetSpan;
+use robusta_span::{GetSpan, Span};
 
 impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordHeader<'a>> {
     fn write(&self, f: &mut JavaFormatter<'_, 'a>) {
@@ -27,8 +27,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, RecordHeader<'a>> {
 /// A record header's `(…)`, with comments as in [`format_parameter_list`],
 /// except that the comments before the `(` always stay before it.
 ///
-/// Returns the group the components break in, which an empty header does not
-/// have.
+/// Returns the group the header breaks in, which empty parentheses have only
+/// around a comment.
 pub fn format_record_header<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     header: &AstNode<'_, 'ast, RecordHeader<'ast>>,
@@ -36,8 +36,7 @@ pub fn format_record_header<'ast>(
     write_comments_between_blocks(f.comments().comments_before(header.span.start), f);
     let components = header.components();
     let Some(first) = components.first() else {
-        format_empty_parentheses(f, header.span);
-        return None;
+        return format_empty_parameters(f, header.span);
     };
     let group_id = f.state().group_id("record_components");
     format_parenthesized_frame(f, first.span.start, Some(group_id), |f| {
@@ -59,8 +58,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, FormalParameters<'a>> {
 /// comment into the body. A line comment right after the `(` stays on its line,
 /// and the list breaks.
 ///
-/// Returns the group the entries break in, which an empty or concise list does
-/// not have.
+/// Returns the group the list breaks in, which a concise list does not have,
+/// and an empty one has only around a comment.
 pub fn format_parameter_list<'ast>(
     f: &mut JavaFormatter<'_, 'ast>,
     list: &AstNode<'_, 'ast, FormalParameters<'ast>>,
@@ -81,8 +80,7 @@ pub fn format_parameter_list<'ast>(
         .map(|receiver| receiver.span.start)
         .or_else(|| parameters.first().map(|parameter| parameter.span.start))
     else {
-        format_empty_parentheses(f, list.span);
-        return None;
+        return format_empty_parameters(f, list.span);
     };
     let group_id = f.state().group_id("parameters");
     format_parenthesized_frame(f, first_start, Some(group_id), |f| {
@@ -90,6 +88,21 @@ pub fn format_parameter_list<'ast>(
             .entries(receiver)
             .entries(parameters.iter());
     });
+    Some(group_id)
+}
+
+/// Empty parameter parentheses ending at `span.end`, grouped around a comment
+/// so a clause after them can follow a `)` the comment puts on its own line.
+///
+/// Returns that group, which parentheses without a comment do not have.
+fn format_empty_parameters(f: &mut JavaFormatter<'_, '_>, span: Span) -> Option<GroupId> {
+    let parentheses = format_with(|f| format_empty_parentheses(f, span));
+    if !f.comments().has_comment_before(span.end) {
+        parentheses.fmt(f);
+        return None;
+    }
+    let group_id = f.state().group_id("empty_parameters");
+    group(&parentheses).with_group_id(Some(group_id)).fmt(f);
     Some(group_id)
 }
 
