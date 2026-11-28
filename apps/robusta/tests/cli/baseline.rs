@@ -757,6 +757,56 @@ fn the_baseline_is_read_only_from_the_current_directory() {
     assert_eq!(robusta_in_dir(&["lint"], &temp.dir).status.code(), Some(0));
 }
 
+/// Outside Windows, `\` and `:` are part of a file name, so each file keeps its
+/// own allowances.
+#[cfg(unix)]
+#[test]
+fn file_names_with_backslashes_and_colons_keep_their_own_allowances() {
+    let temp = project(TWO_ERRORS);
+    temp.write("Back/Slash.java", TWO_ERRORS);
+    temp.write("Back\\Slash.java", "class A { long n = 10l; }\n");
+    temp.write("Colon:Name.java", "class A { long n = 10l; }\n");
+    let entry = |key: &str, count: usize| {
+        format!(
+            "  \"{key}\": {{\n    \"uppercase-long-suffix\": {{\n      \"count\": {count}\n    }}\n  }}"
+        )
+    };
+    let all = [
+        entry("A.java", 2),
+        entry("Back/Slash.java", 2),
+        entry("Back\\\\Slash.java", 1),
+        entry("Colon:Name.java", 1),
+    ];
+
+    let suppress = robusta_in_dir(&["lint", "--suppress-all"], &temp.dir);
+    assert_eq!(suppress.status.code(), Some(0), "{}", stdout(&suppress));
+    assert_eq!(read(&baseline_path(&temp)), format!("{{\n{}\n}}\n", all.join(",\n")));
+    assert_eq!(robusta_in_dir(&["lint"], &temp.dir).status.code(), Some(0));
+
+    std::fs::remove_file(temp.dir.join("Back\\Slash.java")).unwrap();
+    temp.write("Colon:Name.java", "class A {}\n");
+    let output = robusta_in_dir(&["lint"], &temp.dir);
+    let report = stdout_without_summary(&output);
+    assert_eq!(output.status.code(), Some(1), "{report}");
+    assert!(
+        report.contains(
+            "Back\\Slash.java: robusta-suppressions.json allows 1 error, but the file no longer \
+             exists"
+        ),
+        "{report}"
+    );
+    assert!(
+        report
+            .contains("Colon:Name.java: robusta-suppressions.json allows 1 error, but none remain"),
+        "{report}"
+    );
+    assert!(!report.contains("Back/Slash.java: robusta-suppressions.json"), "{report}");
+
+    let prune = robusta_in_dir(&["lint", "--prune-suppressions"], &temp.dir);
+    assert_eq!(prune.status.code(), Some(0), "{}", stdout(&prune));
+    assert_eq!(read(&baseline_path(&temp)), format!("{{\n{},\n{}\n}}\n", all[0], all[1]));
+}
+
 #[test]
 fn source_outside_the_current_directory_is_not_baselined() {
     let outside = TempProject::new();

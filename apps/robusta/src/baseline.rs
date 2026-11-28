@@ -233,9 +233,15 @@ fn is_baselined(diagnostic: &LintDiagnostic) -> bool {
         && diagnostic.rule_id() != UNUSED_SUPPRESSION_ID
 }
 
-/// Whether `segment` can be one `/`-separated part of a key on every platform.
+/// Whether `segment` can be one `/`-separated part of a key on this host.
+///
+/// `\` and `:` are part of a file name except on Windows, where they would
+/// separate components or name a drive or stream.
 fn is_key_segment(segment: &str) -> bool {
-    !segment.is_empty() && segment != "." && segment != ".." && !segment.contains(['\\', ':'])
+    !segment.is_empty()
+        && segment != "."
+        && segment != ".."
+        && !(cfg!(windows) && segment.contains(['\\', ':']))
 }
 
 /// The serialized form of one allowance.
@@ -352,20 +358,36 @@ mod tests {
             let error = parse(text.as_bytes()).expect_err(text);
             assert!(error.contains(expected), "{text}: {error}");
         }
-        for key in [
-            "",
-            "/A.java",
-            "../A.java",
-            "src/../A.java",
-            "./A.java",
-            "src//A.java",
-            "src\\\\A.java",
-            "C:/A.java",
-            "src/",
-        ] {
+        for key in ["", "/A.java", "../A.java", "src/../A.java", "./A.java", "src//A.java", "src/"]
+        {
             let text = format!("{{\"{key}\": {{\"unused-import\": {{\"count\": 1}}}}}}");
             let error = parse(text.as_bytes()).expect_err(&text);
             assert!(error.contains("not a relative path"), "{key}: {error}");
         }
+    }
+
+    #[test]
+    fn keys_follow_the_host_path_rules() {
+        for key in ["Back\\Slash.java", "Colon:Name.java", "C:/A.java", "src\\..\\A.java"] {
+            let allowances =
+                Allowances::from([(key.to_string(), BTreeMap::from([("unused-import", 1)]))]);
+            let text = serialize(&allowances);
+            if cfg!(windows) {
+                let error = parse(text.as_bytes()).expect_err(&text);
+                assert!(error.contains("not a relative path"), "{key}: {error}");
+            } else {
+                assert_eq!(parse(text.as_bytes()).as_ref(), Ok(&allowances), "{key}");
+            }
+        }
+
+        let root = PathBuf::from(if cfg!(windows) { "C:\\project" } else { "/project" });
+        let baseline = Baseline {
+            mode: Mode::Enforce,
+            root: root.clone(),
+            file_exists: true,
+            allowances: Allowances::new(),
+        };
+        let expected = if cfg!(windows) { "Back/Slash.java" } else { "Back\\Slash.java" };
+        assert_eq!(baseline.key(&root.join("Back\\Slash.java")).as_deref(), Some(expected));
     }
 }
