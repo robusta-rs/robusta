@@ -172,6 +172,9 @@ pub enum GroupMode {
     /// Keep the group flat when measuring a layout other than a fallback.
     MeasureFlat,
 
+    /// Keep the group flat when measuring any other layout, a fallback included.
+    LastResort,
+
     /// The group should be printed in expanded mode
     Expand,
 
@@ -181,7 +184,12 @@ pub enum GroupMode {
 
 impl GroupMode {
     pub const fn is_flat(self) -> bool {
-        matches!(self, GroupMode::Flat | GroupMode::MeasureFlat)
+        matches!(self, GroupMode::Flat | GroupMode::MeasureFlat | GroupMode::LastResort)
+    }
+
+    /// Whether the group breaks only after the breaks its layout is measured with.
+    pub const fn is_fallback(self) -> bool {
+        matches!(self, GroupMode::MeasureFlat | GroupMode::LastResort)
     }
 }
 
