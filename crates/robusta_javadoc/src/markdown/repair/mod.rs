@@ -2,40 +2,48 @@ use std::{borrow::Cow, ops::Range};
 
 use markdown::{ParseOptions, mdast::Node, to_mdast};
 
-use super::{code_gap, columns, indented, indented_range, next_column, quote_content, span};
+use super::{
+    code_gap, columns, indented, indented_range, next_column, quote_content, setext, span,
+};
+
+mod underline;
 
 /// Text to insert at an offset so that markdown-rs reads the content as CommonMark does.
 type Repair<'a> = (usize, Cow<'a, str>);
 
 /// Parse `content` with text inserted where markdown-rs would otherwise read it unlike CommonMark.
 pub fn parse(content: &str, options: &ParseOptions) -> Option<Node> {
-    let mut root = to_mdast(content, options).ok()?;
+    let mut underlines = underline::Underlines::new(content);
     let mut repairs = Vec::new();
     let mut tabs = Vec::new();
+    let mut root = parse_repaired(content, underlines.breaks(), options)?;
     // Each repair changes how later lines read, so look again after each parse.
     loop {
-        // Tabs follow the latest reading alone, so that no padding stays in what became code.
-        let mut measured = Vec::new();
-        wide_tabs(&root, content, &mut measured);
-        measured.sort_unstable();
-        measured.dedup();
-        // The other repairs read the lines as the tabs measure them.
-        if measured == tabs {
-            let known = repairs.len();
-            unguarded_paragraphs(&root, content, &mut repairs);
-            repairs.extend(next_guard_repair(&root, content, &repairs));
-            repairs.sort_unstable();
-            repairs.dedup();
-            if repairs.len() == known {
-                break;
+        if !underlines.settle(&root, content, &repairs) {
+            // Tabs follow the latest reading alone, so that no padding stays in what became code.
+            let mut measured = Vec::new();
+            wide_tabs(&root, content, &mut measured);
+            measured.sort_unstable();
+            measured.dedup();
+            // The other repairs read the lines as the tabs measure them.
+            if measured == tabs {
+                let known = repairs.len();
+                unguarded_paragraphs(&root, content, &mut repairs);
+                repairs.extend(next_guard_repair(&root, content, &repairs));
+                repairs.sort_unstable();
+                repairs.dedup();
+                if repairs.len() == known {
+                    break;
+                }
             }
+            tabs = measured;
+            underlines.unsettle();
         }
-        tabs = measured;
-        let mut all = [repairs.as_slice(), tabs.as_slice()].concat();
+        let mut all = [repairs.as_slice(), tabs.as_slice(), underlines.breaks()].concat();
         all.sort_unstable();
         root = parse_repaired(content, &all, options)?;
     }
-    if repairs.iter().any(|(_, text)| text.ends_with(BREAK)) {
+    if underlines.any_kept() || repairs.iter().any(|(_, text)| text.ends_with(BREAK)) {
         remove_inserted_breaks(&mut root);
     }
     Some(root)
@@ -167,8 +175,8 @@ fn wide_tabs(node: &Node, content: &str, repairs: &mut Vec<Repair<'_>>) {
 /// it, so that `a\n> <b>` starts an HTML block, `a\n>     b` indented code, and `a\n> 2. c` and
 /// `[a]: b\n2. c` a list, indentation before the first list it reads without that guard, so that
 /// `- a\n\nb\n2. c` continues the paragraph `b`, the containers of the paragraph before the first
-/// lazy line it does not continue, or a break before the first line it reads lazily or as text
-/// after a setext heading or the first zero-padded item it reads with the guard. Later ones wait,
+/// lazy line it does not continue, or a break before the first line it reads lazily after a
+/// setext heading or the first zero-padded item it reads with the guard. Later ones wait,
 /// as that block can take them in.
 fn next_guard_repair<'a>(
     node: &Node,
@@ -225,16 +233,12 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
     {
         return lazy_line_containers(content, paragraph.start, line);
     }
-    // A setext underline closes its paragraph, so no line after it is lazy or underlines it, but
-    // markdown-rs keeps a paragraph line that lacks the heading's containers in them, as in
-    // `- a\n  ==\nb`, and reads a `---` line as text, as in `a\n==\n---`. A break before the
-    // line, behind the same markers, closes them first and leaves no paragraph to underline.
-    if let Node::Heading(_) = before
-        && content[before_range.clone()].contains('\n')
-        && (matches!(block, Node::Paragraph(_) | Node::Definition(_))
-            && lazy_line_containers(content, before_range.start, line).is_some()
-            || matches!(block, Node::Paragraph(_) | Node::Heading(_))
-                && dash_line(&content[range.start..]))
+    // A setext underline closes its paragraph, so no line after it is lazy, but markdown-rs
+    // keeps a paragraph line that lacks the heading's containers in them, as in `- a\n  ==\nb`.
+    // A break before the line, behind the same markers, closes them first.
+    if setext(before, content)
+        && matches!(block, Node::Paragraph(_) | Node::Definition(_))
+        && lazy_line_containers(content, before_range.start, line).is_some()
     {
         return Some(break_before(content, line, range.start));
     }
@@ -398,14 +402,11 @@ fn blank_first_line(rest: &str) -> bool {
     rest[..rest.find('\n').unwrap_or(rest.len())].trim_matches([' ', '\t']).is_empty()
 }
 
-/// Whether the first line of `text` is three or more `-` between spaces or tabs.
-fn dash_line(text: &str) -> bool {
-    let line = text[..text.find('\n').unwrap_or(text.len())].trim_matches([' ', '\t']);
-    line.len() >= 3 && line.bytes().all(|byte| byte == b'-')
-}
-
 /// Parse `content` with `repairs` inserted, with positions in `content`.
 fn parse_repaired(content: &str, repairs: &[Repair<'_>], options: &ParseOptions) -> Option<Node> {
+    if repairs.is_empty() {
+        return to_mdast(content, options).ok();
+    }
     let size = repairs.iter().map(|repair| repair.1.len()).sum::<usize>();
     let mut repaired = String::with_capacity(content.len() + size);
     let mut copied = 0;

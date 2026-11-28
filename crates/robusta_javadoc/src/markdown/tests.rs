@@ -195,6 +195,21 @@ fn a_dash_line_after_a_setext_heading_is_a_thematic_break() {
 }
 
 #[test]
+fn a_line_of_underline_marks_after_no_paragraph_starts_a_block() {
+    // The headings and the definition read as an `other` each, and nothing panics.
+    assert_eq!(read("a\n==\n==\nb\n=="), "root[other, other]");
+    assert_eq!(read("a\n==\n---\nb\n=="), "root[other, other, other]");
+    assert_eq!(read("a\n---\n---\nb\n---"), "root[other, other, other]");
+    assert_eq!(read("a\n==\n--\nb\n=="), "root[other, other]");
+    assert_eq!(read("[l]: x\n-\n1\n-"), "root[other, list[item[]], other]");
+    assert_eq!(read("> a\n> ==\n> ==\n> b\n> =="), "root[quote[other, other]]");
+    assert_eq!(read("[a]: b\n---\nc"), "root[other, other, paragraph]");
+    // A line after a paragraph line still underlines it.
+    assert_eq!(read("a\n==\n==\n==\nb"), "root[other, other, paragraph]");
+    assert_eq!(read("# a\n==\n==\n==\nb\n=="), "root[other, other, other]");
+}
+
+#[test]
 fn an_indented_first_line_of_a_container_after_a_paragraph_is_code() {
     // The code line is an `other`, so a dash line after it is a thematic break.
     assert_eq!(read("x\n>     a\n> ---"), "root[paragraph, quote[other, other]]");
