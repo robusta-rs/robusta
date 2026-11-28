@@ -175,6 +175,27 @@ fn a_line_after_a_setext_heading_leaves_the_containers_it_lacks() {
 }
 
 #[test]
+fn a_last_line_of_underline_marks_that_lacks_its_containers_is_paragraph_text() {
+    assert_eq!(read("> a\n--"), "root[quote[paragraph]]");
+    assert_eq!(read("- a\n--"), "root[list[item[paragraph]]]");
+    assert_eq!(read("> - a\n> --"), "root[quote[list[item[paragraph]]]]");
+    assert_eq!(read("> 2. a\n>--"), "root[quote[list[item[paragraph]]]]");
+    assert_eq!(read("- > a\n  -- "), "root[list[item[quote[paragraph]]]]");
+    assert_eq!(read("> a\n--\n--"), "root[quote[paragraph]]");
+    // A line that keeps its containers still underlines the paragraph.
+    assert_eq!(read("> a\n> --"), "root[quote[other]]");
+    assert_eq!(read("- a\n  --"), "root[list[item[other]]]");
+
+    // The paragraph ends where the content does.
+    let content = "> a\n--";
+    let Some(Node::Root(root)) = parse(content) else { panic!("{content:?} parses") };
+    let paragraph = &root.children[0].children().unwrap()[0];
+    assert_eq!(span(paragraph).map(|range| &content[range]), Some("a\n--"));
+    let end = &paragraph.position().unwrap().end;
+    assert_eq!((end.offset, end.line, end.column), (6, 2, 3));
+}
+
+#[test]
 fn a_dash_line_after_a_setext_heading_is_a_thematic_break() {
     // The dash line reads as a thematic break, an `other`, and the list stays tight.
     assert_eq!(read("a\n==\n---"), "root[other, other]");

@@ -21,12 +21,9 @@ impl<'a> Underlines<'a> {
         let mut line = 0;
         let (mut after_marks, mut after_definition) = (false, false);
         for text in content.split('\n') {
-            let marks = text.trim_start_matches([' ', '\t', '>']);
-            let sequence = marks.trim_end_matches([' ', '\t']);
-            let underline = !sequence.is_empty()
-                && (sequence.bytes().all(|byte| byte == b'=')
-                    || sequence.bytes().all(|byte| byte == b'-'));
+            let underline = underline_line(text);
             if underline && (after_marks || after_definition) {
+                let marks = text.trim_start_matches([' ', '\t', '>']);
                 breaks.push(break_before(content, line, line + text.len() - marks.len()));
             }
             after_marks = underline;
@@ -69,6 +66,14 @@ impl<'a> Underlines<'a> {
         self.breaks.sort_unstable();
         self.kept = 0;
     }
+}
+
+/// Whether `text`, after its quote markers and indentation, is a line of `=` or `-`, as a setext
+/// underline is.
+pub fn underline_line(text: &str) -> bool {
+    let sequence = text.trim_start_matches([' ', '\t', '>']).trim_end_matches([' ', '\t']);
+    !sequence.is_empty()
+        && (sequence.bytes().all(|byte| byte == b'=') || sequence.bytes().all(|byte| byte == b'-'))
 }
 
 /// Whether the break that a repair inserted at `at` follows a setext heading or a definition.

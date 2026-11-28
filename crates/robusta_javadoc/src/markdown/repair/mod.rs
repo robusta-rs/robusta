@@ -2,10 +2,9 @@ use std::{borrow::Cow, ops::Range};
 
 use markdown::{ParseOptions, mdast::Node, to_mdast};
 
-use super::{
-    code_gap, columns, indented, indented_range, next_column, quote_content, setext, span,
-};
+use super::{code_gap, columns, indented, next_column, quote_content, setext, span};
 
+mod lazy;
 mod underline;
 
 /// Text to insert at an offset so that markdown-rs reads the content as CommonMark does.
@@ -175,9 +174,9 @@ fn wide_tabs(node: &Node, content: &str, repairs: &mut Vec<Repair<'_>>) {
 /// it, so that `a\n> <b>` starts an HTML block, `a\n>     b` indented code, and `a\n> 2. c` and
 /// `[a]: b\n2. c` a list, indentation before the first list it reads without that guard, so that
 /// `- a\n\nb\n2. c` continues the paragraph `b`, the containers of the paragraph before the first
-/// lazy line it does not continue, or a break before the first line it reads lazily after a
-/// setext heading or the first zero-padded item it reads with the guard. Later ones wait,
-/// as that block can take them in.
+/// lazy line it does not continue, or a line ending after it when they would make it an underline,
+/// or a break before the first line it reads lazily after a setext heading or the first
+/// zero-padded item it reads with the guard. Later ones wait, as that block can take them in.
 fn next_guard_repair<'a>(
     node: &Node,
     content: &'a str,
@@ -224,21 +223,15 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
         let marker = content.len() - text.len();
         return Some((marker, if empty && text.starts_with('-') { "-" } else { "    " }.into()));
     }
-    // A lazy line continues a paragraph left open in a container unless it starts a block that
-    // can interrupt one, but markdown-rs closes the container before complete HTML, as in
-    // `- a\n<b>`, and before a line that starts like a fence or HTML, as in `- a\n~`.
-    if let Some(paragraph) = last_paragraph(before, content)
-        && content[paragraph.end..range.start].matches('\n').count() == 1
-        && continues_paragraph(block, content)
-    {
-        return lazy_line_containers(content, paragraph.start, line);
+    if let Some(repair) = lazy::continuation(before, block, content) {
+        return Some(repair);
     }
     // A setext underline closes its paragraph, so no line after it is lazy, but markdown-rs
     // keeps a paragraph line that lacks the heading's containers in them, as in `- a\n  ==\nb`.
     // A break before the line, behind the same markers, closes them first.
     if setext(before, content)
         && matches!(block, Node::Paragraph(_) | Node::Definition(_))
-        && lazy_line_containers(content, before_range.start, line).is_some()
+        && lazy::lazy_line_containers(content, before_range.start, line).is_some()
     {
         return Some(break_before(content, line, range.start));
     }
@@ -267,95 +260,9 @@ fn first_contained_block(mut node: &Node) -> Option<&Node> {
     Some(node)
 }
 
-/// The paragraph that a block quote or list ends with, through the containers it ends with,
-/// from the first of the definitions that markdown-rs reads at its start.
-fn last_paragraph(node: &Node, content: &str) -> Option<Range<usize>> {
-    if !matches!(node, Node::Blockquote(_) | Node::List(_)) {
-        return None;
-    }
-    let mut children = node.children()?;
-    while let Some(last @ (Node::Blockquote(_) | Node::List(_) | Node::ListItem(_))) =
-        children.last()
-    {
-        children = last.children()?;
-    }
-    let paragraph = |node: &Node| {
-        matches!(node, Node::Paragraph(_) | Node::Definition(_))
-            && indented_range(node, content).is_none()
-    };
-    let (last, before) = children.split_last().filter(|(last, _)| paragraph(last))?;
-    let mut range = span(last)?;
-    for definition in before.iter().rev() {
-        match span(definition) {
-            Some(previous)
-                if matches!(definition, Node::Definition(_))
-                    && paragraph(definition)
-                    && content[previous.end..range.start].matches('\n').count() == 1 =>
-            {
-                range.start = previous.start;
-            }
-            _ => break,
-        }
-    }
-    Some(range)
-}
-
-/// Whether `block` reads as paragraph text after a paragraph line: a paragraph, or HTML that
-/// cannot interrupt one, which no extension changes.
-fn continues_paragraph(block: &Node, content: &str) -> bool {
-    match (block, span(block)) {
-        (Node::Paragraph(_), _) => true,
-        (Node::Html(_), Some(range)) => {
-            // The block can start inside a tab that its container takes part of.
-            let line = content[range.start..].split('\n').next().unwrap_or_default();
-            let line = line.trim_start_matches([' ', '\t']);
-            to_mdast(&format!("a\n{line}"), &ParseOptions::default()).is_ok_and(|root| {
-                matches!(root.children().map(Vec::as_slice), Some([Node::Paragraph(_)]))
-            })
-        }
-        _ => false,
-    }
-}
-
-/// The quote markers and indentation that the lazy line at `line` lacks to continue the
-/// containers of the paragraph or setext heading at `paragraph`. Missing quote markers go after
-/// the last one the line has, and indentation alone before its text.
-fn lazy_line_containers(content: &str, paragraph: usize, line: usize) -> Option<Repair<'_>> {
-    let text = line + content[line..].find(|ch| !matches!(ch, ' ' | '\t' | '>'))?;
-    let first = content[..paragraph].rfind('\n').map_or(0, |newline| newline + 1);
-    let (quotes, end) = quote_columns(&content[first..paragraph]);
-    let (matched, mut column) = quote_columns(&content[line..text]);
-    let missing = quotes.get(matched.len()..)?;
-    let start = match (matched.len(), missing.is_empty()) {
-        (count, false) if count > 0 => {
-            line + content[line..text].match_indices('>').nth(count - 1)?.0 + 1
-        }
-        (_, false) => line,
-        (_, true) => text,
-    };
-    column = column.min(columns(&content[line..start]));
-    // Columns count from the content of the last quote the line shares with the paragraph line,
-    // whose marker takes the first space after it.
-    let (mut from, mut base) = match matched.len() {
-        0 => (0, 0),
-        count => (matched[count - 1].0 + 2, quotes[count - 1].1),
-    };
-    let mut insert = String::new();
-    for &(marker, quote_content) in missing {
-        let at = (from + marker).checked_sub(base)?;
-        insert.extend(std::iter::repeat_n(' ', at.checked_sub(column)?));
-        insert.push_str("> ");
-        column = at + 2;
-        (from, base) = (column, quote_content);
-    }
-    let at = (from + end).checked_sub(base)?;
-    insert.extend(std::iter::repeat_n(' ', at.saturating_sub(column)));
-    (!insert.is_empty()).then(|| (start, insert.into()))
-}
-
 /// The column of each quote marker in `prefix` with the column its content starts at, after
 /// the space or tab column the marker takes, and the column at the end of `prefix`.
-fn quote_columns(prefix: &str) -> (Vec<(usize, usize)>, usize) {
+pub fn quote_columns(prefix: &str) -> (Vec<(usize, usize)>, usize) {
     let mut quotes = Vec::new();
     let mut column = 0;
     let mut bytes = prefix.bytes().peekable();
@@ -440,7 +347,7 @@ fn restore_positions(node: &mut Node, content: &str, repairs: &[Repair<'_>]) {
             // Spaces before a tab keep the columns after it.
             if repairs.iter().any(|(start, text)| {
                 (line..=point.offset).contains(start)
-                    && (content.as_bytes()[*start] != b'\t' || text.contains('>'))
+                    && (content.as_bytes().get(*start) != Some(&b'\t') || text.contains('>'))
             }) {
                 point.column = columns(&content[line..point.offset]) + 1;
             }
