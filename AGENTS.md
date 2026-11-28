@@ -21,6 +21,7 @@ Cargo workspace with key directories:
 - `apps/` - Application binaries (robusta)
 - `tasks/` - Development tools/automation
 - `jvm/` - Gradle build for the Gradle and Maven plugins, outside the Cargo workspace
+- `install/` - Shell and PowerShell install scripts attached to each GitHub release
 
 Avoid editing `generated` subdirectories.
 

@@ -207,6 +207,48 @@ jobs:
             (cd "$artifact_dir" && shasum -a 256 --check "$artifact_name.sha256")
           fi
 
+      # A local server stands in for the release, which does not exist yet.
+      - name: Test installer
+        run: |
+          site="$RUNNER_TEMP/release"
+          mkdir -p "$site"
+          cp "dist/robusta-$VERSION-$TARGET/robusta-$TARGET$BINARY_SUFFIX"* "$site/"
+          url=http://127.0.0.1:8000
+          sed "s|@RELEASE_URL@|$url|" install/install.sh > "$site/install.sh"
+          sed "s|@RELEASE_URL@|$url|" install/install.ps1 > "$site/install.ps1"
+
+          python=$(command -v python3 || command -v python)
+          "$python" -m http.server 8000 --bind 127.0.0.1 --directory "$site" > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          for _ in $(seq 30); do curl -fs "$url/install.sh" > /dev/null && break; sleep 1; done
+
+          run_installer() {
+            if [[ -n "$BINARY_SUFFIX" ]]; then
+              ROBUSTA_INSTALL_DIR="$1" powershell -c "irm $url/install.ps1 | iex"
+            else
+              curl -fsSL "$url/install.sh" | ROBUSTA_INSTALL_DIR="$1" sh
+            fi
+          }
+
+          # The installer replaces an existing executable and explains how to
+          # put its directory on PATH.
+          install_dir="$RUNNER_TEMP/bin"
+          mkdir -p "$install_dir"
+          echo stale > "$install_dir/robusta$BINARY_SUFFIX"
+          run_installer "$install_dir" | tee "$RUNNER_TEMP/installer.log"
+          grep -q "is not on your PATH" "$RUNNER_TEMP/installer.log"
+          test "$("$install_dir/robusta$BINARY_SUFFIX" --version)" = "Version: $VERSION"
+
+          # A download that does not match its checksum is not installed.
+          echo "0000000000000000000000000000000000000000000000000000000000000000  robusta-$TARGET$BINARY_SUFFIX" \
+            > "$site/robusta-$TARGET$BINARY_SUFFIX.sha256"
+          if run_installer "$RUNNER_TEMP/rejected"; then
+            echo "::error title=Installer accepted a bad checksum::$TARGET"
+            exit 1
+          fi
+          test ! -e "$RUNNER_TEMP/rejected/robusta$BINARY_SUFFIX"
+
       - name: Upload checksummed binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -424,12 +466,23 @@ jobs:
       contents: write # for `gh release create`
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
       - name: Download native artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: robusta-${{ needs.version.outputs.number }}-*
           path: dist
           merge-multiple: true
+
+      # Each installer downloads the executables of the release it is attached to.
+      - name: Prepare installers
+        env:
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}
+        run: |
+          sed "s|@RELEASE_URL@|$RELEASE_URL|" install/install.sh > dist/install.sh
+          sed "s|@RELEASE_URL@|$RELEASE_URL|" install/install.ps1 > dist/install.ps1
 
       - name: Create GitHub release
         env:
