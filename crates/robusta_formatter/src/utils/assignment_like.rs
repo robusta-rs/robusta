@@ -6,7 +6,8 @@ use crate::ast_nodes::{AstNode, AstNodes};
 use crate::formatter::prelude::*;
 use crate::formatter::separated::format_empty_parentheses;
 use crate::formatter::trivia::{
-    FormatTrailingComments, format_trailing_comments, is_alignable_block_comment,
+    FormatTrailingComments, documentation_comment_ends_line, format_trailing_comments,
+    is_alignable_block_comment,
 };
 use crate::print::array_dimension::{
     array_type_dimensions_wrap_line, format_array_type_dimensions,
@@ -101,7 +102,11 @@ impl<'a, 'b> AssignmentLike<'a, 'b> {
             Self::AnnotationInterfaceElementDeclaration(element) => {
                 let name_end = element.name.span.end;
                 format_content_without_comments_after(&element.name(), name_end, f);
-                write_comments_before_opener(name_end, b'(', f);
+                // Otherwise the parentheses print the comments after their `(`.
+                let before_paren = f.comments().comments_before_character(name_end, b'(');
+                if !documentation_comment_ends_line(before_paren) {
+                    write_comments_before_opener(name_end, b'(', f);
+                }
                 let open_end = f.comments().position_after_character(name_end, b'(');
                 let close_end = f.comments().position_after_character(open_end, b')');
                 format_empty_parentheses(f, Span::new(open_end, close_end));

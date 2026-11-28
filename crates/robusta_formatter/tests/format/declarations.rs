@@ -851,6 +851,41 @@ fn documentation_comments_after_a_declaration_name_keep_their_owner() {
     check_contract_at_widths_and_modes(source);
 }
 
+/// A `///` run that ends an annotation interface element name's line moves
+/// after the `(`, as a method's does, with a `default` value after the `)`. A
+/// `//` or `/* */` comment stays before the `(`.
+#[test]
+fn documentation_comments_after_an_annotation_element_name_keep_their_owner() {
+    let source = r"@interface A {
+  int value /// q
+  ();
+
+  int other /// r
+  () default 1;
+
+  int line // s
+  ();
+
+  int block /* t */
+  ();
+}";
+    assert_snapshot!(fmt(source), @"
+    @interface A {
+      int value( /// q
+      );
+
+      int other( /// r
+      ) default 1;
+
+      int line // s
+      ();
+
+      int block /* t */();
+    }
+    ");
+    check_contract_at_widths_and_modes(source);
+}
+
 #[test]
 fn comment_before_record_type_parameters_respects_the_component_break() {
     let source = "record Sample // note\n<T>(T firstLongName, T anotherLongName, T thirdLongName) \
