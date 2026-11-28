@@ -122,7 +122,7 @@ impl GetSpan for TypeDeclaration<'_> {
     }
 }
 
-impl GetSpan for LocalClassOrInterfaceDeclaration<'_> {
+impl GetSpan for LocalTypeDeclaration<'_> {
     fn span(&self) -> Span {
         match self {
             Self::Class(it) => GetSpan::span(&**it),
@@ -217,7 +217,7 @@ impl GetSpan for AnnotationInterfaceBody<'_> {
     }
 }
 
-impl GetSpan for AnnotationInterfaceMemberDeclaration<'_> {
+impl GetSpan for AnnotationInterfaceMember<'_> {
     fn span(&self) -> Span {
         match self {
             Self::Element(it) => GetSpan::span(&**it),

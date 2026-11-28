@@ -612,7 +612,7 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression<'a>> {
         self.expect(TokenKind::ColonColon, "`::`")?;
         let type_args = self.type_arguments(false)?;
-        let (method, end) = if let Some(new) = self.eat(TokenKind::New) {
+        let (name, end) = if let Some(new) = self.eat(TokenKind::New) {
             (None, new.span)
         } else {
             let name = self.identifier_name("a method name after `::`")?;
@@ -623,7 +623,7 @@ impl<'a> Parser<'a> {
             target.span().cover(end),
             target,
             type_args,
-            method,
+            name,
             self,
         ))
     }

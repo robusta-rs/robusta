@@ -535,7 +535,7 @@ mod tests {
 
         let member = ClassMember::new_empty_statement(Span::new(0, 1), &AstBuilder::new(allocator));
         assert!(member.is_type_declaration());
-        assert!(!member.is_local_class_or_interface_declaration());
+        assert!(!member.is_local_type_declaration());
         assert!(matches!(member.to_type_declaration(), TypeDeclaration::Empty(_)));
     }
 

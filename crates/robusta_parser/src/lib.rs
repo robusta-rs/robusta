@@ -21,7 +21,7 @@
 use robusta_allocator::{Allocator, Box, Dummy, GetAllocator, Vec};
 use robusta_ast::{
     Annotation, AnnotationArgument, AnnotationInterfaceBody, AnnotationInterfaceDeclaration,
-    AnnotationInterfaceElementDeclaration, AnnotationInterfaceMemberDeclaration, ArrayDimension,
+    AnnotationInterfaceElementDeclaration, AnnotationInterfaceMember, ArrayDimension,
     ArrayInitializer, ArrayTypeDimension, AssignmentTarget, BindingIdentifier, Block, Callee,
     CatchClause, CatchParameter, CatchType, ClassBody, ClassDeclaration, ClassMember, ClassType,
     Comment, CompactCompilationUnit, CompactConstructorDeclaration, CompilationUnit,
@@ -30,15 +30,14 @@ use robusta_ast::{
     EmptyStatement, EnumBody, EnumConstant, EnumDeclaration, Expression, FieldDeclaration, ForInit,
     FormalParameter, FormalParameters, IdentifierName, IdentifierReference, ImportDeclaration,
     ImportKind, InitializerBlock, InstanceofRhs, InterfaceBody, InterfaceDeclaration,
-    InterfaceMember, KeywordModifier, LabelIdentifier, LambdaBody,
-    LocalClassOrInterfaceDeclaration, LocalVariableDeclaration, MethodDeclaration,
-    MethodReferenceTarget, MethodResult, Modifier, ModifierKind, ModuleDeclaration,
-    ModuleDirective, Name, PackageDeclaration, PackageDirectiveKind, Pattern, PrimitiveTypeKind,
-    ReceiverParameter, RecordComponent, RecordDeclaration, RecordHeader, RecordPattern, Resource,
-    Statement, StatementExpressionList, SwitchItem, SwitchLabel, SwitchRuleBody, Type,
-    TypeArgument, TypeArguments, TypeDeclaration, TypeName, TypeParameter, TypeParameters,
-    TypePattern, VariableDeclarator, VariableInitializer, VariableType, WildcardBound,
-    WildcardBoundKind,
+    InterfaceMember, KeywordModifier, LabelIdentifier, LambdaBody, LocalTypeDeclaration,
+    LocalVariableDeclaration, MethodDeclaration, MethodReferenceTarget, MethodResult, Modifier,
+    ModifierKind, ModuleDeclaration, ModuleDirective, Name, PackageDeclaration,
+    PackageDirectiveKind, Pattern, PrimitiveTypeKind, ReceiverParameter, RecordComponent,
+    RecordDeclaration, RecordHeader, RecordPattern, Resource, Statement, StatementExpressionList,
+    SwitchItem, SwitchLabel, SwitchRuleBody, Type, TypeArgument, TypeArguments, TypeDeclaration,
+    TypeName, TypeParameter, TypeParameters, TypePattern, VariableDeclarator, VariableInitializer,
+    VariableType, WildcardBound, WildcardBoundKind,
     builder::{AstBuild, AstBuilder, GetAstBuilder},
 };
 use robusta_diagnostics::RobustaDiagnostic;

@@ -79,10 +79,8 @@ impl Rule for RedundantSuperCall {
 fn could_reach_local_type(statements: &[Statement<'_>]) -> bool {
     let mut rest = statements.iter().filter(|statement| !matches!(statement, Statement::Empty(_)));
     match rest.next() {
-        Some(Statement::LocalVariable(_)) => {
-            rest.any(Statement::is_local_class_or_interface_declaration)
-        }
-        next => next.is_some_and(Statement::is_local_class_or_interface_declaration),
+        Some(Statement::LocalVariable(_)) => rest.any(Statement::is_local_type_declaration),
+        next => next.is_some_and(Statement::is_local_type_declaration),
     }
 }
 

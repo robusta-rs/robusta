@@ -106,11 +106,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_local_class_or_interface_declaration(
-        &mut self,
-        it: &'a LocalClassOrInterfaceDeclaration<'a>,
-    ) {
-        walk_local_class_or_interface_declaration(self, it);
+    fn visit_local_type_declaration(&mut self, it: &'a LocalTypeDeclaration<'a>) {
+        walk_local_type_declaration(self, it);
     }
 
     #[inline]
@@ -177,11 +174,8 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_annotation_interface_member_declaration(
-        &mut self,
-        it: &'a AnnotationInterfaceMemberDeclaration<'a>,
-    ) {
-        walk_annotation_interface_member_declaration(self, it);
+    fn visit_annotation_interface_member(&mut self, it: &'a AnnotationInterfaceMember<'a>) {
+        walk_annotation_interface_member(self, it);
     }
 
     #[inline]
@@ -876,11 +870,11 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_annotation_interface_member_declarations(
+    fn visit_annotation_interface_members(
         &mut self,
-        it: &'a Vec<'a, AnnotationInterfaceMemberDeclaration<'a>>,
+        it: &'a Vec<'a, AnnotationInterfaceMember<'a>>,
     ) {
-        walk_annotation_interface_member_declarations(self, it);
+        walk_annotation_interface_members(self, it);
     }
 
     #[inline]
@@ -1127,25 +1121,22 @@ pub mod walk {
             TypeDeclaration::AnnotationInterface(it) => {
                 visitor.visit_annotation_interface_declaration(it)
             }
-            match_local_class_or_interface_declaration!(TypeDeclaration) => visitor
-                .visit_local_class_or_interface_declaration(
-                    it.to_local_class_or_interface_declaration(),
-                ),
+            match_local_type_declaration!(TypeDeclaration) => {
+                visitor.visit_local_type_declaration(it.to_local_type_declaration())
+            }
         }
     }
 
     #[inline]
-    pub fn walk_local_class_or_interface_declaration<'a, V: Visit<'a>>(
+    pub fn walk_local_type_declaration<'a, V: Visit<'a>>(
         visitor: &mut V,
-        it: &'a LocalClassOrInterfaceDeclaration<'a>,
+        it: &'a LocalTypeDeclaration<'a>,
     ) {
         match it {
-            LocalClassOrInterfaceDeclaration::Class(it) => visitor.visit_class_declaration(it),
-            LocalClassOrInterfaceDeclaration::Interface(it) => {
-                visitor.visit_interface_declaration(it)
-            }
-            LocalClassOrInterfaceDeclaration::Enum(it) => visitor.visit_enum_declaration(it),
-            LocalClassOrInterfaceDeclaration::Record(it) => visitor.visit_record_declaration(it),
+            LocalTypeDeclaration::Class(it) => visitor.visit_class_declaration(it),
+            LocalTypeDeclaration::Interface(it) => visitor.visit_interface_declaration(it),
+            LocalTypeDeclaration::Enum(it) => visitor.visit_enum_declaration(it),
+            LocalTypeDeclaration::Record(it) => visitor.visit_record_declaration(it),
         }
     }
 
@@ -1303,22 +1294,22 @@ pub mod walk {
         let kind = AstKind::AnnotationInterfaceBody(it);
         visitor.enter_node(kind);
         visitor.enter_scope(&it.scope_id);
-        visitor.visit_annotation_interface_member_declarations(&it.members);
+        visitor.visit_annotation_interface_members(&it.members);
         visitor.leave_scope();
         visitor.leave_node(kind);
     }
 
     #[inline]
-    pub fn walk_annotation_interface_member_declaration<'a, V: Visit<'a>>(
+    pub fn walk_annotation_interface_member<'a, V: Visit<'a>>(
         visitor: &mut V,
-        it: &'a AnnotationInterfaceMemberDeclaration<'a>,
+        it: &'a AnnotationInterfaceMember<'a>,
     ) {
         match it {
-            AnnotationInterfaceMemberDeclaration::Element(it) => {
+            AnnotationInterfaceMember::Element(it) => {
                 visitor.visit_annotation_interface_element_declaration(it)
             }
-            AnnotationInterfaceMemberDeclaration::Field(it) => visitor.visit_field_declaration(it),
-            match_type_declaration!(AnnotationInterfaceMemberDeclaration) => {
+            AnnotationInterfaceMember::Field(it) => visitor.visit_field_declaration(it),
+            match_type_declaration!(AnnotationInterfaceMember) => {
                 visitor.visit_type_declaration(it.to_type_declaration())
             }
         }
@@ -1514,10 +1505,9 @@ pub mod walk {
             Statement::Return(it) => visitor.visit_return_statement(it),
             Statement::Yield(it) => visitor.visit_yield_statement(it),
             Statement::Labeled(it) => visitor.visit_labeled_statement(it),
-            match_local_class_or_interface_declaration!(Statement) => visitor
-                .visit_local_class_or_interface_declaration(
-                    it.to_local_class_or_interface_declaration(),
-                ),
+            match_local_type_declaration!(Statement) => {
+                visitor.visit_local_type_declaration(it.to_local_type_declaration())
+            }
         }
     }
 
@@ -2762,12 +2752,12 @@ pub mod walk {
     }
 
     #[inline]
-    pub fn walk_annotation_interface_member_declarations<'a, V: Visit<'a>>(
+    pub fn walk_annotation_interface_members<'a, V: Visit<'a>>(
         visitor: &mut V,
-        it: &'a Vec<'a, AnnotationInterfaceMemberDeclaration<'a>>,
+        it: &'a Vec<'a, AnnotationInterfaceMember<'a>>,
     ) {
         for el in it {
-            visitor.visit_annotation_interface_member_declaration(el);
+            visitor.visit_annotation_interface_member(el);
         }
     }
 
@@ -3045,8 +3035,8 @@ pub mod walk {
                     if let Some(type_args) = &it.type_args {
                         visitor.visit_type_arguments(type_args);
                     }
-                    if let Some(method) = &it.method {
-                        visitor.visit_identifier_name(method);
+                    if let Some(name) = &it.name {
+                        visitor.visit_identifier_name(name);
                     }
                     visitor.leave_node(AstKind::MethodReference(it));
                 }

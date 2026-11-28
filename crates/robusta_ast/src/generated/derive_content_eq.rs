@@ -140,7 +140,7 @@ impl ContentEq for TypeDeclaration<'_> {
     }
 }
 
-impl ContentEq for LocalClassOrInterfaceDeclaration<'_> {
+impl ContentEq for LocalTypeDeclaration<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Class(a), Self::Class(b)) => a.content_eq(b),
@@ -254,7 +254,7 @@ impl ContentEq for AnnotationInterfaceBody<'_> {
     }
 }
 
-impl ContentEq for AnnotationInterfaceMemberDeclaration<'_> {
+impl ContentEq for AnnotationInterfaceMember<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Element(a), Self::Element(b)) => a.content_eq(b),
@@ -1111,7 +1111,7 @@ impl ContentEq for MethodReference<'_> {
     fn content_eq(&self, other: &Self) -> bool {
         ContentEq::content_eq(&self.target, &other.target)
             && ContentEq::content_eq(&self.type_args, &other.type_args)
-            && ContentEq::content_eq(&self.method, &other.method)
+            && ContentEq::content_eq(&self.name, &other.name)
     }
 }
 

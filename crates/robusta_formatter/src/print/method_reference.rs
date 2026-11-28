@@ -15,9 +15,9 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodReference<'a>> {
         let target = self.target();
         let target_span = target.span();
         let is_member_chain = format_member_object(&target, target_span.end, f);
-        let operand_start = match (&self.type_args, &self.method) {
+        let operand_start = match (&self.type_args, &self.name) {
             (Some(type_args), _) => type_args.span.start,
-            (None, Some(method)) => method.span.start,
+            (None, Some(name)) => name.span.start,
             // `new` has no node.
             (None, None) => {
                 let first_colon_end = f.comments().position_after_character(target_span.end, b':');
@@ -29,8 +29,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, MethodReference<'a>> {
             if let Some(type_args) = self.type_args() {
                 format_type_arguments_before_name(f, &type_args);
             }
-            if let Some(method) = self.method() {
-                method.fmt(f);
+            if let Some(name) = self.name() {
+                name.fmt(f);
             } else {
                 if let Some(type_args) = &self.type_args {
                     // `new` has no node, so it takes the leading pass here.

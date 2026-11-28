@@ -1335,52 +1335,46 @@ impl<'parent, 'a> AstNode<'parent, 'a, TypeDeclaration<'a>> {
             _ => None,
         }
     }
-    pub fn as_local_class_or_interface_declaration(
+    pub fn as_local_type_declaration(
         &self,
-    ) -> Option<AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>>> {
-        self.inner.as_local_class_or_interface_declaration().map(|inner| AstNode {
+    ) -> Option<AstNode<'parent, 'a, LocalTypeDeclaration<'a>>> {
+        self.inner.as_local_type_declaration().map(|inner| AstNode {
             inner,
             parent: self.parent,
             following_span_start: self.following_span_start,
         })
     }
 }
-impl<'parent, 'a> AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>> {
+impl<'parent, 'a> AstNode<'parent, 'a, LocalTypeDeclaration<'a>> {
     pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Class(field_0) => {
-                AstNodeKind::ClassDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            LocalClassOrInterfaceDeclaration::Interface(field_0) => {
+            LocalTypeDeclaration::Class(field_0) => AstNodeKind::ClassDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            LocalTypeDeclaration::Interface(field_0) => {
                 AstNodeKind::InterfaceDeclaration(AstNode {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 })
             }
-            LocalClassOrInterfaceDeclaration::Enum(field_0) => {
-                AstNodeKind::EnumDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            LocalClassOrInterfaceDeclaration::Record(field_0) => {
-                AstNodeKind::RecordDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
+            LocalTypeDeclaration::Enum(field_0) => AstNodeKind::EnumDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            LocalTypeDeclaration::Record(field_0) => AstNodeKind::RecordDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
         }
     }
     pub fn as_class(&self) -> Option<AstNode<'parent, 'a, ClassDeclaration<'a>>> {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Class(field_0) => Some(AstNode {
+            LocalTypeDeclaration::Class(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1390,7 +1384,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>> {
     }
     pub fn as_interface(&self) -> Option<AstNode<'parent, 'a, InterfaceDeclaration<'a>>> {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Interface(field_0) => Some(AstNode {
+            LocalTypeDeclaration::Interface(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1400,7 +1394,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>> {
     }
     pub fn as_enum(&self) -> Option<AstNode<'parent, 'a, EnumDeclaration<'a>>> {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Enum(field_0) => Some(AstNode {
+            LocalTypeDeclaration::Enum(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1410,7 +1404,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>> {
     }
     pub fn as_record(&self) -> Option<AstNode<'parent, 'a, RecordDeclaration<'a>>> {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Record(field_0) => Some(AstNode {
+            LocalTypeDeclaration::Record(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1823,7 +1817,7 @@ impl<'a> AstNode<'_, 'a, AnnotationInterfaceBody<'a>> {
     pub fn as_ast_nodes(&self) -> AstNodes<'_, 'a> {
         AstNodes::AnnotationInterfaceBody(self)
     }
-    pub fn members(&self) -> AstNode<'_, 'a, Vec<'a, AnnotationInterfaceMemberDeclaration<'a>>> {
+    pub fn members(&self) -> AstNode<'_, 'a, Vec<'a, AnnotationInterfaceMember<'a>>> {
         AstNode {
             inner: &self.inner.members,
             parent: self.as_ast_nodes(),
@@ -1831,72 +1825,62 @@ impl<'a> AstNode<'_, 'a, AnnotationInterfaceBody<'a>> {
         }
     }
 }
-impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>> {
+impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMember<'a>> {
     pub fn as_kind(&self) -> AstNodeKind<'parent, 'a> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Element(field_0) => {
+            AnnotationInterfaceMember::Element(field_0) => {
                 AstNodeKind::AnnotationInterfaceElementDeclaration(AstNode {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 })
             }
-            AnnotationInterfaceMemberDeclaration::Field(field_0) => {
-                AstNodeKind::FieldDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            AnnotationInterfaceMemberDeclaration::Empty(field_0) => {
-                AstNodeKind::EmptyStatement(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            AnnotationInterfaceMemberDeclaration::AnnotationInterface(field_0) => {
+            AnnotationInterfaceMember::Field(field_0) => AstNodeKind::FieldDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AnnotationInterfaceMember::Empty(field_0) => AstNodeKind::EmptyStatement(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AnnotationInterfaceMember::AnnotationInterface(field_0) => {
                 AstNodeKind::AnnotationInterfaceDeclaration(AstNode {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 })
             }
-            AnnotationInterfaceMemberDeclaration::Class(field_0) => {
-                AstNodeKind::ClassDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            AnnotationInterfaceMemberDeclaration::Interface(field_0) => {
+            AnnotationInterfaceMember::Class(field_0) => AstNodeKind::ClassDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AnnotationInterfaceMember::Interface(field_0) => {
                 AstNodeKind::InterfaceDeclaration(AstNode {
                     inner: field_0.as_ref(),
                     parent: self.parent,
                     following_span_start: self.following_span_start,
                 })
             }
-            AnnotationInterfaceMemberDeclaration::Enum(field_0) => {
-                AstNodeKind::EnumDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
-            AnnotationInterfaceMemberDeclaration::Record(field_0) => {
-                AstNodeKind::RecordDeclaration(AstNode {
-                    inner: field_0.as_ref(),
-                    parent: self.parent,
-                    following_span_start: self.following_span_start,
-                })
-            }
+            AnnotationInterfaceMember::Enum(field_0) => AstNodeKind::EnumDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
+            AnnotationInterfaceMember::Record(field_0) => AstNodeKind::RecordDeclaration(AstNode {
+                inner: field_0.as_ref(),
+                parent: self.parent,
+                following_span_start: self.following_span_start,
+            }),
         }
     }
     pub fn as_element(
         &self,
     ) -> Option<AstNode<'parent, 'a, AnnotationInterfaceElementDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Element(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Element(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1906,7 +1890,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_field(&self) -> Option<AstNode<'parent, 'a, FieldDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Field(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Field(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1916,7 +1900,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_empty(&self) -> Option<AstNode<'parent, 'a, EmptyStatement>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Empty(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Empty(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1928,7 +1912,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
         &self,
     ) -> Option<AstNode<'parent, 'a, AnnotationInterfaceDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::AnnotationInterface(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::AnnotationInterface(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1938,7 +1922,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_class(&self) -> Option<AstNode<'parent, 'a, ClassDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Class(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Class(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1948,7 +1932,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_interface(&self) -> Option<AstNode<'parent, 'a, InterfaceDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Interface(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Interface(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1958,7 +1942,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_enum(&self) -> Option<AstNode<'parent, 'a, EnumDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Enum(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Enum(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1968,7 +1952,7 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
     }
     pub fn as_record(&self) -> Option<AstNode<'parent, 'a, RecordDeclaration<'a>>> {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Record(field_0) => Some(AstNode {
+            AnnotationInterfaceMember::Record(field_0) => Some(AstNode {
                 inner: field_0.as_ref(),
                 parent: self.parent,
                 following_span_start: self.following_span_start,
@@ -1983,10 +1967,10 @@ impl<'parent, 'a> AstNode<'parent, 'a, AnnotationInterfaceMemberDeclaration<'a>>
             following_span_start: self.following_span_start,
         })
     }
-    pub fn as_local_class_or_interface_declaration(
+    pub fn as_local_type_declaration(
         &self,
-    ) -> Option<AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>>> {
-        self.inner.as_local_class_or_interface_declaration().map(|inner| AstNode {
+    ) -> Option<AstNode<'parent, 'a, LocalTypeDeclaration<'a>>> {
+        self.inner.as_local_type_declaration().map(|inner| AstNode {
             inner,
             parent: self.parent,
             following_span_start: self.following_span_start,
@@ -2228,10 +2212,10 @@ impl<'parent, 'a> AstNode<'parent, 'a, ClassMember<'a>> {
             following_span_start: self.following_span_start,
         })
     }
-    pub fn as_local_class_or_interface_declaration(
+    pub fn as_local_type_declaration(
         &self,
-    ) -> Option<AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>>> {
-        self.inner.as_local_class_or_interface_declaration().map(|inner| AstNode {
+    ) -> Option<AstNode<'parent, 'a, LocalTypeDeclaration<'a>>> {
+        self.inner.as_local_type_declaration().map(|inner| AstNode {
             inner,
             parent: self.parent,
             following_span_start: self.following_span_start,
@@ -2374,10 +2358,10 @@ impl<'parent, 'a> AstNode<'parent, 'a, InterfaceMember<'a>> {
             following_span_start: self.following_span_start,
         })
     }
-    pub fn as_local_class_or_interface_declaration(
+    pub fn as_local_type_declaration(
         &self,
-    ) -> Option<AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>>> {
-        self.inner.as_local_class_or_interface_declaration().map(|inner| AstNode {
+    ) -> Option<AstNode<'parent, 'a, LocalTypeDeclaration<'a>>> {
+        self.inner.as_local_type_declaration().map(|inner| AstNode {
             inner,
             parent: self.parent,
             following_span_start: self.following_span_start,
@@ -3069,10 +3053,10 @@ impl<'parent, 'a> AstNode<'parent, 'a, Statement<'a>> {
             _ => None,
         }
     }
-    pub fn as_local_class_or_interface_declaration(
+    pub fn as_local_type_declaration(
         &self,
-    ) -> Option<AstNode<'parent, 'a, LocalClassOrInterfaceDeclaration<'a>>> {
-        self.inner.as_local_class_or_interface_declaration().map(|inner| AstNode {
+    ) -> Option<AstNode<'parent, 'a, LocalTypeDeclaration<'a>>> {
+        self.inner.as_local_type_declaration().map(|inner| AstNode {
             inner,
             parent: self.parent,
             following_span_start: self.following_span_start,
@@ -6648,7 +6632,7 @@ impl<'a> AstNode<'_, 'a, MethodReference<'a>> {
                 .type_args
                 .as_ref()
                 .map(|it| it.span().start)
-                .or_else(|| self.inner.method.as_ref().map(|it| it.span().start))
+                .or_else(|| self.inner.name.as_ref().map(|it| it.span().start))
                 .unwrap_or(self.following_span_start),
         }
     }
@@ -6658,13 +6642,13 @@ impl<'a> AstNode<'_, 'a, MethodReference<'a>> {
             parent: self.as_ast_nodes(),
             following_span_start: self
                 .inner
-                .method
+                .name
                 .as_ref()
                 .map_or(self.following_span_start, |it| it.span().start),
         })
     }
-    pub fn method(&self) -> Option<AstNode<'_, 'a, IdentifierName<'a>>> {
-        self.inner.method.as_ref().map(|inner| AstNode {
+    pub fn name(&self) -> Option<AstNode<'_, 'a, IdentifierName<'a>>> {
+        self.inner.name.as_ref().map(|inner| AstNode {
             inner,
             parent: self.as_ast_nodes(),
             following_span_start: self.following_span_start,

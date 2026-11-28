@@ -362,24 +362,20 @@ impl<'a> Parser<'a> {
         let (span, members) = self.member_body(
             "`{` to open the annotation interface body",
             "`}` to close the annotation interface body",
-            AnnotationInterfaceMemberDeclaration::Empty,
+            AnnotationInterfaceMember::Empty,
             Self::annotation_interface_member,
         )?;
         Ok(AnnotationInterfaceBody::new(span, members, self))
     }
 
-    fn annotation_interface_member(&mut self) -> Result<AnnotationInterfaceMemberDeclaration<'a>> {
+    fn annotation_interface_member(&mut self) -> Result<AnnotationInterfaceMember<'a>> {
         if self.at_type_declaration_start_with_modifiers() {
             let modifiers = self.type_modifiers()?;
-            return Ok(AnnotationInterfaceMemberDeclaration::from(
-                self.type_declaration_rest(modifiers)?,
-            ));
+            return Ok(AnnotationInterfaceMember::from(self.type_declaration_rest(modifiers)?));
         }
         let modifiers = self.modifiers()?;
         if self.at_type_declaration_start() {
-            return Ok(AnnotationInterfaceMemberDeclaration::from(
-                self.type_declaration_rest(modifiers)?,
-            ));
+            return Ok(AnnotationInterfaceMember::from(self.type_declaration_rest(modifiers)?));
         }
         let ty = self.ty()?;
         match self.field_or_annotation_element_tail(
@@ -388,10 +384,10 @@ impl<'a> Parser<'a> {
             "an annotation interface member name",
         )? {
             FieldOrAnnotationElementTail::Field(field) => {
-                Ok(AnnotationInterfaceMemberDeclaration::Field(field))
+                Ok(AnnotationInterfaceMember::Field(field))
             }
             FieldOrAnnotationElementTail::Element(element) => {
-                Ok(AnnotationInterfaceMemberDeclaration::Element(element))
+                Ok(AnnotationInterfaceMember::Element(element))
             }
         }
     }
@@ -592,19 +588,15 @@ impl<'a> Parser<'a> {
     pub(crate) fn local_type_declaration_rest(
         &mut self,
         modifiers: Vec<'a, Modifier<'a>>,
-    ) -> Result<LocalClassOrInterfaceDeclaration<'a>> {
+    ) -> Result<LocalTypeDeclaration<'a>> {
         match self.kind() {
-            TokenKind::Class => {
-                Ok(LocalClassOrInterfaceDeclaration::Class(self.class_declaration(modifiers)?))
+            TokenKind::Class => Ok(LocalTypeDeclaration::Class(self.class_declaration(modifiers)?)),
+            TokenKind::Interface => {
+                Ok(LocalTypeDeclaration::Interface(self.interface_declaration(modifiers)?))
             }
-            TokenKind::Interface => Ok(LocalClassOrInterfaceDeclaration::Interface(
-                self.interface_declaration(modifiers)?,
-            )),
-            TokenKind::Enum => {
-                Ok(LocalClassOrInterfaceDeclaration::Enum(self.enum_declaration(modifiers)?))
-            }
+            TokenKind::Enum => Ok(LocalTypeDeclaration::Enum(self.enum_declaration(modifiers)?)),
             TokenKind::Record => {
-                Ok(LocalClassOrInterfaceDeclaration::Record(self.record_declaration(modifiers)?))
+                Ok(LocalTypeDeclaration::Record(self.record_declaration(modifiers)?))
             }
             _ => Err(diagnostics::message(
                 "expected a local class, enum, record, or interface declaration",

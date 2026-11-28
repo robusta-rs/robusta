@@ -410,8 +410,8 @@ pub struct MethodReference<'a> {
     pub target: MethodReferenceTarget<'a>,
     /// Type arguments after `::`.
     pub type_args: Option<Box<'a, TypeArguments<'a>>>,
-    /// The referenced method, or `None` for `::new`.
-    pub method: Option<IdentifierName<'a>>,
+    /// The method's name, or `None` for `::new`.
+    pub name: Option<IdentifierName<'a>>,
 }
 
 /// A method reference target (JLS §15.13.1).

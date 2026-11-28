@@ -228,12 +228,10 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, TypeDeclaration<'
         }
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>>
-    for AstNode<'_, 'a, LocalClassOrInterfaceDeclaration<'a>>
-{
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, LocalTypeDeclaration<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         match self.inner {
-            LocalClassOrInterfaceDeclaration::Class(field_0) => {
+            LocalTypeDeclaration::Class(field_0) => {
                 AstNode::<ClassDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -241,7 +239,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            LocalClassOrInterfaceDeclaration::Interface(field_0) => {
+            LocalTypeDeclaration::Interface(field_0) => {
                 AstNode::<InterfaceDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -249,7 +247,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            LocalClassOrInterfaceDeclaration::Enum(field_0) => {
+            LocalTypeDeclaration::Enum(field_0) => {
                 AstNode::<EnumDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -257,7 +255,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            LocalClassOrInterfaceDeclaration::Record(field_0) => {
+            LocalTypeDeclaration::Record(field_0) => {
                 AstNode::<RecordDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -370,12 +368,10 @@ impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AnnotationInterfa
         self.write(f);
     }
 }
-impl<'a> Format<'a, JavaFormatContext<'a>>
-    for AstNode<'_, 'a, AnnotationInterfaceMemberDeclaration<'a>>
-{
+impl<'a> Format<'a, JavaFormatContext<'a>> for AstNode<'_, 'a, AnnotationInterfaceMember<'a>> {
     fn fmt(&self, f: &mut JavaFormatter<'_, 'a>) {
         match self.inner {
-            AnnotationInterfaceMemberDeclaration::Element(field_0) => {
+            AnnotationInterfaceMember::Element(field_0) => {
                 AstNode::<AnnotationInterfaceElementDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -383,7 +379,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Field(field_0) => {
+            AnnotationInterfaceMember::Field(field_0) => {
                 AstNode::<FieldDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -391,7 +387,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Empty(field_0) => {
+            AnnotationInterfaceMember::Empty(field_0) => {
                 AstNode::<EmptyStatement> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -399,7 +395,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::AnnotationInterface(field_0) => {
+            AnnotationInterfaceMember::AnnotationInterface(field_0) => {
                 AstNode::<AnnotationInterfaceDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -407,7 +403,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Class(field_0) => {
+            AnnotationInterfaceMember::Class(field_0) => {
                 AstNode::<ClassDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -415,7 +411,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Interface(field_0) => {
+            AnnotationInterfaceMember::Interface(field_0) => {
                 AstNode::<InterfaceDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -423,7 +419,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Enum(field_0) => {
+            AnnotationInterfaceMember::Enum(field_0) => {
                 AstNode::<EnumDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
@@ -431,7 +427,7 @@ impl<'a> Format<'a, JavaFormatContext<'a>>
                 }
                 .fmt(f);
             }
-            AnnotationInterfaceMemberDeclaration::Record(field_0) => {
+            AnnotationInterfaceMember::Record(field_0) => {
                 AstNode::<RecordDeclaration<'a>> {
                     inner: field_0.as_ref(),
                     parent: self.parent,
