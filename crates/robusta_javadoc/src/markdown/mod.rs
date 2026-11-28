@@ -269,6 +269,12 @@ pub fn span(node: &Node) -> Option<Range<usize>> {
     node.position().map(|position| position.start.offset..position.end.offset)
 }
 
+/// Whether `node` is a setext heading, whose span holds its underline.
+pub fn setext(node: &Node, content: &str) -> bool {
+    matches!(node, Node::Heading(_))
+        && span(node).is_some_and(|range| content[range].contains('\n'))
+}
+
 /// The end of the block at `range`, before the line ending its span holds after its last
 /// line, as when a container closes the block.
 pub fn block_end(content: &str, range: &Range<usize>) -> usize {

@@ -6,7 +6,7 @@ use markdown::mdast::{AlignKind, Heading, Node, Table, TableCell};
 
 use robusta_formatter_core::IndentWidth;
 use robusta_javadoc::markdown::{
-    code_gap, columns, indented_range, parse, quote_content, remove_margin, span,
+    code_gap, columns, indented_range, parse, quote_content, remove_margin, setext, span,
 };
 use robusta_javadoc::{Structure, TagForm, markdown_reflow_start};
 
@@ -305,7 +305,9 @@ impl Normalizer<'_> {
         let mut inner = Scope { root: false, ..scope };
         match node {
             Node::Code(code) if !scope.footnote => self.code_block(code, range),
-            Node::Heading(heading) if !scope.footnote => self.setext_heading(heading, range),
+            Node::Heading(heading) if !scope.footnote && setext(node, self.content) => {
+                self.setext_heading(heading, range);
+            }
             Node::Emphasis(_) => {
                 if !scope.emphasized {
                     self.delimiters(node, range, "*", "_");
@@ -345,9 +347,8 @@ impl Normalizer<'_> {
             return;
         };
         let text = &self.content[first.start..last.end];
-        // One line is ATX already. A trailing `#` would become a closing sequence.
-        if !self.content[range.clone()].contains('\n')
-            || text.ends_with('#')
+        // A trailing `#` would become a closing sequence.
+        if text.ends_with('#')
             || heading.children.iter().any(|child| matches!(child, Node::Break(_)))
         {
             return;
