@@ -311,7 +311,7 @@ jobs:
           # `publicationTest` publishes every publication, so `build/libs` also
           # holds the sources and javadoc jars. Name the ones being released.
           for jar in "gradle-plugin/build/libs/robusta-gradle-plugin-$VERSION.jar" \
-            binary/build/libs/robusta-binary-"$VERSION"-*.jar; do
+            binary/build/distributions/robusta-binary-"$VERSION"-*.jar; do
             test -f "$jar"
             bytes=$(wc -c < "$jar" | tr -d ' ')
             echo "$(basename "$jar"): $bytes bytes" | tee -a "$GITHUB_STEP_SUMMARY"
