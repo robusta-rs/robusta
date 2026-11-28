@@ -19,7 +19,7 @@ use crate::utils::statement_body::{
 };
 use robusta_allocator::Vec;
 use robusta_ast::{
-    AnnotationInterfaceBody, AnnotationInterfaceDeclaration, AnnotationInterfaceMemberDeclaration,
+    AnnotationInterfaceBody, AnnotationInterfaceDeclaration, AnnotationInterfaceMember,
     BindingIdentifier, ClassBody, ClassDeclaration, ClassMember, Comment, EnumBody, EnumConstant,
     EnumDeclaration, InitializerBlock, InterfaceBody, InterfaceDeclaration, InterfaceMember,
     Modifier, RecordDeclaration, RecordHeader, Type, TypeName, TypeParameters,
@@ -674,7 +674,7 @@ impl TypeMember for InterfaceMember<'_> {
     }
 }
 
-impl TypeMember for AnnotationInterfaceMemberDeclaration<'_> {
+impl TypeMember for AnnotationInterfaceMember<'_> {
     fn is_field(&self) -> bool {
         matches!(self, Self::Field(_))
     }

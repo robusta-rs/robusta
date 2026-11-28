@@ -127,8 +127,8 @@ const _: () = {
     assert!(size_of::<TypeDeclaration>() == 16);
     assert!(align_of::<TypeDeclaration>() == 8);
 
-    assert!(size_of::<LocalClassOrInterfaceDeclaration>() == 16);
-    assert!(align_of::<LocalClassOrInterfaceDeclaration>() == 8);
+    assert!(size_of::<LocalTypeDeclaration>() == 16);
+    assert!(align_of::<LocalTypeDeclaration>() == 8);
 
     // Padding: 0 bytes
     assert!(size_of::<ClassDeclaration>() == 184);
@@ -251,8 +251,8 @@ const _: () = {
     assert!(offset_of!(AnnotationInterfaceBody, scope_id) == 12);
     assert!(offset_of!(AnnotationInterfaceBody, members) == 16);
 
-    assert!(size_of::<AnnotationInterfaceMemberDeclaration>() == 16);
-    assert!(align_of::<AnnotationInterfaceMemberDeclaration>() == 8);
+    assert!(size_of::<AnnotationInterfaceMember>() == 16);
+    assert!(align_of::<AnnotationInterfaceMember>() == 8);
 
     // Padding: 4 bytes
     assert!(size_of::<AnnotationInterfaceElementDeclaration>() == 128);
@@ -872,7 +872,7 @@ const _: () = {
     assert!(offset_of!(MethodReference, node_id) == 8);
     assert!(offset_of!(MethodReference, target) == 16);
     assert!(offset_of!(MethodReference, type_args) == 32);
-    assert!(offset_of!(MethodReference, method) == 40);
+    assert!(offset_of!(MethodReference, name) == 40);
 
     assert!(size_of::<MethodReferenceTarget>() == 16);
     assert!(align_of::<MethodReferenceTarget>() == 8);
@@ -1300,8 +1300,8 @@ const _: () = {
     assert!(size_of::<TypeDeclaration>() == 8);
     assert!(align_of::<TypeDeclaration>() == 4);
 
-    assert!(size_of::<LocalClassOrInterfaceDeclaration>() == 8);
-    assert!(align_of::<LocalClassOrInterfaceDeclaration>() == 4);
+    assert!(size_of::<LocalTypeDeclaration>() == 8);
+    assert!(align_of::<LocalTypeDeclaration>() == 4);
 
     // Padding: 0 bytes
     assert!(size_of::<ClassDeclaration>() == 132);
@@ -1424,8 +1424,8 @@ const _: () = {
     assert!(offset_of!(AnnotationInterfaceBody, scope_id) == 12);
     assert!(offset_of!(AnnotationInterfaceBody, members) == 16);
 
-    assert!(size_of::<AnnotationInterfaceMemberDeclaration>() == 8);
-    assert!(align_of::<AnnotationInterfaceMemberDeclaration>() == 4);
+    assert!(size_of::<AnnotationInterfaceMember>() == 8);
+    assert!(align_of::<AnnotationInterfaceMember>() == 4);
 
     // Padding: 0 bytes
     assert!(size_of::<AnnotationInterfaceElementDeclaration>() == 84);
@@ -2045,7 +2045,7 @@ const _: () = {
     assert!(offset_of!(MethodReference, node_id) == 8);
     assert!(offset_of!(MethodReference, target) == 12);
     assert!(offset_of!(MethodReference, type_args) == 20);
-    assert!(offset_of!(MethodReference, method) == 24);
+    assert!(offset_of!(MethodReference, name) == 24);
 
     assert!(size_of::<MethodReferenceTarget>() == 8);
     assert!(align_of::<MethodReferenceTarget>() == 4);

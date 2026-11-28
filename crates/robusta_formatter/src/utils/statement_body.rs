@@ -10,8 +10,8 @@ use crate::formatter::trivia::{
 use crate::print::FormatWrite;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
 use robusta_ast::{
-    AnnotationInterfaceBody, AnnotationInterfaceMemberDeclaration, Block, ClassBody, ClassMember,
-    Comment, EnumBody, InterfaceBody, InterfaceMember, Statement,
+    AnnotationInterfaceBody, AnnotationInterfaceMember, Block, ClassBody, ClassMember, Comment,
+    EnumBody, InterfaceBody, InterfaceMember, Statement,
 };
 use robusta_formatter_core::write;
 use robusta_span::{GetSpan, Span};
@@ -231,7 +231,7 @@ impl Body for Block<'_> {
     }
 
     fn starts_with_declaration(&self) -> bool {
-        self.statements.first().is_some_and(Statement::is_local_class_or_interface_declaration)
+        self.statements.first().is_some_and(Statement::is_local_type_declaration)
     }
 }
 
@@ -275,7 +275,7 @@ impl Body for AnnotationInterfaceBody<'_> {
     fn starts_with_declaration(&self) -> bool {
         self.members
             .first()
-            .is_some_and(|member| !matches!(member, AnnotationInterfaceMemberDeclaration::Empty(_)))
+            .is_some_and(|member| !matches!(member, AnnotationInterfaceMember::Empty(_)))
     }
 }
 

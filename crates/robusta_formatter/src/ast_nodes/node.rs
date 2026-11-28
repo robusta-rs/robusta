@@ -315,7 +315,7 @@ mod tests {
         assert!(
             matches!(target.parent(), AstNodes::MethodReference(parent) if parent.span() == reference.span())
         );
-        assert_eq!(target.following_span_start(), reference.method.as_ref().unwrap().span.start);
+        assert_eq!(target.following_span_start(), reference.name.as_ref().unwrap().span.start);
         let qualifier = target.qualifier();
         assert_eq!(qualifier.last(), "Outer");
         assert!(matches!(qualifier.parent(), AstNodes::QualifiedSuper(_)));

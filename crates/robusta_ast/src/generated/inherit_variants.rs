@@ -9,90 +9,80 @@ use std::ptr::NonNull;
 use crate::ast::*;
 
 impl<'a> TypeDeclaration<'a> {
-    /// Return if a [`TypeDeclaration`] is a [`LocalClassOrInterfaceDeclaration`].
+    /// Return if a [`TypeDeclaration`] is a [`LocalTypeDeclaration`].
     #[inline]
-    pub fn is_local_class_or_interface_declaration(&self) -> bool {
+    pub fn is_local_type_declaration(&self) -> bool {
         matches!(self, Self::Class(_) | Self::Interface(_) | Self::Enum(_) | Self::Record(_))
     }
 
-    /// Convert a [`TypeDeclaration`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`TypeDeclaration`] to a [`LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     #[inline]
-    pub fn into_local_class_or_interface_declaration(self) -> LocalClassOrInterfaceDeclaration<'a> {
-        LocalClassOrInterfaceDeclaration::try_from(self).unwrap()
+    pub fn into_local_type_declaration(self) -> LocalTypeDeclaration<'a> {
+        LocalTypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert a [`&TypeDeclaration`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&TypeDeclaration`] to a [`&LocalTypeDeclaration`].
     ///
     /// [`&TypeDeclaration`]: TypeDeclaration
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration(
-        &self,
-    ) -> Option<&LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration(&self) -> Option<&LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_ref(self).cast::<LocalClassOrInterfaceDeclaration>().as_ref()
-            })
+            Some(unsafe { NonNull::from_ref(self).cast::<LocalTypeDeclaration>().as_ref() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&mut TypeDeclaration`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut TypeDeclaration`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// [`&mut TypeDeclaration`]: TypeDeclaration
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> Option<&mut LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration_mut(&mut self) -> Option<&mut LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_mut(self).cast::<LocalClassOrInterfaceDeclaration>().as_mut()
-            })
+            Some(unsafe { NonNull::from_mut(self).cast::<LocalTypeDeclaration>().as_mut() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&TypeDeclaration`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&TypeDeclaration`] to a [`&LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&TypeDeclaration`]: TypeDeclaration
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration(&self) -> &LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration().unwrap()
+    pub fn to_local_type_declaration(&self) -> &LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration().unwrap()
     }
 
-    /// Convert a [`&mut TypeDeclaration`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut TypeDeclaration`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&mut TypeDeclaration`]: TypeDeclaration
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> &mut LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration_mut().unwrap()
+    pub fn to_local_type_declaration_mut(&mut self) -> &mut LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration_mut().unwrap()
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Convert a [`&LocalClassOrInterfaceDeclaration`] to a [`&TypeDeclaration`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Convert a [`&LocalTypeDeclaration`] to a [`&TypeDeclaration`].
     ///
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     /// [`&TypeDeclaration`]: TypeDeclaration
     #[inline]
     pub fn as_type_declaration(&self) -> &TypeDeclaration<'a> {
@@ -102,10 +92,10 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
     }
 }
 
-impl<'a> TryFrom<TypeDeclaration<'a>> for LocalClassOrInterfaceDeclaration<'a> {
+impl<'a> TryFrom<TypeDeclaration<'a>> for LocalTypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert a [`TypeDeclaration`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`TypeDeclaration`] to a [`LocalTypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
@@ -114,32 +104,32 @@ impl<'a> TryFrom<TypeDeclaration<'a>> for LocalClassOrInterfaceDeclaration<'a> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            TypeDeclaration::Class(o) => Ok(LocalClassOrInterfaceDeclaration::Class(o)),
-            TypeDeclaration::Interface(o) => Ok(LocalClassOrInterfaceDeclaration::Interface(o)),
-            TypeDeclaration::Enum(o) => Ok(LocalClassOrInterfaceDeclaration::Enum(o)),
-            TypeDeclaration::Record(o) => Ok(LocalClassOrInterfaceDeclaration::Record(o)),
+            TypeDeclaration::Class(o) => Ok(LocalTypeDeclaration::Class(o)),
+            TypeDeclaration::Interface(o) => Ok(LocalTypeDeclaration::Interface(o)),
+            TypeDeclaration::Enum(o) => Ok(LocalTypeDeclaration::Enum(o)),
+            TypeDeclaration::Record(o) => Ok(LocalTypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<LocalClassOrInterfaceDeclaration<'a>> for TypeDeclaration<'a> {
-    /// Convert a [`LocalClassOrInterfaceDeclaration`] to a [`TypeDeclaration`].
+impl<'a> From<LocalTypeDeclaration<'a>> for TypeDeclaration<'a> {
+    /// Convert a [`LocalTypeDeclaration`] to a [`TypeDeclaration`].
     #[inline]
-    fn from(value: LocalClassOrInterfaceDeclaration<'a>) -> Self {
+    fn from(value: LocalTypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            LocalClassOrInterfaceDeclaration::Class(o) => TypeDeclaration::Class(o),
-            LocalClassOrInterfaceDeclaration::Interface(o) => TypeDeclaration::Interface(o),
-            LocalClassOrInterfaceDeclaration::Enum(o) => TypeDeclaration::Enum(o),
-            LocalClassOrInterfaceDeclaration::Record(o) => TypeDeclaration::Record(o),
+            LocalTypeDeclaration::Class(o) => TypeDeclaration::Class(o),
+            LocalTypeDeclaration::Interface(o) => TypeDeclaration::Interface(o),
+            LocalTypeDeclaration::Enum(o) => TypeDeclaration::Enum(o),
+            LocalTypeDeclaration::Record(o) => TypeDeclaration::Record(o),
         }
     }
 }
 
-impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
-    /// Return if an [`AnnotationInterfaceMemberDeclaration`] is a [`TypeDeclaration`].
+impl<'a> AnnotationInterfaceMember<'a> {
+    /// Return if an [`AnnotationInterfaceMember`] is a [`TypeDeclaration`].
     #[inline]
     pub fn is_type_declaration(&self) -> bool {
         matches!(
@@ -153,7 +143,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         )
     }
 
-    /// Convert an [`AnnotationInterfaceMemberDeclaration`] to a [`TypeDeclaration`].
+    /// Convert an [`AnnotationInterfaceMember`] to a [`TypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
@@ -162,9 +152,9 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         TypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert an [`&AnnotationInterfaceMemberDeclaration`] to a [`&TypeDeclaration`].
+    /// Convert an [`&AnnotationInterfaceMember`] to a [`&TypeDeclaration`].
     ///
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
     /// [`&TypeDeclaration`]: TypeDeclaration
     #[inline]
     pub fn as_type_declaration(&self) -> Option<&TypeDeclaration<'a>> {
@@ -177,9 +167,9 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         }
     }
 
-    /// Convert an [`&mut AnnotationInterfaceMemberDeclaration`] to a [`&mut TypeDeclaration`].
+    /// Convert an [`&mut AnnotationInterfaceMember`] to a [`&mut TypeDeclaration`].
     ///
-    /// [`&mut AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&mut AnnotationInterfaceMember`]: AnnotationInterfaceMember
     /// [`&mut TypeDeclaration`]: TypeDeclaration
     #[inline]
     pub fn as_type_declaration_mut(&mut self) -> Option<&mut TypeDeclaration<'a>> {
@@ -192,24 +182,24 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         }
     }
 
-    /// Convert an [`&AnnotationInterfaceMemberDeclaration`] to a [`&TypeDeclaration`].
+    /// Convert an [`&AnnotationInterfaceMember`] to a [`&TypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
     /// [`&TypeDeclaration`]: TypeDeclaration
     #[inline]
     pub fn to_type_declaration(&self) -> &TypeDeclaration<'a> {
         self.as_type_declaration().unwrap()
     }
 
-    /// Convert an [`&mut AnnotationInterfaceMemberDeclaration`] to a [`&mut TypeDeclaration`].
+    /// Convert an [`&mut AnnotationInterfaceMember`] to a [`&mut TypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
-    /// [`&mut AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&mut AnnotationInterfaceMember`]: AnnotationInterfaceMember
     /// [`&mut TypeDeclaration`]: TypeDeclaration
     #[inline]
     pub fn to_type_declaration_mut(&mut self) -> &mut TypeDeclaration<'a> {
@@ -218,210 +208,178 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
 }
 
 impl<'a> TypeDeclaration<'a> {
-    /// Convert a [`&TypeDeclaration`] to an [`&AnnotationInterfaceMemberDeclaration`].
+    /// Convert a [`&TypeDeclaration`] to an [`&AnnotationInterfaceMember`].
     ///
     /// [`&TypeDeclaration`]: TypeDeclaration
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
     #[inline]
-    pub fn as_annotation_interface_member_declaration(
-        &self,
-    ) -> &AnnotationInterfaceMemberDeclaration<'a> {
+    pub fn as_annotation_interface_member(&self) -> &AnnotationInterfaceMember<'a> {
         // SAFETY: Transmute is safe because discriminants + types are identical between
         // `parent` and `child` for the shared variants
-        unsafe { NonNull::from_ref(self).cast::<AnnotationInterfaceMemberDeclaration>().as_ref() }
+        unsafe { NonNull::from_ref(self).cast::<AnnotationInterfaceMember>().as_ref() }
     }
 }
 
-impl<'a> TryFrom<AnnotationInterfaceMemberDeclaration<'a>> for TypeDeclaration<'a> {
+impl<'a> TryFrom<AnnotationInterfaceMember<'a>> for TypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert an [`AnnotationInterfaceMemberDeclaration`] to a [`TypeDeclaration`].
+    /// Convert an [`AnnotationInterfaceMember`] to a [`TypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
     #[inline]
-    fn try_from(value: AnnotationInterfaceMemberDeclaration<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: AnnotationInterfaceMember<'a>) -> Result<Self, Self::Error> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            AnnotationInterfaceMemberDeclaration::Empty(o) => Ok(TypeDeclaration::Empty(o)),
-            AnnotationInterfaceMemberDeclaration::AnnotationInterface(o) => {
+            AnnotationInterfaceMember::Empty(o) => Ok(TypeDeclaration::Empty(o)),
+            AnnotationInterfaceMember::AnnotationInterface(o) => {
                 Ok(TypeDeclaration::AnnotationInterface(o))
             }
-            AnnotationInterfaceMemberDeclaration::Class(o) => Ok(TypeDeclaration::Class(o)),
-            AnnotationInterfaceMemberDeclaration::Interface(o) => Ok(TypeDeclaration::Interface(o)),
-            AnnotationInterfaceMemberDeclaration::Enum(o) => Ok(TypeDeclaration::Enum(o)),
-            AnnotationInterfaceMemberDeclaration::Record(o) => Ok(TypeDeclaration::Record(o)),
+            AnnotationInterfaceMember::Class(o) => Ok(TypeDeclaration::Class(o)),
+            AnnotationInterfaceMember::Interface(o) => Ok(TypeDeclaration::Interface(o)),
+            AnnotationInterfaceMember::Enum(o) => Ok(TypeDeclaration::Enum(o)),
+            AnnotationInterfaceMember::Record(o) => Ok(TypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<TypeDeclaration<'a>> for AnnotationInterfaceMemberDeclaration<'a> {
-    /// Convert a [`TypeDeclaration`] to an [`AnnotationInterfaceMemberDeclaration`].
+impl<'a> From<TypeDeclaration<'a>> for AnnotationInterfaceMember<'a> {
+    /// Convert a [`TypeDeclaration`] to an [`AnnotationInterfaceMember`].
     #[inline]
     fn from(value: TypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            TypeDeclaration::Empty(o) => AnnotationInterfaceMemberDeclaration::Empty(o),
+            TypeDeclaration::Empty(o) => AnnotationInterfaceMember::Empty(o),
             TypeDeclaration::AnnotationInterface(o) => {
-                AnnotationInterfaceMemberDeclaration::AnnotationInterface(o)
+                AnnotationInterfaceMember::AnnotationInterface(o)
             }
-            TypeDeclaration::Class(o) => AnnotationInterfaceMemberDeclaration::Class(o),
-            TypeDeclaration::Interface(o) => AnnotationInterfaceMemberDeclaration::Interface(o),
-            TypeDeclaration::Enum(o) => AnnotationInterfaceMemberDeclaration::Enum(o),
-            TypeDeclaration::Record(o) => AnnotationInterfaceMemberDeclaration::Record(o),
+            TypeDeclaration::Class(o) => AnnotationInterfaceMember::Class(o),
+            TypeDeclaration::Interface(o) => AnnotationInterfaceMember::Interface(o),
+            TypeDeclaration::Enum(o) => AnnotationInterfaceMember::Enum(o),
+            TypeDeclaration::Record(o) => AnnotationInterfaceMember::Record(o),
         }
     }
 }
 
-impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
-    /// Return if an [`AnnotationInterfaceMemberDeclaration`] is a [`LocalClassOrInterfaceDeclaration`].
+impl<'a> AnnotationInterfaceMember<'a> {
+    /// Return if an [`AnnotationInterfaceMember`] is a [`LocalTypeDeclaration`].
     #[inline]
-    pub fn is_local_class_or_interface_declaration(&self) -> bool {
+    pub fn is_local_type_declaration(&self) -> bool {
         matches!(self, Self::Class(_) | Self::Interface(_) | Self::Enum(_) | Self::Record(_))
     }
 
-    /// Convert an [`AnnotationInterfaceMemberDeclaration`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`AnnotationInterfaceMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     #[inline]
-    pub fn into_local_class_or_interface_declaration(self) -> LocalClassOrInterfaceDeclaration<'a> {
-        LocalClassOrInterfaceDeclaration::try_from(self).unwrap()
+    pub fn into_local_type_declaration(self) -> LocalTypeDeclaration<'a> {
+        LocalTypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert an [`&AnnotationInterfaceMemberDeclaration`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&AnnotationInterfaceMember`] to a [`&LocalTypeDeclaration`].
     ///
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration(
-        &self,
-    ) -> Option<&LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration(&self) -> Option<&LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_ref(self).cast::<LocalClassOrInterfaceDeclaration>().as_ref()
-            })
+            Some(unsafe { NonNull::from_ref(self).cast::<LocalTypeDeclaration>().as_ref() })
         } else {
             None
         }
     }
 
-    /// Convert an [`&mut AnnotationInterfaceMemberDeclaration`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&mut AnnotationInterfaceMember`] to a [`&mut LocalTypeDeclaration`].
     ///
-    /// [`&mut AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut AnnotationInterfaceMember`]: AnnotationInterfaceMember
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> Option<&mut LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration_mut(&mut self) -> Option<&mut LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_mut(self).cast::<LocalClassOrInterfaceDeclaration>().as_mut()
-            })
+            Some(unsafe { NonNull::from_mut(self).cast::<LocalTypeDeclaration>().as_mut() })
         } else {
             None
         }
     }
 
-    /// Convert an [`&AnnotationInterfaceMemberDeclaration`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&AnnotationInterfaceMember`] to a [`&LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration(&self) -> &LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration().unwrap()
+    pub fn to_local_type_declaration(&self) -> &LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration().unwrap()
     }
 
-    /// Convert an [`&mut AnnotationInterfaceMemberDeclaration`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&mut AnnotationInterfaceMember`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
-    /// [`&mut AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut AnnotationInterfaceMember`]: AnnotationInterfaceMember
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> &mut LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration_mut().unwrap()
+    pub fn to_local_type_declaration_mut(&mut self) -> &mut LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration_mut().unwrap()
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Convert a [`&LocalClassOrInterfaceDeclaration`] to an [`&AnnotationInterfaceMemberDeclaration`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Convert a [`&LocalTypeDeclaration`] to an [`&AnnotationInterfaceMember`].
     ///
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
-    /// [`&AnnotationInterfaceMemberDeclaration`]: AnnotationInterfaceMemberDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
+    /// [`&AnnotationInterfaceMember`]: AnnotationInterfaceMember
     #[inline]
-    pub fn as_annotation_interface_member_declaration(
-        &self,
-    ) -> &AnnotationInterfaceMemberDeclaration<'a> {
+    pub fn as_annotation_interface_member(&self) -> &AnnotationInterfaceMember<'a> {
         // SAFETY: Transmute is safe because discriminants + types are identical between
         // `parent` and `child` for the shared variants
-        unsafe { NonNull::from_ref(self).cast::<AnnotationInterfaceMemberDeclaration>().as_ref() }
+        unsafe { NonNull::from_ref(self).cast::<AnnotationInterfaceMember>().as_ref() }
     }
 }
 
-impl<'a> TryFrom<AnnotationInterfaceMemberDeclaration<'a>>
-    for LocalClassOrInterfaceDeclaration<'a>
-{
+impl<'a> TryFrom<AnnotationInterfaceMember<'a>> for LocalTypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert an [`AnnotationInterfaceMemberDeclaration`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`AnnotationInterfaceMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
     #[inline]
-    fn try_from(value: AnnotationInterfaceMemberDeclaration<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: AnnotationInterfaceMember<'a>) -> Result<Self, Self::Error> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            AnnotationInterfaceMemberDeclaration::Class(o) => {
-                Ok(LocalClassOrInterfaceDeclaration::Class(o))
-            }
-            AnnotationInterfaceMemberDeclaration::Interface(o) => {
-                Ok(LocalClassOrInterfaceDeclaration::Interface(o))
-            }
-            AnnotationInterfaceMemberDeclaration::Enum(o) => {
-                Ok(LocalClassOrInterfaceDeclaration::Enum(o))
-            }
-            AnnotationInterfaceMemberDeclaration::Record(o) => {
-                Ok(LocalClassOrInterfaceDeclaration::Record(o))
-            }
+            AnnotationInterfaceMember::Class(o) => Ok(LocalTypeDeclaration::Class(o)),
+            AnnotationInterfaceMember::Interface(o) => Ok(LocalTypeDeclaration::Interface(o)),
+            AnnotationInterfaceMember::Enum(o) => Ok(LocalTypeDeclaration::Enum(o)),
+            AnnotationInterfaceMember::Record(o) => Ok(LocalTypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<LocalClassOrInterfaceDeclaration<'a>> for AnnotationInterfaceMemberDeclaration<'a> {
-    /// Convert a [`LocalClassOrInterfaceDeclaration`] to an [`AnnotationInterfaceMemberDeclaration`].
+impl<'a> From<LocalTypeDeclaration<'a>> for AnnotationInterfaceMember<'a> {
+    /// Convert a [`LocalTypeDeclaration`] to an [`AnnotationInterfaceMember`].
     #[inline]
-    fn from(value: LocalClassOrInterfaceDeclaration<'a>) -> Self {
+    fn from(value: LocalTypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            LocalClassOrInterfaceDeclaration::Class(o) => {
-                AnnotationInterfaceMemberDeclaration::Class(o)
-            }
-            LocalClassOrInterfaceDeclaration::Interface(o) => {
-                AnnotationInterfaceMemberDeclaration::Interface(o)
-            }
-            LocalClassOrInterfaceDeclaration::Enum(o) => {
-                AnnotationInterfaceMemberDeclaration::Enum(o)
-            }
-            LocalClassOrInterfaceDeclaration::Record(o) => {
-                AnnotationInterfaceMemberDeclaration::Record(o)
-            }
+            LocalTypeDeclaration::Class(o) => AnnotationInterfaceMember::Class(o),
+            LocalTypeDeclaration::Interface(o) => AnnotationInterfaceMember::Interface(o),
+            LocalTypeDeclaration::Enum(o) => AnnotationInterfaceMember::Enum(o),
+            LocalTypeDeclaration::Record(o) => AnnotationInterfaceMember::Record(o),
         }
     }
 }
@@ -559,90 +517,80 @@ impl<'a> From<TypeDeclaration<'a>> for ClassMember<'a> {
 }
 
 impl<'a> ClassMember<'a> {
-    /// Return if a [`ClassMember`] is a [`LocalClassOrInterfaceDeclaration`].
+    /// Return if a [`ClassMember`] is a [`LocalTypeDeclaration`].
     #[inline]
-    pub fn is_local_class_or_interface_declaration(&self) -> bool {
+    pub fn is_local_type_declaration(&self) -> bool {
         matches!(self, Self::Class(_) | Self::Interface(_) | Self::Enum(_) | Self::Record(_))
     }
 
-    /// Convert a [`ClassMember`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`ClassMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     #[inline]
-    pub fn into_local_class_or_interface_declaration(self) -> LocalClassOrInterfaceDeclaration<'a> {
-        LocalClassOrInterfaceDeclaration::try_from(self).unwrap()
+    pub fn into_local_type_declaration(self) -> LocalTypeDeclaration<'a> {
+        LocalTypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert a [`&ClassMember`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&ClassMember`] to a [`&LocalTypeDeclaration`].
     ///
     /// [`&ClassMember`]: ClassMember
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration(
-        &self,
-    ) -> Option<&LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration(&self) -> Option<&LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_ref(self).cast::<LocalClassOrInterfaceDeclaration>().as_ref()
-            })
+            Some(unsafe { NonNull::from_ref(self).cast::<LocalTypeDeclaration>().as_ref() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&mut ClassMember`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut ClassMember`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// [`&mut ClassMember`]: ClassMember
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> Option<&mut LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration_mut(&mut self) -> Option<&mut LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_mut(self).cast::<LocalClassOrInterfaceDeclaration>().as_mut()
-            })
+            Some(unsafe { NonNull::from_mut(self).cast::<LocalTypeDeclaration>().as_mut() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&ClassMember`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&ClassMember`] to a [`&LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&ClassMember`]: ClassMember
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration(&self) -> &LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration().unwrap()
+    pub fn to_local_type_declaration(&self) -> &LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration().unwrap()
     }
 
-    /// Convert a [`&mut ClassMember`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut ClassMember`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&mut ClassMember`]: ClassMember
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> &mut LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration_mut().unwrap()
+    pub fn to_local_type_declaration_mut(&mut self) -> &mut LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration_mut().unwrap()
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Convert a [`&LocalClassOrInterfaceDeclaration`] to a [`&ClassMember`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Convert a [`&LocalTypeDeclaration`] to a [`&ClassMember`].
     ///
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     /// [`&ClassMember`]: ClassMember
     #[inline]
     pub fn as_class_member(&self) -> &ClassMember<'a> {
@@ -652,10 +600,10 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
     }
 }
 
-impl<'a> TryFrom<ClassMember<'a>> for LocalClassOrInterfaceDeclaration<'a> {
+impl<'a> TryFrom<ClassMember<'a>> for LocalTypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert a [`ClassMember`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`ClassMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
@@ -664,26 +612,26 @@ impl<'a> TryFrom<ClassMember<'a>> for LocalClassOrInterfaceDeclaration<'a> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            ClassMember::Class(o) => Ok(LocalClassOrInterfaceDeclaration::Class(o)),
-            ClassMember::Interface(o) => Ok(LocalClassOrInterfaceDeclaration::Interface(o)),
-            ClassMember::Enum(o) => Ok(LocalClassOrInterfaceDeclaration::Enum(o)),
-            ClassMember::Record(o) => Ok(LocalClassOrInterfaceDeclaration::Record(o)),
+            ClassMember::Class(o) => Ok(LocalTypeDeclaration::Class(o)),
+            ClassMember::Interface(o) => Ok(LocalTypeDeclaration::Interface(o)),
+            ClassMember::Enum(o) => Ok(LocalTypeDeclaration::Enum(o)),
+            ClassMember::Record(o) => Ok(LocalTypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<LocalClassOrInterfaceDeclaration<'a>> for ClassMember<'a> {
-    /// Convert a [`LocalClassOrInterfaceDeclaration`] to a [`ClassMember`].
+impl<'a> From<LocalTypeDeclaration<'a>> for ClassMember<'a> {
+    /// Convert a [`LocalTypeDeclaration`] to a [`ClassMember`].
     #[inline]
-    fn from(value: LocalClassOrInterfaceDeclaration<'a>) -> Self {
+    fn from(value: LocalTypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            LocalClassOrInterfaceDeclaration::Class(o) => ClassMember::Class(o),
-            LocalClassOrInterfaceDeclaration::Interface(o) => ClassMember::Interface(o),
-            LocalClassOrInterfaceDeclaration::Enum(o) => ClassMember::Enum(o),
-            LocalClassOrInterfaceDeclaration::Record(o) => ClassMember::Record(o),
+            LocalTypeDeclaration::Class(o) => ClassMember::Class(o),
+            LocalTypeDeclaration::Interface(o) => ClassMember::Interface(o),
+            LocalTypeDeclaration::Enum(o) => ClassMember::Enum(o),
+            LocalTypeDeclaration::Record(o) => ClassMember::Record(o),
         }
     }
 }
@@ -821,90 +769,80 @@ impl<'a> From<TypeDeclaration<'a>> for InterfaceMember<'a> {
 }
 
 impl<'a> InterfaceMember<'a> {
-    /// Return if an [`InterfaceMember`] is a [`LocalClassOrInterfaceDeclaration`].
+    /// Return if an [`InterfaceMember`] is a [`LocalTypeDeclaration`].
     #[inline]
-    pub fn is_local_class_or_interface_declaration(&self) -> bool {
+    pub fn is_local_type_declaration(&self) -> bool {
         matches!(self, Self::Class(_) | Self::Interface(_) | Self::Enum(_) | Self::Record(_))
     }
 
-    /// Convert an [`InterfaceMember`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`InterfaceMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     #[inline]
-    pub fn into_local_class_or_interface_declaration(self) -> LocalClassOrInterfaceDeclaration<'a> {
-        LocalClassOrInterfaceDeclaration::try_from(self).unwrap()
+    pub fn into_local_type_declaration(self) -> LocalTypeDeclaration<'a> {
+        LocalTypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert an [`&InterfaceMember`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&InterfaceMember`] to a [`&LocalTypeDeclaration`].
     ///
     /// [`&InterfaceMember`]: InterfaceMember
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration(
-        &self,
-    ) -> Option<&LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration(&self) -> Option<&LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_ref(self).cast::<LocalClassOrInterfaceDeclaration>().as_ref()
-            })
+            Some(unsafe { NonNull::from_ref(self).cast::<LocalTypeDeclaration>().as_ref() })
         } else {
             None
         }
     }
 
-    /// Convert an [`&mut InterfaceMember`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&mut InterfaceMember`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// [`&mut InterfaceMember`]: InterfaceMember
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> Option<&mut LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration_mut(&mut self) -> Option<&mut LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_mut(self).cast::<LocalClassOrInterfaceDeclaration>().as_mut()
-            })
+            Some(unsafe { NonNull::from_mut(self).cast::<LocalTypeDeclaration>().as_mut() })
         } else {
             None
         }
     }
 
-    /// Convert an [`&InterfaceMember`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&InterfaceMember`] to a [`&LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&InterfaceMember`]: InterfaceMember
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration(&self) -> &LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration().unwrap()
+    pub fn to_local_type_declaration(&self) -> &LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration().unwrap()
     }
 
-    /// Convert an [`&mut InterfaceMember`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`&mut InterfaceMember`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&mut InterfaceMember`]: InterfaceMember
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> &mut LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration_mut().unwrap()
+    pub fn to_local_type_declaration_mut(&mut self) -> &mut LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration_mut().unwrap()
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Convert a [`&LocalClassOrInterfaceDeclaration`] to an [`&InterfaceMember`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Convert a [`&LocalTypeDeclaration`] to an [`&InterfaceMember`].
     ///
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     /// [`&InterfaceMember`]: InterfaceMember
     #[inline]
     pub fn as_interface_member(&self) -> &InterfaceMember<'a> {
@@ -914,10 +852,10 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
     }
 }
 
-impl<'a> TryFrom<InterfaceMember<'a>> for LocalClassOrInterfaceDeclaration<'a> {
+impl<'a> TryFrom<InterfaceMember<'a>> for LocalTypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert an [`InterfaceMember`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert an [`InterfaceMember`] to a [`LocalTypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
@@ -926,115 +864,105 @@ impl<'a> TryFrom<InterfaceMember<'a>> for LocalClassOrInterfaceDeclaration<'a> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            InterfaceMember::Class(o) => Ok(LocalClassOrInterfaceDeclaration::Class(o)),
-            InterfaceMember::Interface(o) => Ok(LocalClassOrInterfaceDeclaration::Interface(o)),
-            InterfaceMember::Enum(o) => Ok(LocalClassOrInterfaceDeclaration::Enum(o)),
-            InterfaceMember::Record(o) => Ok(LocalClassOrInterfaceDeclaration::Record(o)),
+            InterfaceMember::Class(o) => Ok(LocalTypeDeclaration::Class(o)),
+            InterfaceMember::Interface(o) => Ok(LocalTypeDeclaration::Interface(o)),
+            InterfaceMember::Enum(o) => Ok(LocalTypeDeclaration::Enum(o)),
+            InterfaceMember::Record(o) => Ok(LocalTypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<LocalClassOrInterfaceDeclaration<'a>> for InterfaceMember<'a> {
-    /// Convert a [`LocalClassOrInterfaceDeclaration`] to an [`InterfaceMember`].
+impl<'a> From<LocalTypeDeclaration<'a>> for InterfaceMember<'a> {
+    /// Convert a [`LocalTypeDeclaration`] to an [`InterfaceMember`].
     #[inline]
-    fn from(value: LocalClassOrInterfaceDeclaration<'a>) -> Self {
+    fn from(value: LocalTypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            LocalClassOrInterfaceDeclaration::Class(o) => InterfaceMember::Class(o),
-            LocalClassOrInterfaceDeclaration::Interface(o) => InterfaceMember::Interface(o),
-            LocalClassOrInterfaceDeclaration::Enum(o) => InterfaceMember::Enum(o),
-            LocalClassOrInterfaceDeclaration::Record(o) => InterfaceMember::Record(o),
+            LocalTypeDeclaration::Class(o) => InterfaceMember::Class(o),
+            LocalTypeDeclaration::Interface(o) => InterfaceMember::Interface(o),
+            LocalTypeDeclaration::Enum(o) => InterfaceMember::Enum(o),
+            LocalTypeDeclaration::Record(o) => InterfaceMember::Record(o),
         }
     }
 }
 
 impl<'a> Statement<'a> {
-    /// Return if a [`Statement`] is a [`LocalClassOrInterfaceDeclaration`].
+    /// Return if a [`Statement`] is a [`LocalTypeDeclaration`].
     #[inline]
-    pub fn is_local_class_or_interface_declaration(&self) -> bool {
+    pub fn is_local_type_declaration(&self) -> bool {
         matches!(self, Self::Class(_) | Self::Interface(_) | Self::Enum(_) | Self::Record(_))
     }
 
-    /// Convert a [`Statement`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`Statement`] to a [`LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     #[inline]
-    pub fn into_local_class_or_interface_declaration(self) -> LocalClassOrInterfaceDeclaration<'a> {
-        LocalClassOrInterfaceDeclaration::try_from(self).unwrap()
+    pub fn into_local_type_declaration(self) -> LocalTypeDeclaration<'a> {
+        LocalTypeDeclaration::try_from(self).unwrap()
     }
 
-    /// Convert a [`&Statement`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&Statement`] to a [`&LocalTypeDeclaration`].
     ///
     /// [`&Statement`]: Statement
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration(
-        &self,
-    ) -> Option<&LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration(&self) -> Option<&LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_ref(self).cast::<LocalClassOrInterfaceDeclaration>().as_ref()
-            })
+            Some(unsafe { NonNull::from_ref(self).cast::<LocalTypeDeclaration>().as_ref() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&mut Statement`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut Statement`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// [`&mut Statement`]: Statement
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn as_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> Option<&mut LocalClassOrInterfaceDeclaration<'a>> {
-        if self.is_local_class_or_interface_declaration() {
+    pub fn as_local_type_declaration_mut(&mut self) -> Option<&mut LocalTypeDeclaration<'a>> {
+        if self.is_local_type_declaration() {
             // SAFETY: Transmute is safe because discriminants + types are identical between
             // `parent` and `child` for the shared variants
-            Some(unsafe {
-                NonNull::from_mut(self).cast::<LocalClassOrInterfaceDeclaration>().as_mut()
-            })
+            Some(unsafe { NonNull::from_mut(self).cast::<LocalTypeDeclaration>().as_mut() })
         } else {
             None
         }
     }
 
-    /// Convert a [`&Statement`] to a [`&LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&Statement`] to a [`&LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&Statement`]: Statement
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration(&self) -> &LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration().unwrap()
+    pub fn to_local_type_declaration(&self) -> &LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration().unwrap()
     }
 
-    /// Convert a [`&mut Statement`] to a [`&mut LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`&mut Statement`] to a [`&mut LocalTypeDeclaration`].
     ///
     /// # Panics
     /// Panics if not convertible.
     ///
     /// [`&mut Statement`]: Statement
-    /// [`&mut LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&mut LocalTypeDeclaration`]: LocalTypeDeclaration
     #[inline]
-    pub fn to_local_class_or_interface_declaration_mut(
-        &mut self,
-    ) -> &mut LocalClassOrInterfaceDeclaration<'a> {
-        self.as_local_class_or_interface_declaration_mut().unwrap()
+    pub fn to_local_type_declaration_mut(&mut self) -> &mut LocalTypeDeclaration<'a> {
+        self.as_local_type_declaration_mut().unwrap()
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Convert a [`&LocalClassOrInterfaceDeclaration`] to a [`&Statement`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Convert a [`&LocalTypeDeclaration`] to a [`&Statement`].
     ///
-    /// [`&LocalClassOrInterfaceDeclaration`]: LocalClassOrInterfaceDeclaration
+    /// [`&LocalTypeDeclaration`]: LocalTypeDeclaration
     /// [`&Statement`]: Statement
     #[inline]
     pub fn as_statement(&self) -> &Statement<'a> {
@@ -1044,10 +972,10 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
     }
 }
 
-impl<'a> TryFrom<Statement<'a>> for LocalClassOrInterfaceDeclaration<'a> {
+impl<'a> TryFrom<Statement<'a>> for LocalTypeDeclaration<'a> {
     type Error = ();
 
-    /// Convert a [`Statement`] to a [`LocalClassOrInterfaceDeclaration`].
+    /// Convert a [`Statement`] to a [`LocalTypeDeclaration`].
     ///
     /// # Errors
     /// Returns `Err` if not convertible.
@@ -1056,26 +984,26 @@ impl<'a> TryFrom<Statement<'a>> for LocalClassOrInterfaceDeclaration<'a> {
         // Compiler should implement this as a check of discriminant and then zero-cost transmute,
         // as discriminants for `parent` and `child` are aligned
         match value {
-            Statement::Class(o) => Ok(LocalClassOrInterfaceDeclaration::Class(o)),
-            Statement::Interface(o) => Ok(LocalClassOrInterfaceDeclaration::Interface(o)),
-            Statement::Enum(o) => Ok(LocalClassOrInterfaceDeclaration::Enum(o)),
-            Statement::Record(o) => Ok(LocalClassOrInterfaceDeclaration::Record(o)),
+            Statement::Class(o) => Ok(LocalTypeDeclaration::Class(o)),
+            Statement::Interface(o) => Ok(LocalTypeDeclaration::Interface(o)),
+            Statement::Enum(o) => Ok(LocalTypeDeclaration::Enum(o)),
+            Statement::Record(o) => Ok(LocalTypeDeclaration::Record(o)),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> From<LocalClassOrInterfaceDeclaration<'a>> for Statement<'a> {
-    /// Convert a [`LocalClassOrInterfaceDeclaration`] to a [`Statement`].
+impl<'a> From<LocalTypeDeclaration<'a>> for Statement<'a> {
+    /// Convert a [`LocalTypeDeclaration`] to a [`Statement`].
     #[inline]
-    fn from(value: LocalClassOrInterfaceDeclaration<'a>) -> Self {
+    fn from(value: LocalTypeDeclaration<'a>) -> Self {
         // Compiler should implement this as zero-cost transmute as discriminants
         // for `child` and `parent` are aligned
         match value {
-            LocalClassOrInterfaceDeclaration::Class(o) => Statement::Class(o),
-            LocalClassOrInterfaceDeclaration::Interface(o) => Statement::Interface(o),
-            LocalClassOrInterfaceDeclaration::Enum(o) => Statement::Enum(o),
-            LocalClassOrInterfaceDeclaration::Record(o) => Statement::Record(o),
+            LocalTypeDeclaration::Class(o) => Statement::Class(o),
+            LocalTypeDeclaration::Interface(o) => Statement::Interface(o),
+            LocalTypeDeclaration::Enum(o) => Statement::Enum(o),
+            LocalTypeDeclaration::Record(o) => Statement::Record(o),
         }
     }
 }
@@ -4291,7 +4219,7 @@ impl<'a> From<Expression<'a>> for ElementValue<'a> {
 
 /// Macro for matching [`TypeDeclaration`]'s variants.
 ///
-/// Includes variants inherited from [`LocalClassOrInterfaceDeclaration`].
+/// Includes variants inherited from [`LocalTypeDeclaration`].
 #[macro_export]
 macro_rules! match_type_declaration {
     ($ty:ident) => {
@@ -4304,9 +4232,9 @@ macro_rules! match_type_declaration {
     };
 }
 
-/// Macro for matching [`LocalClassOrInterfaceDeclaration`]'s variants.
+/// Macro for matching [`LocalTypeDeclaration`]'s variants.
 #[macro_export]
-macro_rules! match_local_class_or_interface_declaration {
+macro_rules! match_local_type_declaration {
     ($ty:ident) => {
         $ty::Class(_) | $ty::Interface(_) | $ty::Enum(_) | $ty::Record(_)
     };

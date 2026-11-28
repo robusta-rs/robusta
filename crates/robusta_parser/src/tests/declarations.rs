@@ -432,17 +432,13 @@ fn parses_annotation_interface_declaration() {
     assert_eq!(annotation_interface.modifiers.len(), 2);
     assert_eq!(annotation_interface.body.members.len(), 6);
 
-    let AnnotationInterfaceMemberDeclaration::Element(value) =
-        &annotation_interface.body.members[0]
-    else {
+    let AnnotationInterfaceMember::Element(value) = &annotation_interface.body.members[0] else {
         panic!("expected an annotation element");
     };
     assert_eq!(value.name.name, "value");
     assert!(matches!(&value.default_value, Some(ElementValue::StringLiteral(_))));
 
-    let AnnotationInterfaceMemberDeclaration::Element(codes) =
-        &annotation_interface.body.members[1]
-    else {
+    let AnnotationInterfaceMember::Element(codes) = &annotation_interface.body.members[1] else {
         panic!("expected an annotation element");
     };
     assert_eq!(codes.name.name, "codes");
@@ -453,22 +449,13 @@ fn parses_annotation_interface_declaration() {
     assert_eq!(default_codes.values.len(), 2);
     assert!(default_codes.trailing_comma);
 
-    assert!(matches!(
-        &annotation_interface.body.members[2],
-        AnnotationInterfaceMemberDeclaration::Element(_)
-    ));
-    assert!(matches!(
-        &annotation_interface.body.members[3],
-        AnnotationInterfaceMemberDeclaration::Field(_)
-    ));
+    assert!(matches!(&annotation_interface.body.members[2], AnnotationInterfaceMember::Element(_)));
+    assert!(matches!(&annotation_interface.body.members[3], AnnotationInterfaceMember::Field(_)));
     assert!(matches!(
         &annotation_interface.body.members[4],
-        AnnotationInterfaceMemberDeclaration::AnnotationInterface(_)
+        AnnotationInterfaceMember::AnnotationInterface(_)
     ));
-    assert!(matches!(
-        &annotation_interface.body.members[5],
-        AnnotationInterfaceMemberDeclaration::Enum(_)
-    ));
+    assert!(matches!(&annotation_interface.body.members[5], AnnotationInterfaceMember::Enum(_)));
 }
 
 #[test]
@@ -486,9 +473,7 @@ fn parses_post_paren_annotation_element_dimensions() {
     };
     assert_eq!(annotation_interface.body.members.len(), 2);
 
-    let AnnotationInterfaceMemberDeclaration::Element(value) =
-        &annotation_interface.body.members[0]
-    else {
+    let AnnotationInterfaceMember::Element(value) = &annotation_interface.body.members[0] else {
         panic!("expected an annotation element");
     };
     assert!(matches!(&value.ty, Type::Simple(_)));
@@ -496,8 +481,7 @@ fn parses_post_paren_annotation_element_dimensions() {
     assert!(value.post_paren_dimensions[0].annotations.is_empty());
     assert!(value.default_value.is_none());
 
-    let AnnotationInterfaceMemberDeclaration::Element(tags) = &annotation_interface.body.members[1]
-    else {
+    let AnnotationInterfaceMember::Element(tags) = &annotation_interface.body.members[1] else {
         panic!("expected an annotation element");
     };
     assert_eq!(tags.post_paren_dimensions.len(), 2);
@@ -752,18 +736,9 @@ fn annotation_interface_empty_member_declarations_are_preserved() {
         panic!("expected an annotation interface");
     };
     assert_eq!(annotation_interface.body.members.len(), 3);
-    assert!(matches!(
-        &annotation_interface.body.members[0],
-        AnnotationInterfaceMemberDeclaration::Empty(_)
-    ));
-    assert!(matches!(
-        &annotation_interface.body.members[1],
-        AnnotationInterfaceMemberDeclaration::Element(_)
-    ));
-    assert!(matches!(
-        &annotation_interface.body.members[2],
-        AnnotationInterfaceMemberDeclaration::Empty(_)
-    ));
+    assert!(matches!(&annotation_interface.body.members[0], AnnotationInterfaceMember::Empty(_)));
+    assert!(matches!(&annotation_interface.body.members[1], AnnotationInterfaceMember::Element(_)));
+    assert!(matches!(&annotation_interface.body.members[2], AnnotationInterfaceMember::Empty(_)));
 }
 
 #[test]

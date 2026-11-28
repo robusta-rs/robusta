@@ -25,7 +25,7 @@ impl GetAddress for TypeDeclaration<'_> {
     }
 }
 
-impl GetAddress for LocalClassOrInterfaceDeclaration<'_> {
+impl GetAddress for LocalTypeDeclaration<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]
     fn address(&self) -> Address {
@@ -38,7 +38,7 @@ impl GetAddress for LocalClassOrInterfaceDeclaration<'_> {
     }
 }
 
-impl GetAddress for AnnotationInterfaceMemberDeclaration<'_> {
+impl GetAddress for AnnotationInterfaceMember<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]
     fn address(&self) -> Address {

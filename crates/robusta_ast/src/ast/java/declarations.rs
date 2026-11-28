@@ -197,14 +197,14 @@ pub enum TypeDeclaration<'a> {
     /// A preserved `;` among declarations (JLS §7.6, §8.1.7, §9.1.4, §9.6).
     Empty(Box<'a, EmptyStatement>) = 36,
     AnnotationInterface(Box<'a, AnnotationInterfaceDeclaration<'a>>) = 37,
-    INHERIT(LocalClassOrInterfaceDeclaration<'a>),
+    INHERIT(LocalTypeDeclaration<'a>),
 }
 
 /// The declarations a block can hold (JLS §14.3).
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetAddress, GetSpan)]
-pub enum LocalClassOrInterfaceDeclaration<'a> {
+pub enum LocalTypeDeclaration<'a> {
     Class(Box<'a, ClassDeclaration<'a>>) = 32,
     Interface(Box<'a, InterfaceDeclaration<'a>>) = 33,
     Enum(Box<'a, EnumDeclaration<'a>>) = 34,
@@ -380,14 +380,14 @@ pub struct AnnotationInterfaceDeclaration<'a> {
 pub struct AnnotationInterfaceBody<'a> {
     pub node_id: Cell<NodeId>,
     pub span: Span,
-    pub members: Vec<'a, AnnotationInterfaceMemberDeclaration<'a>>,
+    pub members: Vec<'a, AnnotationInterfaceMember<'a>>,
     pub scope_id: Cell<Option<ScopeId>>,
 }
 
 #[ast(visit)]
 #[derive(Debug)]
 #[generate_derive(ContentEq, GetAddress, GetSpan)]
-pub enum AnnotationInterfaceMemberDeclaration<'a> {
+pub enum AnnotationInterfaceMember<'a> {
     Element(Box<'a, AnnotationInterfaceElementDeclaration<'a>>) = 0,
     Field(Box<'a, FieldDeclaration<'a>>) = 1,
     INHERIT(TypeDeclaration<'a>),

@@ -38,7 +38,7 @@ pub enum Statement<'a> {
     Yield(Box<'a, YieldStatement<'a>>) = 18,
     Labeled(Box<'a, LabeledStatement<'a>>) = 19,
     /// A local type declaration (JLS §14.3).
-    INHERIT(LocalClassOrInterfaceDeclaration<'a>),
+    INHERIT(LocalTypeDeclaration<'a>),
 }
 
 #[ast(visit)]

@@ -181,8 +181,7 @@ fn separator_before_declaration(parent: &AstNodes<'_, '_>, following_start: u32)
             .statements
             .first()
             .is_some_and(|statement| {
-                statement.span().start == following_start
-                    && statement.is_local_class_or_interface_declaration()
+                statement.span().start == following_start && statement.is_local_type_declaration()
             })
             .then_some(b':'),
         _ => None,

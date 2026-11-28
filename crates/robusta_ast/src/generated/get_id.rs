@@ -2085,8 +2085,8 @@ impl TypeDeclaration<'_> {
     }
 }
 
-impl LocalClassOrInterfaceDeclaration<'_> {
-    /// Get [`NodeId`] of [`LocalClassOrInterfaceDeclaration`].
+impl LocalTypeDeclaration<'_> {
+    /// Get [`NodeId`] of [`LocalTypeDeclaration`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
@@ -2098,7 +2098,7 @@ impl LocalClassOrInterfaceDeclaration<'_> {
         }
     }
 
-    /// Set [`NodeId`] of [`LocalClassOrInterfaceDeclaration`].
+    /// Set [`NodeId`] of [`LocalTypeDeclaration`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn set_node_id(&self, node_id: NodeId) {
@@ -2111,8 +2111,8 @@ impl LocalClassOrInterfaceDeclaration<'_> {
     }
 }
 
-impl AnnotationInterfaceMemberDeclaration<'_> {
-    /// Get [`NodeId`] of [`AnnotationInterfaceMemberDeclaration`].
+impl AnnotationInterfaceMember<'_> {
+    /// Get [`NodeId`] of [`AnnotationInterfaceMember`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
@@ -2128,7 +2128,7 @@ impl AnnotationInterfaceMemberDeclaration<'_> {
         }
     }
 
-    /// Set [`NodeId`] of [`AnnotationInterfaceMemberDeclaration`].
+    /// Set [`NodeId`] of [`AnnotationInterfaceMember`].
     // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn set_node_id(&self, node_id: NodeId) {

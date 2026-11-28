@@ -591,8 +591,8 @@ impl<'a> TypeDeclaration<'a> {
     }
 }
 
-impl<'a> LocalClassOrInterfaceDeclaration<'a> {
-    /// Build a [`LocalClassOrInterfaceDeclaration::Class`].
+impl<'a> LocalTypeDeclaration<'a> {
+    /// Build a [`LocalTypeDeclaration::Class`].
     ///
     /// This node contains a [`ClassDeclaration`] that will be stored in the memory arena.
     ///
@@ -630,7 +630,7 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
         ))
     }
 
-    /// Build a [`LocalClassOrInterfaceDeclaration::Interface`].
+    /// Build a [`LocalTypeDeclaration::Interface`].
     ///
     /// This node contains an [`InterfaceDeclaration`] that will be stored in the memory arena.
     ///
@@ -665,7 +665,7 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
         ))
     }
 
-    /// Build a [`LocalClassOrInterfaceDeclaration::Enum`].
+    /// Build a [`LocalTypeDeclaration::Enum`].
     ///
     /// This node contains an [`EnumDeclaration`] that will be stored in the memory arena.
     ///
@@ -694,7 +694,7 @@ impl<'a> LocalClassOrInterfaceDeclaration<'a> {
         ))
     }
 
-    /// Build a [`LocalClassOrInterfaceDeclaration::Record`].
+    /// Build a [`LocalTypeDeclaration::Record`].
     ///
     /// This node contains a [`RecordDeclaration`] that will be stored in the memory arena.
     ///
@@ -1235,7 +1235,7 @@ impl<'a> AnnotationInterfaceBody<'a> {
     #[inline]
     pub fn new(
         span: Span,
-        members: impl IntoIn<'a, Vec<'a, AnnotationInterfaceMemberDeclaration<'a>>>,
+        members: impl IntoIn<'a, Vec<'a, AnnotationInterfaceMember<'a>>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
@@ -1248,8 +1248,8 @@ impl<'a> AnnotationInterfaceBody<'a> {
     }
 }
 
-impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Element`].
+impl<'a> AnnotationInterfaceMember<'a> {
+    /// Build an [`AnnotationInterfaceMember::Element`].
     ///
     /// This node contains an [`AnnotationInterfaceElementDeclaration`] that will be stored in the memory arena.
     ///
@@ -1281,7 +1281,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         ))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Field`].
+    /// Build an [`AnnotationInterfaceMember::Field`].
     ///
     /// This node contains a [`FieldDeclaration`] that will be stored in the memory arena.
     ///
@@ -1301,7 +1301,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         Self::Field(FieldDeclaration::boxed(span, modifiers, ty, declarators, builder.builder()))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Empty`].
+    /// Build an [`AnnotationInterfaceMember::Empty`].
     ///
     /// This node contains an [`EmptyStatement`] that will be stored in the memory arena.
     ///
@@ -1312,7 +1312,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         Self::Empty(EmptyStatement::boxed(span, builder.builder()))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::AnnotationInterface`].
+    /// Build an [`AnnotationInterfaceMember::AnnotationInterface`].
     ///
     /// This node contains an [`AnnotationInterfaceDeclaration`] that will be stored in the memory arena.
     ///
@@ -1338,7 +1338,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         ))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Class`].
+    /// Build an [`AnnotationInterfaceMember::Class`].
     ///
     /// This node contains a [`ClassDeclaration`] that will be stored in the memory arena.
     ///
@@ -1376,7 +1376,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         ))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Interface`].
+    /// Build an [`AnnotationInterfaceMember::Interface`].
     ///
     /// This node contains an [`InterfaceDeclaration`] that will be stored in the memory arena.
     ///
@@ -1411,7 +1411,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         ))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Enum`].
+    /// Build an [`AnnotationInterfaceMember::Enum`].
     ///
     /// This node contains an [`EnumDeclaration`] that will be stored in the memory arena.
     ///
@@ -1440,7 +1440,7 @@ impl<'a> AnnotationInterfaceMemberDeclaration<'a> {
         ))
     }
 
-    /// Build an [`AnnotationInterfaceMemberDeclaration::Record`].
+    /// Build an [`AnnotationInterfaceMember::Record`].
     ///
     /// This node contains a [`RecordDeclaration`] that will be stored in the memory arena.
     ///
@@ -3828,20 +3828,20 @@ impl<'a> SwitchRuleBody<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -5638,20 +5638,20 @@ impl<'a> VariableInitializer<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -6200,20 +6200,20 @@ impl<'a> Expression<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -8176,20 +8176,20 @@ impl<'a> LambdaBody<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -8205,17 +8205,17 @@ impl<'a> MethodReference<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         let builder = builder.builder();
-        MethodReference { node_id: Cell::new(builder.node_id()), span, target, type_args, method }
+        MethodReference { node_id: Cell::new(builder.node_id()), span, target, type_args, name }
     }
 
     /// Build a [`MethodReference`], and store it in the memory arena.
@@ -8227,17 +8227,17 @@ impl<'a> MethodReference<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn boxed(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Box<'a, Self> {
         let builder = builder.builder();
-        Box::new_in(Self::new(span, target, type_args, method, builder), &builder.allocator())
+        Box::new_in(Self::new(span, target, type_args, name, builder), &builder.allocator())
     }
 }
 
@@ -8742,20 +8742,20 @@ impl<'a> MethodReferenceTarget<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -10825,20 +10825,20 @@ impl<'a> AnnotationArgument<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }
@@ -11428,20 +11428,20 @@ impl<'a> ElementValue<'a> {
     /// * `span`: The [`Span`] covering this node
     /// * `target`
     /// * `type_args`: Type arguments after `::`.
-    /// * `method`: The referenced method, or `None` for `::new`.
+    /// * `name`: The method's name, or `None` for `::new`.
     #[inline]
     pub fn new_method_reference(
         span: Span,
         target: MethodReferenceTarget<'a>,
         type_args: Option<Box<'a, TypeArguments<'a>>>,
-        method: Option<IdentifierName<'a>>,
+        name: Option<IdentifierName<'a>>,
         builder: &impl GetAstBuilder<'a>,
     ) -> Self {
         Self::MethodReference(MethodReference::boxed(
             span,
             target,
             type_args,
-            method,
+            name,
             builder.builder(),
         ))
     }

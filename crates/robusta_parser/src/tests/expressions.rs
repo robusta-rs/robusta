@@ -1731,19 +1731,19 @@ fn parses_name_and_primary_method_references() {
     assert!(matches!(&reference.target, MethodReferenceTarget::FieldAccess(_)));
     assert_eq!(expression_names(reference.target.to_expression()), ["a", "b", "Foo"]);
     assert!(reference.type_args.is_none());
-    assert_eq!(reference.method.as_ref().unwrap().name, "bar");
+    assert_eq!(reference.name.as_ref().unwrap().name, "bar");
 
     let reference = method_reference_assignment(&statements[1]);
     assert!(matches!(&reference.target, MethodReferenceTarget::This(_)));
-    assert_eq!(reference.method.as_ref().unwrap().name, "g");
+    assert_eq!(reference.name.as_ref().unwrap().name, "g");
 
     let reference = method_reference_assignment(&statements[2]);
     assert!(matches!(&reference.target, MethodReferenceTarget::MethodCall(_)));
-    assert_eq!(reference.method.as_ref().unwrap().name, "h");
+    assert_eq!(reference.name.as_ref().unwrap().name, "h");
 
     let reference = method_reference_assignment(&statements[3]);
     assert!(matches!(&reference.target, MethodReferenceTarget::Super(_)));
-    assert_eq!(reference.method.as_ref().unwrap().name, "m");
+    assert_eq!(reference.name.as_ref().unwrap().name, "m");
 
     let reference = method_reference_assignment(&statements[4]);
     let MethodReferenceTarget::QualifiedSuper(target) = &reference.target else {
@@ -1751,7 +1751,7 @@ fn parses_name_and_primary_method_references() {
     };
     assert_eq!(type_name_parts(&target.qualifier), ["Outer", "Inner"]);
     assert_eq!(reference.type_args.as_ref().unwrap().args.len(), 1);
-    assert_eq!(reference.method.as_ref().unwrap().name, "adapt");
+    assert_eq!(reference.name.as_ref().unwrap().name, "adapt");
 }
 
 #[test]
@@ -1766,18 +1766,18 @@ fn parses_constructor_references() {
     let reference = method_reference_assignment(&statements[0]);
     // A plain name target stays an expression name, even before `::new`.
     assert!(matches!(&reference.target, MethodReferenceTarget::Identifier(_)));
-    assert!(reference.method.is_none());
+    assert!(reference.name.is_none());
 
     let reference = method_reference_assignment(&statements[1]);
     assert!(matches!(&reference.target, MethodReferenceTarget::Array(_)));
-    assert!(reference.method.is_none());
+    assert!(reference.name.is_none());
 
     let reference = method_reference_assignment(&statements[2]);
     let Some(named) = reference.target.as_class_type() else {
         panic!("expected a generic type target");
     };
     assert_eq!(named.args().len(), 1);
-    assert!(reference.method.is_none());
+    assert!(reference.name.is_none());
 }
 
 #[test]
@@ -1794,11 +1794,11 @@ fn type_shaped_method_reference_targets_parse_as_types() {
         panic!("expected a class type target");
     };
     assert_eq!(named.args().len(), 1);
-    assert_eq!(reference.method.as_ref().unwrap().name, "size");
+    assert_eq!(reference.name.as_ref().unwrap().name, "size");
 
     let reference = method_reference_assignment(&statements[1]);
     assert!(matches!(&reference.target, MethodReferenceTarget::Array(_)));
-    assert!(reference.method.is_none());
+    assert!(reference.name.is_none());
 }
 
 #[test]
@@ -1816,7 +1816,7 @@ fn annotated_method_reference_targets_parse_as_types() {
         panic!("expected a class type target");
     };
     assert_eq!(class_type_annotations(class_type_parts(named)[0]).len(), 1);
-    assert_eq!(reference.method.as_ref().unwrap().name, "length");
+    assert_eq!(reference.name.as_ref().unwrap().name, "length");
 
     for (stmt, element_annotations) in
         [(&statements[1], 1), (&statements[2], 0), (&statements[3], 1)]
@@ -1828,7 +1828,7 @@ fn annotated_method_reference_targets_parse_as_types() {
         assert_eq!(array.dims.len(), 1);
         assert_eq!(array.dims[0].annotations.len(), 1);
         assert_eq!(leading_annotations(&array.element).len(), element_annotations);
-        assert!(reference.method.is_none());
+        assert!(reference.name.is_none());
     }
 
     let reference = method_reference_assignment(&statements[4]);
@@ -1859,7 +1859,7 @@ fn parses_method_reference_type_arguments_and_chains() {
         panic!("expected a method reference argument");
     };
     assert_eq!(reference.type_args.as_ref().unwrap().args.len(), 1);
-    assert_eq!(reference.method.as_ref().unwrap().name, "convert");
+    assert_eq!(reference.name.as_ref().unwrap().name, "convert");
     assert!(matches!(&run.args[1], Expression::MethodReference(_)));
 }
 
