@@ -378,6 +378,94 @@ jobs:
           path: jvm/maven-plugin/build/libs/robusta-maven-plugin-${{ needs.version.outputs.number }}.jar
           retention-days: 30
 
+  homebrew-formula:
+    name: Build Homebrew formula
+    needs: [version, build]
+    runs-on: macos-15
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+      RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/v${{ needs.version.outputs.number }}
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: robusta-${{ needs.version.outputs.number }}-*
+          path: dist
+          merge-multiple: true
+
+      - name: Prepare formula
+        run: |
+          formula=$(sed -e "s|@RELEASE_URL@|$RELEASE_URL|" -e "s|@VERSION@|$VERSION|" install/robusta.rb)
+          while read -r target; do
+            checksum=$(cut -d ' ' -f 1 "dist/robusta-$target.sha256")
+            if [[ ! "$checksum" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error title=Invalid checksum::robusta-$target.sha256 has '$checksum'"
+              exit 1
+            fi
+            formula=${formula//"@SHA256_$target@"/$checksum}
+          done < <(grep -o '@SHA256_[^@]*@' install/robusta.rb | sed 's/^@SHA256_//; s/@$//')
+          if grep -q '@[A-Za-z0-9_-]*@' <<< "$formula"; then
+            echo "::error title=Unfilled formula placeholder::$(grep -o '@[A-Za-z0-9_-]*@' <<< "$formula" | head -n1)"
+            exit 1
+          fi
+          mkdir -p dist/homebrew
+          printf '%s\n' "$formula" > dist/homebrew/robusta.rb
+
+      # A local tap and server stand in for the published formula and the
+      # release, neither of which exists yet.
+      - name: Test formula
+        run: |
+          url=http://127.0.0.1:8000
+          brew tap-new --no-git robusta-rs/java
+          tap=$(brew --repository robusta-rs/java)
+          sed "s|$RELEASE_URL|$url|" dist/homebrew/robusta.rb > "$tap/Formula/robusta.rb"
+
+          python3 -m http.server 8000 --bind 127.0.0.1 --directory dist > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          for _ in $(seq 30); do curl -fs "$url/robusta-aarch64-apple-darwin.sha256" > /dev/null && break; sleep 1; done
+
+          brew install robusta-rs/java/robusta
+          brew test robusta-rs/java/robusta
+          brew style robusta-rs/java/robusta
+          brew audit --strict robusta-rs/java/robusta
+          test "$("$(brew --prefix)/bin/robusta" --version)" = "Version: $VERSION"
+
+          # Every platform installs its own executable, checked against that
+          # executable's published checksum.
+          brew info --json=v2 --variations robusta-rs/java/robusta |
+            jq -r --arg host "$(uname -m)_macos" --arg url "$url/" '.formulae[0]
+              | {($host): .}, (.variations | map_values(select(.urls.stable)))
+              | to_entries[] | "\(.key) \(.value.urls.stable.url | ltrimstr($url)) \(.value.urls.stable.checksum)"' |
+            while read -r platform asset checksum; do
+              case "$platform" in
+                arm64_linux) target=aarch64-unknown-linux-musl ;;
+                x86_64_linux) target=x86_64-unknown-linux-musl ;;
+                arm64_*) target=aarch64-apple-darwin ;;
+                *) target=x86_64-apple-darwin ;;
+              esac
+              echo "$platform: $asset"
+              if [[ "$asset" != "robusta-$target" || "$checksum" != "$(cut -d ' ' -f 1 "dist/robusta-$target.sha256")" ]]; then
+                echo "::error title=Wrong formula asset::$platform installs $asset with checksum $checksum"
+                exit 1
+              fi
+              echo "$target" >> "$RUNNER_TEMP/targets"
+            done
+          test "$(sort -u "$RUNNER_TEMP/targets" | wc -l)" -eq 4
+
+      - name: Upload formula
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          if-no-files-found: error
+          name: robusta-homebrew-formula-${{ needs.version.outputs.number }}
+          path: dist/homebrew/robusta.rb
+          retention-days: 30
+
   # Every plugin upload lives here, in one job that needs both plugin jobs, so a
   # test failure in either plugin stops the release of both. The Gradle Plugin
   # Portal refuses a second upload of a version it already has, so that
@@ -459,7 +547,7 @@ jobs:
 
   github-release:
     name: Create GitHub release
-    needs: [version, build, gradle-plugin, maven-plugin]
+    needs: [version, build, gradle-plugin, maven-plugin, homebrew-formula]
     # A publishing run dispatched later from the tag would find the release already made.
     if: ${{ github.event_name == 'push' }}
     permissions:
@@ -489,3 +577,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes
+
+  # The formula downloads the release's executables, so it is published once
+  # the release exists.
+  publish-homebrew:
+    name: Publish Homebrew formula
+    needs: [version, github-release]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - name: Check tap credentials
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
+            echo "::error title=Missing Homebrew tap token::Configure the HOMEBREW_TAP_TOKEN repository secret"
+            exit 1
+          fi
+
+      - name: Checkout tap
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: robusta-rs/homebrew-java
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Download formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: robusta-homebrew-formula-${{ needs.version.outputs.number }}
+          path: Formula
+
+      - name: Push formula
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/robusta.rb
+          if git diff --cached --quiet; then
+            echo "robusta $VERSION is already in the tap"
+            exit 0
+          fi
+          git commit -m "robusta $VERSION"
+          git push

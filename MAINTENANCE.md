@@ -15,8 +15,9 @@ In no specific order:
   - The CLI, the Gradle plugin, and the Maven coordinates all read that version
 - Run [Release CLI](https://github.com/robusta-rs/robusta/actions/workflows/release_cli.yml)
   - Also runs automatically on a `v*.*.*` tag push, without publishing the plugins
-  - Builds and tests the five native executables, their install scripts, the five jars that publish them, and the two plugin jars
+  - Builds and tests the five native executables, their install scripts, the Homebrew formula, the five jars that publish them, and the two plugin jars
   - On the tag push, creates the `v<version>` GitHub release with the native executables, their checksums, the `install.sh` and `install.ps1` scripts, and the license
+  - Then pushes the formula, filled in with the release's checksums, to [robusta-rs/homebrew-java](https://github.com/robusta-rs/homebrew-java)
 
 ### Local Rehearsal
 
@@ -44,3 +45,4 @@ In no specific order:
 - `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD` — Central Portal upload
 - `MAVEN_SIGNING_KEY`, `MAVEN_SIGNING_PASSWORD` — in-memory PGP signing of the Central deployment
 - `GRADLE_PUBLISH_KEY`, `GRADLE_PUBLISH_SECRET` — Gradle Plugin Portal upload
+- `HOMEBREW_TAP_TOKEN` — push to the `robusta-rs/homebrew-java` tap
