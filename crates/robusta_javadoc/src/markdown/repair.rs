@@ -45,10 +45,10 @@ pub fn parse(content: &str, options: &ParseOptions) -> Option<Node> {
 const BREAK: &str = "***";
 
 /// A thematic break on a line of its own before `line`, behind the quote markers and indentation
-/// that `line` starts with, which closes the blocks that `line` does not continue.
-fn break_before(content: &str, line: usize) -> Repair<'_> {
-    let marker = content.len() - content[line..].trim_start_matches([' ', '\t', '>']).len();
-    (line - 1, format!("{}{BREAK}", &content[line - 1..marker]).into())
+/// before the text at `start` on it, which closes the blocks that text is not in.
+fn break_before(content: &str, line: usize, start: usize) -> Repair<'_> {
+    let text = content.len() - content[start..].trim_start_matches([' ', '\t']).len();
+    (line - 1, format!("{}{BREAK}", &content[line - 1..text]).into())
 }
 
 /// Remove the thematic breaks that repairs inserted, which span no source text.
@@ -116,7 +116,7 @@ fn padded_first_item<'a>(container: &Node, block: &Node, content: &'a str) -> Op
             && digits > 1
             && text[..digits].trim_start_matches('0') == "1"
             && after_list_marker(text).is_some_and(|rest| !blank_first_line(rest)))
-        .then(|| break_before(content, line))
+        .then(|| break_before(content, line, marker))
     })
 }
 
@@ -163,13 +163,13 @@ fn wide_tabs(node: &Node, content: &str, repairs: &mut Vec<Repair<'_>>) {
     }
 }
 
-/// A blank line before the first block that markdown-rs reads with the guard of the paragraph
-/// before it, so that `a\n> <b>` starts an HTML block and `a\n> 2. c` and `[a]: b\n2. c` a list,
-/// indentation before the first list it reads without that guard, so that `- a\n\nb\n2. c`
-/// continues the paragraph `b`, the containers of the paragraph before the first lazy line it
-/// does not continue, a break before the first line it reads lazily or as text after a setext
-/// heading, or a break before the first zero-padded item it reads with the guard. Later ones
-/// wait, as that block can take them in.
+/// A break before the first block that markdown-rs reads with the guard of the paragraph before
+/// it, so that `a\n> <b>` starts an HTML block, `a\n>     b` indented code, and `a\n> 2. c` and
+/// `[a]: b\n2. c` a list, indentation before the first list it reads without that guard, so that
+/// `- a\n\nb\n2. c` continues the paragraph `b`, the containers of the paragraph before the first
+/// lazy line it does not continue, or a break before the first line it reads lazily or as text
+/// after a setext heading or the first zero-padded item it reads with the guard. Later ones wait,
+/// as that block can take them in.
 fn next_guard_repair<'a>(
     node: &Node,
     content: &'a str,
@@ -203,6 +203,7 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
     if gap.matches('\n').count() != 1 {
         return None;
     }
+    let line = content[..range.start].rfind('\n')? + 1;
     // After a line that closes a list item, markdown-rs drops the guard of the paragraph that
     // line starts, so any list interrupts it, not only a non-empty one starting at 1.
     if let (Node::Paragraph(_), Node::List(list)) = (before, block)
@@ -222,7 +223,6 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
         && content[paragraph.end..range.start].matches('\n').count() == 1
         && continues_paragraph(block, content)
     {
-        let line = content[..range.start].rfind('\n')? + 1;
         return lazy_line_containers(content, paragraph.start, line);
     }
     // A setext underline closes its paragraph, so no line after it is lazy or underlines it, but
@@ -231,15 +231,14 @@ fn guard_repair<'a>(before: &Node, block: &Node, content: &'a str) -> Option<Rep
     // line, behind the same markers, closes them first and leaves no paragraph to underline.
     if let Node::Heading(_) = before
         && content[before_range.clone()].contains('\n')
-        && let line = content[..range.start].rfind('\n')? + 1
         && (matches!(block, Node::Paragraph(_) | Node::Definition(_))
             && lazy_line_containers(content, before_range.start, line).is_some()
             || matches!(block, Node::Paragraph(_) | Node::Heading(_))
                 && dash_line(&content[range.start..]))
     {
-        return Some(break_before(content, line));
+        return Some(break_before(content, line, range.start));
     }
-    reads_stale_guard(before, block, content).then(|| (before_range.end, gap.into()))
+    reads_stale_guard(before, block, content).then(|| break_before(content, line, range.start))
 }
 
 /// Whether markdown-rs reads `block` with the guard of a paragraph that `before` does not leave open.
@@ -247,7 +246,7 @@ fn reads_stale_guard(before: &Node, block: &Node, content: &str) -> bool {
     // A container opened on the next line starts with no paragraph open inside it.
     if let Some(first) = first_contained_block(block) {
         return matches!(before, Node::Paragraph(_) | Node::Definition(_))
-            && (opens_with_tag(first, content) || opens_with_list_marker(first, content));
+            && (opens_with_tag_or_code(first, content) || opens_with_list_marker(first, content));
     }
     // A definition leaves no paragraph for a list item to interrupt.
     matches!(before, Node::Definition(_)) && opens_with_list_marker(block, content)
@@ -366,11 +365,11 @@ fn quote_columns(prefix: &str) -> (Vec<(usize, usize)>, usize) {
     (quotes, column)
 }
 
-/// Whether a paragraph or setext heading starts with a tag.
-fn opens_with_tag(node: &Node, content: &str) -> bool {
+/// Whether a paragraph or setext heading starts with a tag, or four columns in as code does.
+fn opens_with_tag_or_code(node: &Node, content: &str) -> bool {
+    let tag = |range: Range<usize>| content[range].trim_start_matches([' ', '\t']).starts_with('<');
     matches!(node, Node::Paragraph(_) | Node::Heading(_))
-        && span(node)
-            .is_some_and(|range| content[range].trim_start_matches([' ', '\t']).starts_with('<'))
+        && span(node).is_some_and(|range| indented(content, range.clone()) || tag(range))
 }
 
 /// Whether a paragraph or setext heading starts with a list marker, as an item that cannot
