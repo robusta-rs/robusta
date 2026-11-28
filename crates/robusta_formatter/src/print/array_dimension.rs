@@ -6,7 +6,9 @@ use robusta_span::{GetSpan, Span};
 use crate::ast_nodes::{AstNode, AstNodeListElement};
 use crate::formatter::separated::format_delimited_frame;
 use crate::formatter::{prelude::*, trivia::format_dangling_comments};
-use crate::print::{FormatWrite, annotations::format_type_annotations};
+use crate::print::{
+    FormatWrite, annotations::format_type_annotations, names::class_type_wraps_line,
+};
 use crate::utils::{
     format_node_without_trailing_comments::format_content_without_comments_after,
     statement_body::{
@@ -20,7 +22,8 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, ArrayCreation<'a>> {
         write!(f, ["new", space()]);
         let element_end = self.element.span().end;
         let annotated = |dimension: &ArrayDimension<'_>| !dimension.annotations.is_empty();
-        let wrapped = dimensions_wrap_line(f, element_end, &self.dims, annotated);
+        let wrapped = type_wraps_line(f, &self.element)
+            || dimensions_wrap_line(f, element_end, &self.dims, annotated);
         format_content_without_comments_after(&self.element(), element_end, f);
         format_dimensions(f, element_end, &self.dims(), annotated);
         if let Some(init) = self.init() {
@@ -126,12 +129,16 @@ fn dimensions_wrap_line<D: GetSpan>(
 }
 
 /// Whether a comment that ends its line comes before the `[` of one of `ty`'s
-/// dimensions, so the code after `ty` continues a wrapped line.
+/// dimensions or the type arguments of one of its class names, so the code
+/// after `ty` continues a wrapped line.
 pub fn type_wraps_line(f: &JavaFormatter<'_, '_>, ty: &Type<'_>) -> bool {
-    let Type::Array(array) = ty else {
-        return false;
-    };
-    array_type_dimensions_wrap_line(f, array.element.span().end, &array.dims)
+    match ty {
+        Type::Array(array) => {
+            type_wraps_line(f, &array.element)
+                || array_type_dimensions_wrap_line(f, array.element.span().end, &array.dims)
+        }
+        _ => ty.as_class_type().is_some_and(|ty| class_type_wraps_line(f, ty)),
+    }
 }
 
 /// `dimensions` after the text ending at `preceding_end`; returns where the

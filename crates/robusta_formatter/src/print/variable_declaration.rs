@@ -48,7 +48,7 @@ impl<'a> FormatWrite<'a> for AstNode<'_, 'a, LocalVariableDeclaration<'a>> {
 /// Format the type and `VariableDeclaratorList` fields and locals share
 /// (JLS §8.3, §14.4), then the `;` ending the declaration at `node_end`, when
 /// the declaration prints one. The declarators continue a line `wrapped` by a
-/// comment before one of the type's `[`s.
+/// comment before one of the type's `[`s or type arguments.
 fn format_type_and_declarators<'a>(
     f: &mut JavaFormatter<'_, 'a>,
     ty: &(impl Format<'a, JavaFormatContext<'a>> + GetSpan),

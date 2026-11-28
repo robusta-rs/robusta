@@ -95,11 +95,24 @@ pub fn format_after_comments_before_opener<'a>(
     code: &impl Format<'a, JavaFormatContext<'a>>,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
+    format_after_comments_before_opener_with_indent(start, opener, code, false, f);
+}
+
+/// [`format_after_comments_before_opener`], indenting the wrapped line twice
+/// when `double` is set, as a moved method name is.
+pub fn format_after_comments_before_opener_with_indent<'a>(
+    start: u32,
+    opener: u8,
+    code: &impl Format<'a, JavaFormatContext<'a>>,
+    double: bool,
+    f: &mut JavaFormatter<'_, 'a>,
+) {
     let content = format_with(|f| {
         write_comments_before_opener(start, opener, f);
         code.fmt(f);
     });
-    format_on_wrapped_line(comment_ends_line_before_opener(start, f), &content, f);
+    let wrapped = comment_ends_line_before_opener(start, f);
+    format_on_wrapped_line_with_indent(wrapped, double, &content, f);
 }
 
 /// `code`, indented as a wrapped line when `wrapped`: the decision
@@ -110,8 +123,18 @@ pub fn format_on_wrapped_line<'a>(
     code: &impl Format<'a, JavaFormatContext<'a>>,
     f: &mut JavaFormatter<'_, 'a>,
 ) {
+    format_on_wrapped_line_with_indent(wrapped, false, code, f);
+}
+
+/// [`format_on_wrapped_line`], indenting `code` twice when `double` is set.
+pub fn format_on_wrapped_line_with_indent<'a>(
+    wrapped: bool,
+    double: bool,
+    code: &impl Format<'a, JavaFormatContext<'a>>,
+    f: &mut JavaFormatter<'_, 'a>,
+) {
     if wrapped {
-        indent(code).fmt(f);
+        wrapped_indent(double, code).fmt(f);
     } else {
         code.fmt(f);
     }

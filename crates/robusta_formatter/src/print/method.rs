@@ -7,12 +7,13 @@ use crate::formatter::trivia::{
 use crate::print::annotations::format_modifiers_stacked;
 use crate::print::array_dimension::format_array_type_dimensions;
 use crate::print::class::{FormatDeclarationClause, format_declaration_header};
+use crate::print::names::class_type_wraps_line;
 use crate::print::parameters::format_parameter_list;
 use crate::print::semicolon::FormatContentWithSemicolon;
 use crate::print::{FormatWrite, format_name_after_type, format_name_after_type_with_indent};
 use crate::utils::assignment_like::AssignmentLike;
 use crate::utils::format_node_without_trailing_comments::format_content_without_comments_after;
-use crate::utils::statement_body::format_head_body;
+use crate::utils::statement_body::{format_head_body, format_on_wrapped_line_with_indent};
 use robusta_allocator::Vec;
 use robusta_ast::{
     AnnotationInterfaceElementDeclaration, ArrayTypeDimension, Comment,
@@ -165,7 +166,16 @@ where
         }
         let rest = format_once(|f| header_end = format_name_through_throws(f, signature));
         let name_start = signature.name.span().start;
-        format_name_after_type_with_indent(name_start, &rest, measure_flat, true, f);
+        let name = format_once(|f| {
+            format_name_after_type_with_indent(name_start, &rest, measure_flat, true, f);
+        });
+        // The name continues the line of the return type's moved type arguments.
+        let class = match return_type.inner() {
+            MethodResult::Array(array) => array.element.as_class_type(),
+            result => result.as_class_type(),
+        };
+        let wrapped = class.is_some_and(|class| class_type_wraps_line(f, class));
+        format_on_wrapped_line_with_indent(wrapped, true, &name, f);
     });
     let Some(type_params) = &signature.type_params else {
         result_through_throws.fmt(f);

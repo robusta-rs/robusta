@@ -195,7 +195,9 @@ pub fn starts_type_declaration_list(node: &AstNodes<'_, '_>, start: u32) -> bool
     first.is_some_and(|first| first.start == start)
 }
 
-fn is_type_declaration(node: &AstNodes<'_, '_>) -> bool {
+/// Whether `node` is a type declaration that can have type parameters and
+/// clauses: any but an annotation interface.
+pub fn is_type_declaration(node: &AstNodes<'_, '_>) -> bool {
     matches!(
         node,
         AstNodes::ClassDeclaration(_)
